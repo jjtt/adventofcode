@@ -9,18 +9,18 @@ def is_tree(lines, r, c):
 
 lines = [l.rstrip() for l in sys.stdin.readlines()]
 
-trees = 0
+def slope(lines, down, right):
+    trees = 0
 
-r = 0
-c = 0
-down = 1
-right = 3
+    r = 0
+    c = 0
 
-while r < len(lines):
-    if is_tree(lines, r, c):
-        trees = trees + 1
-    c = c + right
-    r = r + down
+    while r < len(lines):
+        if is_tree(lines, r, c):
+            trees = trees + 1
+        c = c + right
+        r = r + down
+    return trees
 
-print(trees)
+print( slope(lines, 1, 1) * slope(lines, 1, 3) * slope(lines, 1, 5) * slope(lines, 1, 7) * slope(lines, 2, 1))
 
