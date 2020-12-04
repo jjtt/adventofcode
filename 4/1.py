@@ -24,7 +24,7 @@ def isvalid(d):
 
 count = 0
 one = []
-for l in lines:
+for l in lines + [""]:
     if l == "":
         if isvalid(todict(one)):
             count = count + 1
