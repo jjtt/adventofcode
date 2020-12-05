@@ -13,6 +13,6 @@ seats.sort()
 prev = seats[1]
 for s in seats:
     if not s == prev+1:
-        print(s)
+        print(s-1)
     prev = s
 
