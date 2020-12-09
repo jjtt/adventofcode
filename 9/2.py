@@ -24,14 +24,16 @@ for n in nums[presize:]:
     pre.pop(0)
     pre.append(n)
 
-summed = []
+s1 = 0
+s2 = 0
 
-for n in nums:
-    if sum(summed) < weak:
-        summed.append(n)
-    if sum(summed) == weak:
-        print(summed[0])
-        print(summed[-1])
+while(True):
+    if sum(nums[s1:s2]) < weak:
+        s2 = s2 + 1
+    if sum(nums[s1:s2]) == weak:
+        l = nums[s1:s2]
+        l.sort()
+        print(l[0] + l[-1])
         break
-    if sum(summed) > weak:
-        summed.pop(0)
+    if sum(nums[s1:s2]) > weak:
+        s1 = s1 + 1
