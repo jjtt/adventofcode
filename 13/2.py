@@ -11,10 +11,15 @@ high = max([int(b) for b in busses if b != 'x'])
 e = {int(b):i for i,b in zip(range(len(busses)), busses) if b != 'x'}
 
 i = 1
-while any([((i*high) - e[high] + e[b]) % b for b in e.keys()]):
-    if (i % 10000000) == 0:
-        print(i)
-    i = i + 1
+h = 18876031 * i + 3558031
+x = h * 983 - 72
 
-print(i)
-print((i*high) - e[high])
+
+while any([(x + e[b]) % b for b in e.keys()]):
+    if (i % 10000000) == 0:
+        print((i,x))
+    i = i + 1
+    h = 18876031 * i + 3558031
+    x = h * 983 - 72
+
+print(x)
