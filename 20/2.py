@@ -79,7 +79,6 @@ for t in tiles.keys():
 l = [v[0] for e,v in edges.items() if len(v) < 2]
 
 first = [i for i in l if l.count(i) == 4][0]
-print(first)
 firstedges = list(set([''.join(e) for e in find_edges(tiles[first]) if len(edges[''.join(e)]) > 1]))
 firstbottom = firstedges[0]
 firstright = [e for e in firstedges[1:] if not e == firstbottom[::-1]][0]
@@ -91,8 +90,6 @@ if not is_right(first_to_bottom, firstright):
 assert is_right(first_to_bottom, firstright)
 assert is_right(turn(turn(turn(first_to_bottom))), firstbottom)
 
-printtile(first_to_bottom)
-
 fixed = []
 fixedrow = [first_to_bottom]
 tiles.pop(first)
@@ -103,27 +100,31 @@ nextbottomedge = bottom(first_to_bottom)
 while len(tiles) > 0:
     candidates = [t for t in edges[''.join(nextrightedge)] if t in tiles.keys()]
     assert len(candidates) <= 1
-    print(candidates)
     if len(candidates) == 0:
+        fixed.append(fixedrow)
+        fixedrow=[]
         candidates = [t for t in edges[''.join(nextbottomedge)] if t in tiles.keys()]
         assert len(candidates) <= 1
-        print(candidates)
         c = tiles.pop(candidates[0])
         c = turn(turn(turn_to_bottom(c, nextbottomedge)))
         fixedrow.append(c)
         nextrightedge = right(c)
         nextbottomedge = bottom(c)
-        printtile(c)
     else:
         c = tiles.pop(candidates[0])
         c = turn(turn_to_bottom(c, nextrightedge))
         fixedrow.append(c)
         nextrightedge = right(c)
-        printtile(c)
-        
+fixed.append(fixedrow)
 
 
-
+for tilerow in fixed:
+    for i in range(len(tilerow[0])):
+        longrow = []
+        for t in tilerow:
+            longrow.append(t[i])
+        print(' '.join([''.join(r) for r in longrow]))
+    print()
 
 
 
