@@ -123,8 +123,7 @@ for tilerow in fixed:
         longrow = []
         for t in tilerow:
             longrow.append(t[i][1:-1])
-        print(' '.join([''.join(r) for r in longrow]))
-    print()
+        print(''.join([''.join(r) for r in longrow]))
 
 
 
