@@ -4,8 +4,10 @@ import sys
 import math
 
 def printtile(t):
+    print()
     for r in t:
         print(''.join(r))
+    print()
 
 def find_edges(t):
     e = [
@@ -28,9 +30,22 @@ def turn(t):
         trans.append(row)
     return(flip(trans))
 
-def turn_to_bottom(t, bottom):
-    pass
-    
+def turn_to_bottom(tile, bottom):
+    b = list(bottom)
+    for f in [tile, flip(tile)]:
+        t = f
+        for i in range(4):
+            if t[-1] == b:
+                return t
+            t = turn(t)
+    raise ValueError("Unpossible")
+
+def is_right(tile, right):
+    turned = turn(tile)
+    printtile(turned)
+    bottom = ''.join(turned[-1])
+    return right == bottom or right[::-1] == bottom
+
 
 lines = [l.rstrip() for l in sys.stdin.readlines()] 
 
@@ -64,10 +79,6 @@ firstbottom = firstedges[0]
 firstright = [e for e in firstedges[1:] if not e == firstbottom[::-1]][0]
 
 printtile(tiles[first])
-print()
-printtile(flip(tiles[first]))
-print()
-printtile(turn(flip(tiles[first])))
 
 print(first)
 print(firstedges)
@@ -81,6 +92,16 @@ neigh = [edges[''.join(e)] for e in find_edges(tiles[first])]
 print(neigh)
 
 print([item for sublist in neigh for item in sublist if item not in fixed][0])
+
+
+
+
+first_to_bottom = turn_to_bottom(tiles[first], firstbottom)
+printtile(first_to_bottom)
+if not is_right(first_to_bottom, firstright):
+    first_to_bottom = flip(first_to_bottom)
+assert is_right(first_to_bottom, firstright)
+assert is_right(turn(turn(turn(first_to_bottom))), firstbottom)
 
 
 
