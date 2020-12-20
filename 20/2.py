@@ -42,9 +42,14 @@ def turn_to_bottom(tile, bottom):
 
 def is_right(tile, right):
     turned = turn(tile)
-    printtile(turned)
     bottom = ''.join(turned[-1])
     return right == bottom or right[::-1] == bottom
+
+def right(tile):
+    return [r[-1] for r in tile]
+
+def bottom(tile):
+    return tile[-1][::-1]
 
 
 lines = [l.rstrip() for l in sys.stdin.readlines()] 
@@ -74,34 +79,52 @@ for t in tiles.keys():
 l = [v[0] for e,v in edges.items() if len(v) < 2]
 
 first = [i for i in l if l.count(i) == 4][0]
+print(first)
 firstedges = list(set([''.join(e) for e in find_edges(tiles[first]) if len(edges[''.join(e)]) > 1]))
 firstbottom = firstedges[0]
 firstright = [e for e in firstedges[1:] if not e == firstbottom[::-1]][0]
 
-printtile(tiles[first])
-
-print(first)
-print(firstedges)
-print(firstbottom)
-print(firstright)
-
-fixed = [first]
-
-neigh = [edges[''.join(e)] for e in find_edges(tiles[first])]
-
-print(neigh)
-
-print([item for sublist in neigh for item in sublist if item not in fixed][0])
-
-
-
 
 first_to_bottom = turn_to_bottom(tiles[first], firstbottom)
-printtile(first_to_bottom)
 if not is_right(first_to_bottom, firstright):
     first_to_bottom = flip(first_to_bottom)
 assert is_right(first_to_bottom, firstright)
 assert is_right(turn(turn(turn(first_to_bottom))), firstbottom)
+
+printtile(first_to_bottom)
+
+fixed = []
+fixedrow = [first_to_bottom]
+tiles.pop(first)
+
+nextrightedge = right(first_to_bottom)
+nextbottomedge = bottom(first_to_bottom)
+
+while len(tiles) > 0:
+    candidates = [t for t in edges[''.join(nextrightedge)] if t in tiles.keys()]
+    assert len(candidates) <= 1
+    print(candidates)
+    if len(candidates) == 0:
+        candidates = [t for t in edges[''.join(nextbottomedge)] if t in tiles.keys()]
+        assert len(candidates) <= 1
+        print(candidates)
+        c = tiles.pop(candidates[0])
+        c = turn(turn(turn_to_bottom(c, nextbottomedge)))
+        fixedrow.append(c)
+        nextrightedge = right(c)
+        nextbottomedge = bottom(c)
+        printtile(c)
+    else:
+        c = tiles.pop(candidates[0])
+        c = turn(turn_to_bottom(c, nextrightedge))
+        fixedrow.append(c)
+        nextrightedge = right(c)
+        printtile(c)
+        
+
+
+
+
 
 
 
