@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-import math
+import re
 
 def printtile(t):
     print()
@@ -118,15 +118,46 @@ while len(tiles) > 0:
 fixed.append(fixedrow)
 
 
+bigtile = []
 for tilerow in fixed:
     for i in range(1,len(tilerow[0])-1):
         longrow = []
         for t in tilerow:
-            longrow.append(t[i][1:-1])
-        print(''.join([''.join(r) for r in longrow]))
+            longrow = longrow + list(t[i][1:-1])
+        bigtile.append(longrow)
+
+printtile(bigtile)
+
+
+monster1 = "                  # "
+monster2 = "#    ##    ##    ###"
+monster3 = " #  #  #  #  #  #   "
+
+re1 = r"^" + monster1.replace(' ', '.')
+re2 = r"^" + monster2.replace(' ', '.')
+re3 = r"^" + monster3.replace(' ', '.')
+
+print(re1)
+print(re2)
+print(re3)
 
 
 
+counts = []
+for f in [bigtile, flip(bigtile)]:
+    t = f
+    for i in range(4):
+        count = 0
+        for r in range(len(t)-1):
+            for c in range(len(t[0])):
+                if re.match(re1, ''.join(t[r][c:])) and re.match(re2, ''.join(t[r+1][c:])) and re.match(re3, ''.join(t[r+2][c:])):
+                    count = count + 1
+        t = turn(t)
+        counts.append(count)
+print(max(counts))
 
 
+monsterbashes = max(counts) * (monster1 + monster2 + monster3).count('#')
+print(monsterbashes)
 
+print(''.join([''.join(r) for r in bigtile]).count('#') - monsterbashes)
