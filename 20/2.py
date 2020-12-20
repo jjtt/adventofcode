@@ -119,10 +119,10 @@ fixed.append(fixedrow)
 
 
 for tilerow in fixed:
-    for i in range(len(tilerow[0])):
+    for i in range(1,len(tilerow[0])-1):
         longrow = []
         for t in tilerow:
-            longrow.append(t[i])
+            longrow.append(t[i][1:-1])
         print(' '.join([''.join(r) for r in longrow]))
     print()
 
