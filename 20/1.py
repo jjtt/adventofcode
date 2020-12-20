@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 
 import sys
-
-def combine_with_reversed(t):
-    r = []
-    for i in range(len(t)):
-        r.append(chr(ord(t[i]) + ord(t[-i])))
-    return r
+import math
 
 def find_edges(t):
     e = [
         t[0],
-        t[-1],
-        [r[0] for r in t],
         [r[-1] for r in t],
+        list(reversed(t[-1])),
+        list(reversed([r[0] for r in t])),
     ]
-    return [combine_with_reversed(t) for t in e]
+    return e + [list(reversed(t)) for t in e]
 
 lines = [l.rstrip() for l in sys.stdin.readlines()] 
 
@@ -42,11 +37,8 @@ for t in tiles.keys():
         nums.append(t)
         edges[key] = nums
 
-print(edges)
-print({e:v for e,v in edges.items() if len(v) < 2}.values())
 l = [v[0] for e,v in edges.items() if len(v) < 2]
-print(l)
-l.sort()
-print(l)
-print(set(l))
+
+print(math.prod(set([i for i in l if l.count(i) == 4])))
+
 
