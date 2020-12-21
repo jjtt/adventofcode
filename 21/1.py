@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import itertools
 import pprint
 
 def remove_fixed(ing_by_al, a, i):
@@ -22,12 +23,19 @@ for l in lines:
     i,a = l.split(' (contains ')
     foods.append((tuple(i.split(' ')), tuple(a[:-1].split(', '))))
 
-ing_by_al = {}
+facts = []
+allergens = set()
 for i,a in foods:
     for al in a:
+        allergens.add(al)
         for ing in i:
-            print(f"{al}({ing}).")
+            facts.append(f"{al}({ing}).")
+facts.sort()
 
-        #print(f"{al}({al.upper()}).")
+for f in facts:
+    print(f)
+
+print("solve(", ','.join([a.upper() for a in allergens]), "):-", ', '.join([f"{a}({a.upper()})" for a in allergens] + [f"not({a.upper()}={b.upper()})" for a,b in itertools.combinations(allergens, 2)]), ".")
+
     
 
