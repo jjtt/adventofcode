@@ -3,6 +3,8 @@
 import sys
 import copy
 
+sys.setrecursionlimit(10000)
+
 lines = [l.rstrip() for l in sys.stdin.readlines()] 
 
 players = [[],[]]
