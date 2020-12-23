@@ -27,28 +27,20 @@ clockwise = clockwise + list(extracups)
 for i in range(rounds):
     if not i % 10000:
         print(f"round {i+1}")
-    print(f"round {i+1}")
-    print(clockwise)
     current = clockwise.pop(0)
     clockwise.append(current)
-    p = []
-    p.append(clockwise.pop(0))
-    p.append(clockwise.pop(0))
-    p.append(clockwise.pop(0))
-    print(p)
+    p = clockwise[:3]
+    del clockwise[:3]
     d = dest(p, current, size)
-    print(d)
 
-    nextstart = []
-    c = clockwise.pop(0)
-    while not c == d:
-        nextstart.append(c)
-        c = clockwise.pop(0)
+    ci = 0
+    while not clockwise[ci] == d:
+        ci += 1
 
-    clockwise.insert(0, p[2])
-    clockwise.insert(0, p[1])
-    clockwise.insert(0, p[0])
-    clockwise.insert(0, c)
+    nextstart = clockwise[:ci+1]
+    del clockwise[:ci+1]
+
+    clockwise[0:0] = p
 
     clockwise[0:0] = nextstart
     
