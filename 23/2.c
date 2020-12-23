@@ -28,7 +28,7 @@ void main(int argc, char* argv[]) {
   int d = dest(1, 2, 3, 4, size);
   printf("%d\n", d);
 
-  int* indices = calloc(size, sizeof(int));
+  int* indices = calloc(size+1, sizeof(int));
   indices[3] = 0;
   indices[8] = 1;
   indices[9] = 2;
