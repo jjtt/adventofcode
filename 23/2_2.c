@@ -36,7 +36,7 @@ void main(int argc, char* argv[]) {
   for (int i=10; i<=size; i++) {
     nums[i-1] = i;
   }
-  p(nums, size);
+  //p(nums, size);
 
   int head[4];
 
@@ -67,8 +67,9 @@ void main(int argc, char* argv[]) {
     nums[(n+b-2)%size] = head[2];
     nums[(n+b-3)%size] = head[1];
     b = (b+1)%size;
+    printf("%d\n", n);
   }
 
 
-  p(nums, size);
+  //p(nums, size);
 }
