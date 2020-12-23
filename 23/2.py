@@ -41,13 +41,17 @@ clockwise = deque(clockwise + list(extracups))
 for i in range(rounds):
     if not i % 10000:
         print(f"round {i+1}")
+    print(f"round {i+1}")
+    print(clockwise)
     current = clockwise.popleft()
     clockwise.append(current)
     p = []
     p.append(clockwise.popleft())
     p.append(clockwise.popleft())
     p.append(clockwise.popleft())
+    print(p)
     d = dest(p, current, size)
+    print(d)
 
     nextstart = deque([])
     c = clockwise.popleft()
@@ -68,3 +72,14 @@ out = []
 for i in range(one+1, one+3):
     out.append(clockwise[i%len(clockwise)])
 print(out)
+
+m = 0
+c = 0
+for i in range(1, size):
+    if clockwise[i-1]+1 == clockwise[i]:
+        c += 1
+    else:
+        m = max(m, c)
+        c = 0
+print(max(m,c))
+
