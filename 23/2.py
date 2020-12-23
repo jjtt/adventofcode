@@ -1,20 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-from collections import deque
-
-def pick(circle, start, count):
-    #circle = inputcircle[:]
-    start = start % len(circle)
-    end = start+count
-    a = circle[start:end]
-    #del circle[start:start+count]
-    if not len(a) == count:
-        end = count-len(a)
-        b = circle[:end]
-        #del circle[:count-len(a)]
-        a = a + b
-    return a, end
 
 def dest(picked, current, size):
     while True:
@@ -35,7 +21,7 @@ cupcount = size - len(clockwise)
 
 extracups = range(max(clockwise)+1, max(clockwise)+cupcount+1)
 
-clockwise = deque(clockwise + list(extracups))
+clockwise = clockwise + list(extracups)
 
 
 for i in range(rounds):
@@ -43,29 +29,28 @@ for i in range(rounds):
         print(f"round {i+1}")
     print(f"round {i+1}")
     print(clockwise)
-    current = clockwise.popleft()
+    current = clockwise.pop(0)
     clockwise.append(current)
     p = []
-    p.append(clockwise.popleft())
-    p.append(clockwise.popleft())
-    p.append(clockwise.popleft())
+    p.append(clockwise.pop(0))
+    p.append(clockwise.pop(0))
+    p.append(clockwise.pop(0))
     print(p)
     d = dest(p, current, size)
     print(d)
 
-    nextstart = deque([])
-    c = clockwise.popleft()
+    nextstart = []
+    c = clockwise.pop(0)
     while not c == d:
         nextstart.append(c)
-        c = clockwise.popleft()
+        c = clockwise.pop(0)
 
-    clockwise.appendleft(p[2])
-    clockwise.appendleft(p[1])
-    clockwise.appendleft(p[0])
-    clockwise.appendleft(c)
+    clockwise.insert(0, p[2])
+    clockwise.insert(0, p[1])
+    clockwise.insert(0, p[0])
+    clockwise.insert(0, c)
 
-    nextstart += clockwise
-    clockwise = nextstart
+    clockwise[0:0] = nextstart
     
 one = clockwise.index(1)
 out = []
