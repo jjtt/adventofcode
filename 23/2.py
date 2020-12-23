@@ -36,13 +36,12 @@ extracups = range(max(clockwise)+1, max(clockwise)+cupcount+1)
 
 clockwise = clockwise + list(extracups)
 
-current = clockwise[0]
+ci = 0
 
 
 for i in range(rounds):
     if not i % 10000:
         print(f"round {i+1}")
-    ci = clockwise.index(current)
     p, end = pick(clockwise, ci+1, 3)
     d = dest(p, clockwise[ci], size)
 
@@ -55,7 +54,7 @@ for i in range(rounds):
     clockwise[(move-1)%size] = p[1]
     clockwise[(move)%size] = p[2]
         
-    current = clockwise[(clockwise.index(current) + 1) % len(clockwise)]
+    ci = (ci + 1) % size
     
 one = clockwise.index(1)
 out = []
