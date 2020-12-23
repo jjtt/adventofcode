@@ -2,23 +2,25 @@
 
 import sys
 
-def pick(inputcircle, start, count):
-    circle = inputcircle[:]
+def pick(circle, start, count):
+    #circle = inputcircle[:]
     start = start % len(circle)
-    a = circle[start:start+count]
-    del circle[start:start+count]
+    end = start+count
+    a = circle[start:end]
+    #del circle[start:start+count]
     if not len(a) == count:
-        b = circle[:count-len(a)]
-        del circle[:count-len(a)]
+        end = count-len(a)
+        b = circle[:end]
+        #del circle[:count-len(a)]
         a = a + b
-    return a, circle
+    return a, end
 
-def dest(rest, current, size):
+def dest(picked, current, size):
     while True:
         current = (current - 1) % size
         if current == 0:
             current = size
-        if current in rest:
+        if current not in picked:
             return current
 
 rounds = int(sys.argv[1])
@@ -27,7 +29,8 @@ lines = [l.rstrip() for l in sys.stdin.readlines()]
 
 clockwise = [int(i) for i in lines[0]]
 
-cupcount = int(sys.argv[2]) - len(clockwise)
+size = int(sys.argv[2])
+cupcount = size - len(clockwise)
 
 extracups = range(max(clockwise)+1, max(clockwise)+cupcount+1)
 
@@ -40,12 +43,18 @@ for i in range(rounds):
     if not i % 10000:
         print(f"round {i+1}")
     ci = clockwise.index(current)
-    p, r = pick(clockwise, ci+1, 3)
-    d = dest(r, clockwise[ci], len(clockwise))
+    p, end = pick(clockwise, ci+1, 3)
+    d = dest(p, clockwise[ci], size)
 
-    di = r.index(d)+1
-    r[di:di] = p
-    clockwise = r
+    move = ci + 4
+    clockwise[(move-3)%size] = clockwise[move%size]
+    while not clockwise[move%size] == d:
+        move = move + 1
+        clockwise[(move-3)%size] = clockwise[move%size]
+    clockwise[(move-2)%size] = p[0]
+    clockwise[(move-1)%size] = p[1]
+    clockwise[(move)%size] = p[2]
+        
     current = clockwise[(clockwise.index(current) + 1) % len(clockwise)]
     
 one = clockwise.index(1)
