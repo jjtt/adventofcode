@@ -38,26 +38,30 @@ extracups = range(max(clockwise)+1, max(clockwise)+cupcount+1)
 clockwise = deque(clockwise + list(extracups))
 
 
-
 for i in range(rounds):
     if not i % 10000:
         print(f"round {i+1}")
     current = clockwise.popleft()
+    clockwise.append(current)
     p = []
     p.append(clockwise.popleft())
     p.append(clockwise.popleft())
     p.append(clockwise.popleft())
     d = dest(p, current, size)
-    di = len(clockwise) - 1
-    for c in reversed(clockwise):
-        if c == d:
-            break
-        di = di - 1
 
-    clockwise.insert(di+1, p[2])
-    clockwise.insert(di+1, p[1])
-    clockwise.insert(di+1, p[0])
-    clockwise.append(current)
+    nextstart = deque([])
+    c = clockwise.popleft()
+    while not c == d:
+        nextstart.append(c)
+        c = clockwise.popleft()
+
+    clockwise.appendleft(p[2])
+    clockwise.appendleft(p[1])
+    clockwise.appendleft(p[0])
+    clockwise.appendleft(c)
+
+    nextstart += clockwise
+    clockwise = nextstart
     
 one = clockwise.index(1)
 out = []
