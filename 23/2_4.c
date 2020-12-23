@@ -29,15 +29,15 @@ void main(int argc, char* argv[]) {
   printf("%d\n", d);
 
   int* indices = calloc(size+1, sizeof(int));
-  indices[3] = 8;
-  indices[8] = 9;
-  indices[9] = 1;
-  indices[1] = 2;
-  indices[2] = 5;
-  indices[5] = 4;
+  indices[3] = 2;
+  indices[2] = 7;
+  indices[7] = 4;
   indices[4] = 6;
-  indices[6] = 7;
-  indices[7] = 10;
+  indices[6] = 5;
+  indices[5] = 1;
+  indices[1] = 8;
+  indices[8] = 9;
+  indices[9] = 10;
   for (int i=10; i<size; i++) {
     indices[i] = i+1;
   }
