@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+from collections import deque
 
 def pick(circle, start, count):
     #circle = inputcircle[:]
@@ -34,27 +35,29 @@ cupcount = size - len(clockwise)
 
 extracups = range(max(clockwise)+1, max(clockwise)+cupcount+1)
 
-clockwise = clockwise + list(extracups)
+clockwise = deque(clockwise + list(extracups))
 
-ci = 0
 
 
 for i in range(rounds):
     if not i % 10000:
         print(f"round {i+1}")
-    p, end = pick(clockwise, ci+1, 3)
-    d = dest(p, clockwise[ci], size)
+    current = clockwise.popleft()
+    p = []
+    p.append(clockwise.popleft())
+    p.append(clockwise.popleft())
+    p.append(clockwise.popleft())
+    d = dest(p, current, size)
+    di = len(clockwise) - 1
+    for c in reversed(clockwise):
+        if c == d:
+            break
+        di = di - 1
 
-    move = ci + 4
-    clockwise[(move-3)%size] = clockwise[move%size]
-    while not clockwise[move%size] == d:
-        move = move + 1
-        clockwise[(move-3)%size] = clockwise[move%size]
-    clockwise[(move-2)%size] = p[0]
-    clockwise[(move-1)%size] = p[1]
-    clockwise[(move)%size] = p[2]
-        
-    ci = (ci + 1) % size
+    clockwise.insert(di+1, p[2])
+    clockwise.insert(di+1, p[1])
+    clockwise.insert(di+1, p[0])
+    clockwise.append(current)
     
 one = clockwise.index(1)
 out = []
