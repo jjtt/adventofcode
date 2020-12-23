@@ -52,6 +52,9 @@ void main(int argc, char* argv[]) {
   int newhead[4];
 
   for (int i=0; i<rounds; i++) {
+    if (i%1000 == 0) {
+      printf("Round: %d\n", i);
+    }
     int d = dest(head[1], head[2], head[3], head[0], size);
     int di = indices[d];
 
