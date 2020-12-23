@@ -10,11 +10,14 @@ def dest(picked, current, size):
         if current not in picked:
             return current
 
+def print_circle(indices):
+    print(indices)
+    d = {indices[v]: v for v in range(1,size+1)}
+    print([d[i] for i in sorted(d.keys())])
+
 def to_circle(indices):
-    ret = [0] * len(indices)
-    for i in range(1,len(indices)+1):
-        ret[indices[i]] = i
-    return ret
+    d = {indices[v]: v for v in range(1,size+1)}
+    return [d[i] for i in sorted(d.keys())]
 
 rounds = int(sys.argv[1])
 
@@ -29,16 +32,27 @@ extracups = range(max(clockwise)+1, max(clockwise)+cupcount+1)
 
 clockwise = clockwise + list(extracups)
 
-indices = {}
+indices = list(range(size+1))
 for i in range(len(clockwise)):
     indices[clockwise[i]] = i
 
 head = clockwise[:4]
 
+print(clockwise)
+print(indices)
+print(to_circle(indices))
+print(head)
+
+
+
 for i in range(rounds):
-    if not i % 100:
+    if not i % 10000:
         print(f"round {i+1}")
+    print(f"round {i+1}")
+    print(to_circle(indices))
+    print(head)
     d = dest(head[1:], head[0], size)
+    print(d)
     di = indices[d]
     newhead = [0] * 4
     for n in range(1, size+1):
