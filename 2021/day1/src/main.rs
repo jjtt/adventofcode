@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+use std::collections::LinkedList;
 
 fn main() {
     println!("Hello, world!");
@@ -32,6 +33,27 @@ mod test {
                 result = result + 1;
             }
             prev = cur;
+        }
+        return result;
+    }
+
+    #[test_case("sample1.txt" => is eq(5) ; "sample")]
+    #[test_case("input1.txt" => is eq(1683) ; "input")]
+    fn part2(input: &str) -> i32 {
+        let mut result = 0;
+        let mut prev = i32::MAX;
+        let mut window = LinkedList::new();
+        for line in read_lines(input).unwrap() {
+            let l = line.unwrap().parse::<i32>().unwrap();
+            window.push_back(l);
+            if window.len() > 2 {
+                let cur = window.iter().sum();
+                if cur > prev {
+                    result = result + 1;
+                }
+                prev = cur;
+                window.pop_front();
+            }
         }
         return result;
     }
