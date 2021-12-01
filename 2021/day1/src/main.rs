@@ -22,9 +22,16 @@ mod test {
 
     #[test_case("sample1.txt" => is eq(7) ; "sample")]
     fn part1(input: &str) -> i32 {
+        let mut result = 0;
+        let mut prev = i32::MAX;
         for line in read_lines(input).unwrap() {
-            println!("{}", line.unwrap())
+            //println!("{}", line.unwrap());
+            let cur = line.unwrap().parse::<i32>().unwrap();
+            if cur > prev {
+                result = result + 1;
+            }
+            prev = cur;
         }
-        42
+        return result;
     }
 }
