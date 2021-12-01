@@ -21,6 +21,7 @@ mod test {
     use super::*;
 
     #[test_case("sample1.txt" => is eq(7) ; "sample")]
+    #[test_case("input1.txt" => is eq(1655) ; "input")]
     fn part1(input: &str) -> i32 {
         let mut result = 0;
         let mut prev = i32::MAX;
