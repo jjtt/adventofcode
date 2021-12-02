@@ -44,4 +44,26 @@ mod test {
         return h * d;
     }
 
+    #[test_case("sample1.txt" => is eq(900) ; "sample")]
+    #[test_case("input1.txt" => is eq(1845455714) ; "input")]
+    fn part2(input: &str) -> i32 {
+        let mut a = 0;
+        let mut h = 0;
+        let mut d = 0;
+        for line in read_lines(input).unwrap() {
+            let cur = line.unwrap();
+            let mut split = cur.split(" ");
+            let movement = split.next().unwrap();
+            let amount = split.next().unwrap().parse::<i32>().unwrap();
+            //println!("{}, {}", movement, amount);
+            match movement {
+                "forward" => {h = h + amount; d = d + a*amount;},
+                "down" => a = a + amount,
+                "up" => a = a - amount,
+                _ => panic!(),
+            }
+        }
+        return h * d;
+    }
+
 }
