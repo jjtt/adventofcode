@@ -57,7 +57,10 @@ mod test {
             let amount = split.next().unwrap().parse::<i32>().unwrap();
             //println!("{}, {}", movement, amount);
             match movement {
-                "forward" => {h = h + amount; d = d + a*amount;},
+                "forward" => {
+                    h = h + amount;
+                    d = d + a * amount;
+                }
                 "down" => a = a + amount,
                 "up" => a = a - amount,
                 _ => panic!(),
@@ -65,5 +68,4 @@ mod test {
         }
         return h * d;
     }
-
 }
