@@ -102,7 +102,7 @@ mod test {
     }
 
     #[test_case("sample1.txt", 5 => is eq(230) ; "sample")]
-    #[test_case("input.txt", 12 => is eq(0) ; "input")]
+    #[test_case("input.txt", 12 => is eq(2981085) ; "input")]
     fn part2(input: &str, bits: usize) -> u32 {
         let mut candidates_o = vec![];
         let mut candidates_c = vec![];
@@ -114,7 +114,7 @@ mod test {
         }
 
         for i in 0..bits {
-            let counts = count_bitwise_ones(candidates_o.iter(), bits);
+            let counts = count_ones(bits, &candidates_o);
             dbg!(&counts);
 
             if counts[i] >= (candidates_o.len() as i32 - counts[i]) {
@@ -131,7 +131,7 @@ mod test {
         }
 
         for i in 0..bits {
-            let counts = count_bitwise_ones(candidates_c.iter(), bits);
+            let counts = count_ones(bits, &candidates_c);
             dbg!(&counts);
 
             if counts[i] < (candidates_c.len() as i32 - counts[i]) {
