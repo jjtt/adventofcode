@@ -53,6 +53,22 @@ fn count_ones(bits: usize, nums: &Vec<isize>) -> Vec<i32> {
     sums
 }
 
+fn lifesupport(bits: usize, candidates: &mut Vec<isize>, compare: fn(i32, i32) -> bool) {
+    for i in 0..bits {
+        let counts = count_ones(bits, &candidates);
+
+        if compare(counts[i], candidates.len() as i32) {
+            candidates.retain(|v| (*v & (1 << (bits - i - 1))) > 0);
+        } else {
+            candidates.retain(|v| (*v & (1 << (bits - i - 1))) == 0);
+        }
+
+        if candidates.len() <= 1 {
+            break;
+        }
+    }
+}
+
 const SIZE: usize = usize::BITS as usize;
 
 #[cfg(test)]
@@ -113,33 +129,13 @@ mod test {
             candidates_c.push(int);
         }
 
-        for i in 0..bits {
-            let counts = count_ones(bits, &candidates_o);
+        lifesupport(bits, &mut candidates_o, |num_ones, num_total| {
+            num_ones >= (num_total - num_ones)
+        });
 
-            if counts[i] >= (candidates_o.len() as i32 - counts[i]) {
-                candidates_o.retain(|v| (*v & (1 << (bits - i - 1))) > 0);
-            } else {
-                candidates_o.retain(|v| (*v & (1 << (bits - i - 1))) == 0);
-            }
-
-            if candidates_o.len() <= 1 {
-                break;
-            }
-        }
-
-        for i in 0..bits {
-            let counts = count_ones(bits, &candidates_c);
-
-            if counts[i] < (candidates_c.len() as i32 - counts[i]) {
-                candidates_c.retain(|v| (*v & (1 << (bits - i - 1))) > 0);
-            } else {
-                candidates_c.retain(|v| (*v & (1 << (bits - i - 1))) == 0);
-            }
-
-            if candidates_c.len() <= 1 {
-                break;
-            }
-        }
+        lifesupport(bits, &mut candidates_c, |num_ones, num_total| {
+            num_ones < (num_total - num_ones)
+        });
 
         let oxygen = candidates_o[0] as u32;
         let co2 = candidates_c[0] as u32;
