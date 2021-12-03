@@ -53,7 +53,7 @@ fn count_ones(bits: usize, nums: &Vec<isize>) -> Vec<i32> {
     sums
 }
 
-fn lifesupport(bits: usize, candidates: &mut Vec<isize>, compare: fn(i32, i32) -> bool) {
+fn lifesupport(bits: usize, candidates: &mut Vec<isize>, compare: fn(i32, i32) -> bool) -> u32 {
     for i in 0..bits {
         let counts = count_ones(bits, &candidates);
 
@@ -67,6 +67,8 @@ fn lifesupport(bits: usize, candidates: &mut Vec<isize>, compare: fn(i32, i32) -
             break;
         }
     }
+
+    candidates[0] as u32
 }
 
 const SIZE: usize = usize::BITS as usize;
@@ -129,16 +131,13 @@ mod test {
             candidates_c.push(int);
         }
 
-        lifesupport(bits, &mut candidates_o, |num_ones, num_total| {
+        let oxygen = lifesupport(bits, &mut candidates_o, |num_ones, num_total| {
             num_ones >= (num_total - num_ones)
         });
 
-        lifesupport(bits, &mut candidates_c, |num_ones, num_total| {
+        let co2 = lifesupport(bits, &mut candidates_c, |num_ones, num_total| {
             num_ones < (num_total - num_ones)
         });
-
-        let oxygen = candidates_o[0] as u32;
-        let co2 = candidates_c[0] as u32;
 
         oxygen * co2
     }
