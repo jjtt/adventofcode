@@ -17,7 +17,9 @@ where
 }
 
 fn count_bitwise_ones<'a, I>(nums: I, bits: usize) -> Vec<i32>
-where I: Iterator<Item=&'a isize>{
+where
+    I: Iterator<Item = &'a isize>,
+{
     let mut counts = vec![0; bits];
 
     let n: Vec<isize> = nums.cloned().collect();
@@ -33,15 +35,13 @@ where I: Iterator<Item=&'a isize>{
     counts
 }
 
-fn increment_one_counts(bits: usize, sums: &mut Vec<i32>, nums: &mut Vec<isize>) {
+fn increment_one_counts(bits: usize, sums: &mut Vec<i32>, nums: &[isize]) {
     let counts = count_bitwise_ones(nums.iter(), bits);
     sums.iter_mut().zip(counts).for_each(|(a, b)| *a = *a + b);
-    nums.clear();
 }
 
 #[cfg(test)]
 mod test {
-    use std::collections::LinkedList;
     use std::usize;
     use test_case::test_case;
 
@@ -61,24 +61,28 @@ mod test {
     #[test_case("test1.txt", 5 => is eq(198) ; "test")]
     fn part1(input: &str, bits: usize) -> u32 {
         const SIZE: usize = usize::BITS as usize;
-        let mut input_count = 0;
         let mut sums = vec![0; bits];
         let mut nums = Vec::with_capacity(SIZE);
         for line in read_lines(input).unwrap() {
             let cur = line.unwrap();
             let int = isize::from_str_radix(&cur, 2).unwrap();
             nums.push(int);
-            if nums.len() % SIZE == 0 {
-                increment_one_counts(bits, &mut sums, &mut nums);
-            }
-            input_count += 1;
         }
-        increment_one_counts(bits, &mut sums, &mut nums);
+
+        let input_count = nums.len();
+
+        for i in 0..(input_count + SIZE - 1) / SIZE {
+            increment_one_counts(
+                bits,
+                &mut sums,
+                &nums[i * SIZE..usize::min((i + 1) * SIZE, input_count)],
+            );
+        }
 
         let mut g = 0;
         let mut e;
         for b in 0..bits {
-            let over_half_ones = sums[bits - b - 1] > input_count / 2;
+            let over_half_ones = sums[bits - b - 1] > input_count as i32 / 2;
             g = g | (if over_half_ones { 1 } else { 0 } << b);
         }
 
@@ -101,8 +105,6 @@ mod test {
             candidates_o.push(int.clone());
             candidates_c.push(int);
         }
-
-        let input_count = candidates_o.len();
 
         for i in 0..bits {
             let counts = count_bitwise_ones(candidates_o.iter(), bits);
