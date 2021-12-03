@@ -40,13 +40,28 @@ fn increment_one_counts(bits: usize, sums: &mut Vec<i32>, nums: &[isize]) {
     sums.iter_mut().zip(counts).for_each(|(a, b)| *a = *a + b);
 }
 
+fn count_ones(bits: usize, nums: &Vec<isize>) -> Vec<i32> {
+    let mut sums = vec![0; bits];
+    let input_count = nums.len();
+    for i in 0..(input_count + SIZE - 1) / SIZE {
+        increment_one_counts(
+            bits,
+            &mut sums,
+            &nums[i * SIZE..usize::min((i + 1) * SIZE, input_count)],
+        );
+    }
+    sums
+}
+
+const SIZE: usize = usize::BITS as usize;
+
 #[cfg(test)]
 mod test {
     use std::usize;
+
     use test_case::test_case;
 
     use super::*;
-
     #[test]
     fn count() {
         assert_eq!([0], count_bitwise_ones((vec![0]).iter(), 1)[..]);
@@ -60,8 +75,6 @@ mod test {
     #[test_case("input.txt", 12 => is eq(3309596) ; "input")]
     #[test_case("test1.txt", 5 => is eq(198) ; "test")]
     fn part1(input: &str, bits: usize) -> u32 {
-        const SIZE: usize = usize::BITS as usize;
-        let mut sums = vec![0; bits];
         let mut nums = Vec::with_capacity(SIZE);
         for line in read_lines(input).unwrap() {
             let cur = line.unwrap();
@@ -71,13 +84,7 @@ mod test {
 
         let input_count = nums.len();
 
-        for i in 0..(input_count + SIZE - 1) / SIZE {
-            increment_one_counts(
-                bits,
-                &mut sums,
-                &nums[i * SIZE..usize::min((i + 1) * SIZE, input_count)],
-            );
-        }
+        let sums = count_ones(bits, &nums);
 
         let mut g = 0;
         let mut e;
