@@ -115,15 +115,12 @@ mod test {
 
         for i in 0..bits {
             let counts = count_ones(bits, &candidates_o);
-            dbg!(&counts);
 
             if counts[i] >= (candidates_o.len() as i32 - counts[i]) {
                 candidates_o.retain(|v| (*v & (1 << (bits - i - 1))) > 0);
             } else {
                 candidates_o.retain(|v| (*v & (1 << (bits - i - 1))) == 0);
             }
-
-            dbg!(&candidates_o);
 
             if candidates_o.len() <= 1 {
                 break;
@@ -132,15 +129,12 @@ mod test {
 
         for i in 0..bits {
             let counts = count_ones(bits, &candidates_c);
-            dbg!(&counts);
 
             if counts[i] < (candidates_c.len() as i32 - counts[i]) {
                 candidates_c.retain(|v| (*v & (1 << (bits - i - 1))) > 0);
             } else {
                 candidates_c.retain(|v| (*v & (1 << (bits - i - 1))) == 0);
             }
-
-            dbg!(&candidates_c);
 
             if candidates_c.len() <= 1 {
                 break;
