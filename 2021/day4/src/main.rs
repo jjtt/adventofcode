@@ -32,7 +32,7 @@ impl Board {
         assert_eq!(SIZE * SIZE, numbers.len() as i32);
         Board {
             marked: vec![],
-            numbers: numbers,
+            numbers,
         }
     }
 
@@ -77,6 +77,23 @@ impl Board {
 
 fn main() {
     println!("Hello, world!");
+}
+
+fn numbers_and_boards(input: String) -> (Vec<i32>, Box<Vec<Board>>) {
+    let lines: Vec<&str> = input.trim().lines().collect();
+
+    let numbers: Vec<i32> = lines
+        .get(0)
+        .unwrap()
+        .split(",")
+        .map(|n| n.parse::<i32>().unwrap())
+        .collect();
+
+    let mut boards: Vec<Board> = Vec::new();
+    for b in lines[1..].chunks(SIZE as usize + 1) {
+        boards.push(Board::new(&b.to_vec()));
+    }
+    (numbers, Box::new(boards))
 }
 
 fn play(boards: &mut Vec<Board>, numbers: Vec<i32>, play_to_win: bool) -> (i32, Board) {
@@ -192,21 +209,9 @@ mod test {
     fn part1(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let lines: Vec<&str> = input.trim().lines().collect();
+        let (numbers, mut boards) = numbers_and_boards(input);
 
-        let numbers: Vec<i32> = lines
-            .get(0)
-            .unwrap()
-            .split(",")
-            .map(|n| n.parse::<i32>().unwrap())
-            .collect();
-
-        let mut boards: Vec<Board> = Vec::new();
-        for b in lines[1..].chunks(SIZE as usize + 1) {
-            boards.push(Board::new(&b.to_vec()));
-        }
-
-        let (last_number, winner) = play(&mut boards, numbers, true);
+        let (last_number, winner) = play(&mut *boards, numbers, true);
 
         last_number * winner.sum_unused()
     }
@@ -216,21 +221,9 @@ mod test {
     fn part2(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let lines: Vec<&str> = input.trim().lines().collect();
+        let (numbers, mut boards) = numbers_and_boards(input);
 
-        let numbers: Vec<i32> = lines
-            .get(0)
-            .unwrap()
-            .split(",")
-            .map(|n| n.parse::<i32>().unwrap())
-            .collect();
-
-        let mut boards: Vec<Board> = Vec::new();
-        for b in lines[1..].chunks(SIZE as usize + 1) {
-            boards.push(Board::new(&b.to_vec()));
-        }
-
-        let (last_number, loser) = play(&mut boards, numbers, false);
+        let (last_number, loser) = play(&mut *boards, numbers, false);
 
         last_number * loser.sum_unused()
     }
