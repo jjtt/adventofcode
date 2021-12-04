@@ -79,13 +79,21 @@ fn main() {
     println!("Hello, world!");
 }
 
-fn play(boards: &mut Vec<Board>, numbers: Vec<i32>) -> (i32, Board) {
+fn play(boards: &mut Vec<Board>, numbers: Vec<i32>, play_to_win: bool) -> (i32, Board) {
+    let num_boards = boards.len() as i32;
+    let mut num_winners = 0;
     for n in numbers.iter() {
         for b in &mut *boards {
+            if b.is_winner() {
+                continue;
+            }
             b.play(*n);
 
             if b.is_winner() {
-                return (*n, b.clone());
+                num_winners += 1;
+                if play_to_win || num_winners == num_boards {
+                    return (*n, b.clone());
+                }
             }
         }
     }
@@ -198,11 +206,32 @@ mod test {
             boards.push(Board::new(&b.to_vec()));
         }
 
-        dbg!(&numbers);
-        dbg!(&boards);
-
-        let (last_number, winner) = play(&mut boards, numbers);
+        let (last_number, winner) = play(&mut boards, numbers, true);
 
         last_number * winner.sum_unused()
+    }
+
+    #[test_case("sample1.txt" => is eq(1924) ; "sample")]
+    #[test_case("input.txt" => is eq(8112) ; "input")]
+    fn part2(input: &str) -> i32 {
+        let input = read_to_string(input).unwrap();
+
+        let lines: Vec<&str> = input.trim().lines().collect();
+
+        let numbers: Vec<i32> = lines
+            .get(0)
+            .unwrap()
+            .split(",")
+            .map(|n| n.parse::<i32>().unwrap())
+            .collect();
+
+        let mut boards: Vec<Board> = Vec::new();
+        for b in lines[1..].chunks(SIZE as usize + 1) {
+            boards.push(Board::new(&b.to_vec()));
+        }
+
+        let (last_number, loser) = play(&mut boards, numbers, false);
+
+        last_number * loser.sum_unused()
     }
 }
