@@ -1,3 +1,4 @@
+#![feature(slice_group_by)]
 use std::fs::read_to_string;
 
 fn main() {
@@ -122,16 +123,27 @@ mod test {
     }
 
     #[test_case("sample1.txt" => is eq(5) ; "sample")]
-    #[test_case("input.txt" => is eq(0) ; "input")]
+    #[test_case("input.txt" => is eq(5576) ; "input")]
     fn part1(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
         let lines = lines(input);
 
-        0
+        let mut points: Vec<(i32, i32)> = lines.iter().flat_map(|l| l.points()).collect();
+        points.sort();
+        points
+            .group_by(|l1, l2| l1 == l2)
+            .map(|l| l.len() as i32)
+            .filter(|count| *count > 1)
+            .count() as i32
     }
 
     fn lines(input: String) -> Vec<Line> {
-        todo!()
+        let lines: Vec<&str> = input.trim().lines().collect();
+        lines
+            .iter()
+            .map(|s| Line::new(*s))
+            .filter(|l| l.is_hori_vert())
+            .collect()
     }
 }
