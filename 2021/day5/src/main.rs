@@ -46,7 +46,7 @@ impl Line {
     fn points(&self) -> Vec<(i32, i32)> {
         let k = (self.y2 - self.y1) as f32 / (self.x2 - self.x1) as f32;
         let k_inv = (self.x2 - self.x1) as f32 / (self.y2 - self.y1) as f32;
-        if self.is_vert() || k > 0.5 {
+        if self.is_vert() || k > 1.0 {
             let points = Line::points_on_line(self.y1, self.x1, self.y2, k_inv);
             points.iter().map(|(y, x)| (*x, *y)).collect()
         } else {
@@ -64,8 +64,9 @@ impl Line {
             range = (x1..=x2).collect();
         }
 
+        let x0 = *range.get(0).unwrap() as f32;
         for x in range {
-            points.push((x, y1 + (x as f32 * k).round() as i32))
+            points.push((x, y1 + ((x as f32 - x0) * k).round() as i32))
         }
         points
     }
@@ -122,12 +123,27 @@ mod test {
         assert_eq!(vec![(0, 0), (1, 1)], line.points())
     }
 
+    #[test]
+    fn parse_line_diag_long() {
+        let input = "4,3 -> 1,0";
+        let line = Line::new(input);
+
+        assert_eq!(4, line.x1);
+        assert_eq!(3, line.y1);
+        assert_eq!(1, line.x2);
+        assert_eq!(0, line.y2);
+
+        assert_eq!(false, line.is_hori_vert());
+
+        assert_eq!(vec![(4, 3), (3, 2), (2, 1), (1, 0)], line.points())
+    }
+
     #[test_case("sample1.txt" => is eq(5) ; "sample")]
     #[test_case("input.txt" => is eq(5576) ; "input")]
     fn part1(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let lines = lines(input);
+        let lines = lines(input, false);
 
         let mut points: Vec<(i32, i32)> = lines.iter().flat_map(|l| l.points()).collect();
         points.sort();
@@ -138,12 +154,28 @@ mod test {
             .count() as i32
     }
 
-    fn lines(input: String) -> Vec<Line> {
+    #[test_case("sample1.txt" => is eq(12) ; "sample")]
+    #[test_case("input.txt" => is eq(18144) ; "input")]
+    fn part2(input: &str) -> i32 {
+        let input = read_to_string(input).unwrap();
+
+        let lines = lines(input, true);
+
+        let mut points: Vec<(i32, i32)> = lines.iter().flat_map(|l| l.points()).collect();
+        points.sort();
+        points
+            .group_by(|l1, l2| l1 == l2)
+            .map(|l| l.len() as i32)
+            .filter(|count| *count > 1)
+            .count() as i32
+    }
+
+    fn lines(input: String, allow_diagonal: bool) -> Vec<Line> {
         let lines: Vec<&str> = input.trim().lines().collect();
         lines
             .iter()
             .map(|s| Line::new(*s))
-            .filter(|l| l.is_hori_vert())
+            .filter(|l| allow_diagonal || l.is_hori_vert())
             .collect()
     }
 }
