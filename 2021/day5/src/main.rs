@@ -72,6 +72,25 @@ impl Line {
     }
 }
 
+fn count_crossings(lines: Vec<Line>) -> i32 {
+    let mut points: Vec<(i32, i32)> = lines.iter().flat_map(|l| l.points()).collect();
+    points.sort();
+    points
+        .group_by(|l1, l2| l1 == l2)
+        .map(|l| l.len() as i32)
+        .filter(|count| *count > 1)
+        .count() as i32
+}
+
+fn lines(input: String, allow_diagonal: bool) -> Vec<Line> {
+    let lines: Vec<&str> = input.trim().lines().collect();
+    lines
+        .iter()
+        .map(|s| Line::new(*s))
+        .filter(|l| allow_diagonal || l.is_hori_vert())
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -145,13 +164,7 @@ mod test {
 
         let lines = lines(input, false);
 
-        let mut points: Vec<(i32, i32)> = lines.iter().flat_map(|l| l.points()).collect();
-        points.sort();
-        points
-            .group_by(|l1, l2| l1 == l2)
-            .map(|l| l.len() as i32)
-            .filter(|count| *count > 1)
-            .count() as i32
+        count_crossings(lines)
     }
 
     #[test_case("sample1.txt" => is eq(12) ; "sample")]
@@ -161,21 +174,6 @@ mod test {
 
         let lines = lines(input, true);
 
-        let mut points: Vec<(i32, i32)> = lines.iter().flat_map(|l| l.points()).collect();
-        points.sort();
-        points
-            .group_by(|l1, l2| l1 == l2)
-            .map(|l| l.len() as i32)
-            .filter(|count| *count > 1)
-            .count() as i32
-    }
-
-    fn lines(input: String, allow_diagonal: bool) -> Vec<Line> {
-        let lines: Vec<&str> = input.trim().lines().collect();
-        lines
-            .iter()
-            .map(|s| Line::new(*s))
-            .filter(|l| allow_diagonal || l.is_hori_vert())
-            .collect()
+        count_crossings(lines)
     }
 }
