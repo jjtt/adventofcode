@@ -4,6 +4,14 @@ fn main() {
     println!("Hello, world!");
 }
 
+fn crabs_from_input(input: String) -> Vec<i32> {
+    input
+        .trim()
+        .split(",")
+        .map(|f| f.parse().unwrap())
+        .collect()
+}
+
 fn count_fuel<F>(crabs: Vec<i32>, cost: F) -> i32
 where
     F: Fn(&i32) -> i32,
@@ -22,6 +30,22 @@ fn triangular_number(from: i32) -> Box<dyn Fn(&i32) -> i32> {
     })
 }
 
+fn find_optimal<F>(crabs: Vec<i32>, cost: F) -> i32
+where
+    F: Fn(i32) -> Box<dyn Fn(&i32) -> i32>,
+{
+    let mut min_fuel = i32::MAX;
+    let mut _chosen;
+    for align_to in *crabs.iter().min().unwrap()..=*crabs.iter().max().unwrap() {
+        let fuel = count_fuel(crabs.clone(), cost(align_to));
+        if fuel < min_fuel {
+            min_fuel = fuel;
+            _chosen = align_to;
+        }
+    }
+    min_fuel
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -35,11 +59,7 @@ mod test {
     fn partial(input: &str, align_to: i32) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let crabs: Vec<i32> = input
-            .trim()
-            .split(",")
-            .map(|f| f.parse().unwrap())
-            .collect();
+        let crabs = crabs_from_input(input);
 
         count_fuel(crabs, distance(align_to))
     }
@@ -49,11 +69,7 @@ mod test {
     fn partial2(input: &str, align_to: i32) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let crabs: Vec<i32> = input
-            .trim()
-            .split(",")
-            .map(|f| f.parse().unwrap())
-            .collect();
+        let crabs = crabs_from_input(input);
 
         count_fuel(crabs, triangular_number(align_to))
     }
@@ -63,23 +79,9 @@ mod test {
     fn part1(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let crabs: Vec<i32> = input
-            .trim()
-            .split(",")
-            .map(|f| f.parse().unwrap())
-            .collect();
+        let crabs = crabs_from_input(input);
 
-        let mut min_fuel = i32::MAX;
-        let mut _chosen;
-        for align_to in *crabs.iter().min().unwrap()..=*crabs.iter().max().unwrap() {
-            let fuel = count_fuel(crabs.clone(), distance(align_to));
-            if fuel < min_fuel {
-                min_fuel = fuel;
-                _chosen = align_to;
-            }
-        }
-
-        min_fuel
+        find_optimal(crabs, distance)
     }
 
     #[test_case("sample1.txt" => is eq(168) ; "sample")]
@@ -87,22 +89,8 @@ mod test {
     fn part2(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let crabs: Vec<i32> = input
-            .trim()
-            .split(",")
-            .map(|f| f.parse().unwrap())
-            .collect();
+        let crabs = crabs_from_input(input);
 
-        let mut min_fuel = i32::MAX;
-        let mut _chosen;
-        for align_to in *crabs.iter().min().unwrap()..=*crabs.iter().max().unwrap() {
-            let fuel = count_fuel(crabs.clone(), triangular_number(align_to));
-            if fuel < min_fuel {
-                min_fuel = fuel;
-                _chosen = align_to;
-            }
-        }
-
-        min_fuel
+        find_optimal(crabs, triangular_number)
     }
 }
