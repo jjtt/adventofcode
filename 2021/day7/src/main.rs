@@ -4,18 +4,22 @@ fn main() {
     println!("Hello, world!");
 }
 
-fn count_fuel(crabs: Vec<i32>, align_to: i32) -> i32 {
-    crabs.iter().map(|c| (c - align_to).abs()).sum()
+fn count_fuel<F>(crabs: Vec<i32>, cost: F) -> i32
+where
+    F: Fn(&i32) -> i32,
+{
+    crabs.iter().map(cost).sum()
 }
 
-fn count_fuel_more(crabs: Vec<i32>, align_to: i32) -> i32 {
-    crabs
-        .iter()
-        .map(|c| {
-            let diff = (c - align_to).abs();
-            diff * (1 + diff) / 2
-        })
-        .sum()
+fn distance(from: i32) -> Box<dyn Fn(&i32) -> i32> {
+    Box::new(move |c| (c - from).abs())
+}
+
+fn triangular_number(from: i32) -> Box<dyn Fn(&i32) -> i32> {
+    Box::new(move |c| {
+        let diff = (c - from).abs();
+        diff * (1 + diff) / 2
+    })
 }
 
 #[cfg(test)]
@@ -37,7 +41,7 @@ mod test {
             .map(|f| f.parse().unwrap())
             .collect();
 
-        count_fuel(crabs, align_to)
+        count_fuel(crabs, distance(align_to))
     }
 
     #[test_case("sample1.txt", 5 => is eq(168) ; "sample to 5")]
@@ -51,7 +55,7 @@ mod test {
             .map(|f| f.parse().unwrap())
             .collect();
 
-        count_fuel_more(crabs, align_to)
+        count_fuel(crabs, triangular_number(align_to))
     }
 
     #[test_case("sample1.txt" => is eq(37) ; "sample")]
@@ -68,7 +72,7 @@ mod test {
         let mut min_fuel = i32::MAX;
         let mut _chosen;
         for align_to in *crabs.iter().min().unwrap()..=*crabs.iter().max().unwrap() {
-            let fuel = count_fuel(crabs.clone(), align_to);
+            let fuel = count_fuel(crabs.clone(), distance(align_to));
             if fuel < min_fuel {
                 min_fuel = fuel;
                 _chosen = align_to;
@@ -92,7 +96,7 @@ mod test {
         let mut min_fuel = i32::MAX;
         let mut _chosen;
         for align_to in *crabs.iter().min().unwrap()..=*crabs.iter().max().unwrap() {
-            let fuel = count_fuel_more(crabs.clone(), align_to);
+            let fuel = count_fuel(crabs.clone(), triangular_number(align_to));
             if fuel < min_fuel {
                 min_fuel = fuel;
                 _chosen = align_to;
