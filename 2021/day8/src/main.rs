@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
 fn main() {
@@ -27,9 +28,131 @@ fn parse_line(l: &str) -> Vec<Vec<String>> {
         .collect()
 }
 
+fn deduce_mappings(inputs: &Vec<String>) -> HashMap<String, i32> {
+    let mut known = HashMap::new();
+
+    let easies = easy_mappings(inputs);
+
+    for (s, v) in &easies {
+        known.insert(*v, s.clone());
+    }
+
+    let mut remaining: Vec<String> = inputs
+        .iter()
+        .filter(|i| !easies.contains_key(*i))
+        .map(|s| s.to_string())
+        .collect();
+
+    known.insert(
+        9,
+        remaining
+            .iter()
+            .filter(|i| i.len() == 6)
+            .filter(|s| {
+                let mut s = (*s).clone();
+                s.retain(|x| !known.get(&(4)).unwrap().contains(x));
+                s.retain(|x| !known.get(&(7)).unwrap().contains(x));
+                s.len() == 1
+            })
+            .map(|s| s.to_string())
+            .next()
+            .unwrap(),
+    );
+    remaining.retain(|x| x != known.get(&(9)).unwrap());
+
+    known.insert(
+        0,
+        remaining
+            .iter()
+            .filter(|i| i.len() == 6)
+            .filter(|s| {
+                let mut s = (*s).clone();
+                s.retain(|x| !known.get(&(1)).unwrap().contains(x));
+                s.len() == 4
+            })
+            .map(|s| s.to_string())
+            .last()
+            .unwrap(),
+    );
+    remaining.retain(|x| x != known.get(&(0)).unwrap());
+
+    known.insert(
+        6,
+        remaining
+            .iter()
+            .filter(|i| i.len() == 6)
+            .map(|s| s.to_string())
+            .last()
+            .unwrap(),
+    );
+    remaining.retain(|x| x != known.get(&(6)).unwrap());
+
+    known.insert(
+        3,
+        remaining
+            .iter()
+            .filter(|s| {
+                let mut s = (*s).clone();
+                s.retain(|x| !known.get(&(1)).unwrap().contains(x));
+                s.len() == 3
+            })
+            .map(|s| s.to_string())
+            .last()
+            .unwrap(),
+    );
+    remaining.retain(|x| x != known.get(&(3)).unwrap());
+
+    known.insert(
+        5,
+        remaining
+            .iter()
+            .filter(|s| {
+                let mut s = (*s).clone();
+                s.retain(|x| !known.get(&(9)).unwrap().contains(x));
+                s.len() == 0
+            })
+            .map(|s| s.to_string())
+            .last()
+            .unwrap(),
+    );
+    remaining.retain(|x| x != known.get(&(5)).unwrap());
+
+    known.insert(2, remaining.get(0).unwrap().clone());
+
+    let mut out = HashMap::new();
+    for (v, s) in known {
+        out.insert(s, v);
+    }
+
+    out
+}
+
+fn easy_mappings(input: &Vec<String>) -> HashMap<String, i32> {
+    input
+        .iter()
+        .map(|l| match l.len() {
+            7 => Some((l.clone(), 8)),
+            4 => Some((l.clone(), 4)),
+            3 => Some((l.clone(), 7)),
+            2 => Some((l.clone(), 1)),
+            _ => None,
+        })
+        .filter_map(|x| x)
+        .collect()
+}
+
+fn output_value(outputs: &Vec<String>, known: HashMap<String, i32>) -> i32 {
+    outputs
+        .iter()
+        .map(|x| known.get(x).unwrap().to_string())
+        .collect::<Vec<String>>()
+        .join("")
+        .parse::<i32>()
+        .unwrap()
+}
+
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
     use test_case::test_case;
 
     use super::*;
@@ -43,127 +166,11 @@ mod test {
         let inputs = l.get(0).unwrap();
         let outputs = l.get(1).unwrap();
 
-        let known = foo(inputs);
+        let known = deduce_mappings(inputs);
 
         assert_eq!(2, *known.get("acdfg").unwrap());
 
-        assert_eq!(
-            5353,
-            outputs
-                .iter()
-                .map(|x| known.get(x).unwrap().to_string())
-                .collect::<Vec<String>>()
-                .join("")
-                .parse::<i32>()
-                .unwrap()
-        );
-    }
-
-    fn foo(inputs: &Vec<String>) -> HashMap<String, i32> {
-        let mut known = HashMap::new();
-
-        let easies = easy_mappings(inputs);
-
-        for (s, v) in &easies {
-            known.insert(*v, s.clone());
-        }
-
-        let mut remaining: Vec<String> = inputs
-            .iter()
-            .filter(|i| !easies.contains_key(*i))
-            .map(|s| s.to_string())
-            .collect();
-        known.insert(
-            9,
-            remaining
-                .iter()
-                .filter(|i| i.len() == 6)
-                .filter(|s| {
-                    let mut s = (*s).clone();
-                    s.retain(|x| !known.get(&(4)).unwrap().contains(x));
-                    s.retain(|x| !known.get(&(7)).unwrap().contains(x));
-                    s.len() == 1
-                })
-                .map(|s| s.to_string())
-                .next()
-                .unwrap(),
-        );
-        remaining.retain(|x| x != known.get(&(9)).unwrap());
-        known.insert(
-            0,
-            remaining
-                .iter()
-                .filter(|i| i.len() == 6)
-                .filter(|s| {
-                    let mut s = (*s).clone();
-                    s.retain(|x| !known.get(&(1)).unwrap().contains(x));
-                    s.len() == 4
-                })
-                .map(|s| s.to_string())
-                .last()
-                .unwrap(),
-        );
-        remaining.retain(|x| x != known.get(&(0)).unwrap());
-        known.insert(
-            6,
-            remaining
-                .iter()
-                .filter(|i| i.len() == 6)
-                .map(|s| s.to_string())
-                .last()
-                .unwrap(),
-        );
-        remaining.retain(|x| x != known.get(&(6)).unwrap());
-        known.insert(
-            3,
-            remaining
-                .iter()
-                .filter(|s| {
-                    let mut s = (*s).clone();
-                    s.retain(|x| !known.get(&(1)).unwrap().contains(x));
-                    s.len() == 3
-                })
-                .map(|s| s.to_string())
-                .last()
-                .unwrap(),
-        );
-        remaining.retain(|x| x != known.get(&(3)).unwrap());
-        known.insert(
-            5,
-            remaining
-                .iter()
-                .filter(|s| {
-                    let mut s = (*s).clone();
-                    s.retain(|x| !known.get(&(9)).unwrap().contains(x));
-                    s.len() == 0
-                })
-                .map(|s| s.to_string())
-                .last()
-                .unwrap(),
-        );
-        remaining.retain(|x| x != known.get(&(5)).unwrap());
-        known.insert(2, remaining.get(0).unwrap().clone());
-
-        let mut out = HashMap::new();
-        for (v, s) in known {
-            out.insert(s, v);
-        }
-
-        out
-    }
-
-    fn easy_mappings(input: &Vec<String>) -> HashMap<String, i32> {
-        input
-            .iter()
-            .map(|l| match l.len() {
-                7 => Some((l.clone(), 8)),
-                4 => Some((l.clone(), 4)),
-                3 => Some((l.clone(), 7)),
-                2 => Some((l.clone(), 1)),
-                _ => None,
-            })
-            .filter_map(|x| x)
-            .collect()
+        assert_eq!(5353, output_value(outputs, known));
     }
 
     #[test_case("sample1.txt" => is eq(26) ; "sample")]
@@ -196,15 +203,9 @@ mod test {
             let inputs = l.get(0).unwrap();
             let outputs = l.get(1).unwrap();
 
-            let known = foo(inputs);
+            let known = deduce_mappings(inputs);
 
-            sum += outputs
-                .iter()
-                .map(|x| known.get(x).unwrap().to_string())
-                .collect::<Vec<String>>()
-                .join("")
-                .parse::<i32>()
-                .unwrap();
+            sum += output_value(outputs, known);
         }
 
         sum
