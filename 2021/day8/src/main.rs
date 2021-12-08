@@ -4,11 +4,18 @@ fn main() {
     println!("Hello, world!");
 }
 
-fn x_from_input(input: &str) -> Vec<i32> {
-    read_to_string(input).unwrap()
+fn x_from_input(input: &str) -> Vec<Vec<Vec<String>>> {
+    read_to_string(input)
+        .unwrap()
         .trim()
-        .split(",")
-        .map(|f| f.parse().unwrap())
+        .lines()
+        .map(|l| {
+            l.trim()
+                .split("|")
+                .map(str::to_string)
+                .map(|s| s.trim().split(" ").map(str::to_string).collect())
+                .collect()
+        })
         .collect()
 }
 
@@ -18,11 +25,22 @@ mod test {
 
     use super::*;
 
-    #[test_case("sample1.txt" => is eq(0) ; "sample")]
-    #[test_case("input.txt" => is eq(0) ; "input")]
-    fn part1(input: &str) -> i32 {
+    #[test_case("sample1.txt" => is eq(26) ; "sample")]
+    #[test_case("input.txt" => is eq(479) ; "input")]
+    fn part1(input: &str) -> usize {
         let x = x_from_input(input);
 
-        0
+        let mut sum: usize = 0;
+        let easy_ones = vec![7, 4, 3, 2];
+        for l in x {
+            let output = l.get(1).unwrap();
+            sum += output
+                .iter()
+                .map(String::len)
+                .filter(|o| easy_ones.contains(&o))
+                .count();
+        }
+
+        sum
     }
 }
