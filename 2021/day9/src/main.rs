@@ -36,7 +36,7 @@ impl Point {
 
 #[derive(Debug)]
 struct Map {
-    map: HashMap<Point, i32>,
+    map: HashMap<Point, u32>,
 }
 
 impl Map {
@@ -53,7 +53,7 @@ impl Map {
                                 x: x as i32,
                                 y: y as i32,
                             },
-                            c.to_string().parse::<i32>().unwrap(),
+                            c.to_digit(10).unwrap(),
                         )
                     })
                 })
@@ -75,14 +75,14 @@ impl Map {
 
     fn is_low_point(&self, point: &Point) -> bool {
         let v = self.value(point).unwrap();
-        let n = self.value(&point.n()).unwrap_or(&i32::MAX);
-        let s = self.value(&point.s()).unwrap_or(&i32::MAX);
-        let w = self.value(&point.w()).unwrap_or(&i32::MAX);
-        let e = self.value(&point.e()).unwrap_or(&i32::MAX);
+        let n = self.value(&point.n()).unwrap_or(&u32::MAX);
+        let s = self.value(&point.s()).unwrap_or(&u32::MAX);
+        let w = self.value(&point.w()).unwrap_or(&u32::MAX);
+        let e = self.value(&point.e()).unwrap_or(&u32::MAX);
         v < n && v < s && v < w && v < e
     }
 
-    fn value(&self, point: &Point) -> Option<&i32> {
+    fn value(&self, point: &Point) -> Option<&u32> {
         self.map.get(point)
     }
 
@@ -93,7 +93,7 @@ impl Map {
     }
 
     fn basin(&self, point: &Point, basin: &mut Vec<Point>) {
-        let value = self.value(point).unwrap_or(&i32::MAX);
+        let value = self.value(point).unwrap_or(&u32::MAX);
         if !basin.contains(&point) && *value < 9 {
             basin.push(point.clone());
             self.basin(&point.n(), basin);
@@ -116,12 +116,15 @@ mod test {
 
     #[test_case("sample1.txt" => is eq(15) ; "sample")]
     #[test_case("input.txt" => is eq(522) ; "input")]
-    fn part1(input: &str) -> i32 {
+    fn part1(input: &str) -> u32 {
         let input = read_to_string(input).unwrap();
 
         let map = Map::new(input);
 
-        map.find_low_points().iter().map(|p| map.value(p).unwrap() + 1).sum()
+        map.find_low_points()
+            .iter()
+            .map(|p| map.value(p).unwrap() + 1)
+            .sum()
     }
 
     #[test_case("sample1.txt" => is eq(1134) ; "sample")]
