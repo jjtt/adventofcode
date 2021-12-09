@@ -40,6 +40,27 @@ struct Map {
 }
 
 impl Map {
+    fn new(input: String) -> Map {
+        Map {
+            map: input
+                .trim()
+                .lines()
+                .enumerate()
+                .flat_map(|(y, l)| {
+                    l.chars().enumerate().map(move |(x, c)| {
+                        (
+                            Point {
+                                x: x as i32,
+                                y: y as i32,
+                            },
+                            c.to_string().parse::<i32>().unwrap(),
+                        )
+                    })
+                })
+                .collect(),
+        }
+    }
+
     fn find_low_points(&self) -> Vec<Point> {
         let mut low_points = vec![];
 
@@ -85,37 +106,6 @@ impl Map {
 
 fn main() {
     println!("Hello, world!");
-
-    let m = Map {
-        map: [(Point { x: 0, y: 0 }, 1)].into_iter().collect(),
-    };
-
-    assert_eq!(1, *m.value(&Point { x: 0, y: 0 }).unwrap());
-
-    assert!(m.value(&Point { x: 1, y: 0 }).is_none());
-    assert!(m.value(&Point { x: 1, y: 1 }).is_none());
-    assert!(m.value(&Point { x: 0, y: 1 }).is_none());
-}
-
-fn map_from_input(input: String) -> Map {
-    Map {
-        map: input
-            .trim()
-            .lines()
-            .enumerate()
-            .flat_map(|(y, l)| {
-                l.chars().enumerate().map(move |(x, c)| {
-                    (
-                        Point {
-                            x: x as i32,
-                            y: y as i32,
-                        },
-                        c.to_string().parse::<i32>().unwrap(),
-                    )
-                })
-            })
-            .collect(),
-    }
 }
 
 #[cfg(test)]
@@ -129,11 +119,9 @@ mod test {
     fn part1(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let map = map_from_input(input);
+        let map = Map::new(input);
 
-        let low_points = map.find_low_points();
-
-        low_points.iter().map(|p| map.value(p).unwrap() + 1).sum()
+        map.find_low_points().iter().map(|p| map.value(p).unwrap() + 1).sum()
     }
 
     #[test_case("sample1.txt" => is eq(1134) ; "sample")]
@@ -141,7 +129,7 @@ mod test {
     fn part2(input: &str) -> i32 {
         let input = read_to_string(input).unwrap();
 
-        let map = map_from_input(input);
+        let map = Map::new(input);
 
         let mut basin_sizes: Vec<i32> = map
             .find_low_points()
@@ -152,6 +140,6 @@ mod test {
         basin_sizes.sort();
         basin_sizes.reverse();
 
-        basin_sizes.get(0).unwrap() * basin_sizes.get(1).unwrap() * basin_sizes.get(2).unwrap()
+        basin_sizes[0..3].iter().product()
     }
 }
