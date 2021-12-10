@@ -1,23 +1,28 @@
-use std::collections::HashMap;
 use std::fs::read_to_string;
 
 fn main() {
     println!("Hello, world!");
 }
 
+fn find_closing(c: char) -> Option<char> {
+    match c {
+        '(' => Some(')'),
+        '[' => Some(']'),
+        '{' => Some('}'),
+        '<' => Some('>'),
+        _ => None,
+    }
+}
+
 fn validate(chunk: &str) -> Option<(char, String)> {
-    let allowed_chars: HashMap<char, char> = [('(', ')'), ('[', ']'), ('{', '}'), ('<', '>')]
-        .iter()
-        .cloned()
-        .collect();
     let mut stack = String::new();
     for c in chunk.chars() {
-        if allowed_chars.contains_key(&c) {
-            stack.insert(0, *allowed_chars.get(&c).unwrap());
-        } else {
-            let closing = stack.remove(0);
-            if closing != c {
-                return Some((c, "".to_string()));
+        match find_closing(c) {
+            Some(closing) => stack.insert(0, closing),
+            None => {
+                if stack.remove(0) != c {
+                    return Some((c, "".to_string()));
+                }
             }
         }
     }
