@@ -38,22 +38,16 @@ fn score_syntax_check((invalid, _): (char, String)) -> Option<u32> {
 }
 
 fn score_autocompletion((_, completion): (char, String)) -> Option<u64> {
-    let mut score = 0;
-    for c in completion.chars() {
-        score *= 5;
-        score += match c {
+    completion
+        .chars()
+        .map(|c| match c {
             ')' => 1,
             ']' => 2,
             '}' => 3,
             '>' => 4,
             _ => 0,
-        };
-    }
-    if score > 0 {
-        Some(score)
-    } else {
-        None
-    }
+        })
+        .reduce(|sum, cur| sum * 5 + cur)
 }
 
 #[cfg(test)]
