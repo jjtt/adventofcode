@@ -27,6 +27,35 @@ fn validate(chunk: &str) -> Option<(char, String)> {
     None
 }
 
+fn score_syntax_check((invalid, _): (char, String)) -> Option<u32> {
+    match invalid {
+        ')' => Some(3),
+        ']' => Some(57),
+        '}' => Some(1197),
+        '>' => Some(25137),
+        _ => None,
+    }
+}
+
+fn score_autocompletion((_, completion): (char, String)) -> Option<u64> {
+    let mut score = 0;
+    for c in completion.chars() {
+        score *= 5;
+        score += match c {
+            ')' => 1,
+            ']' => 2,
+            '}' => 3,
+            '>' => 4,
+            _ => 0,
+        };
+    }
+    if score > 0 {
+        Some(score)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -62,17 +91,12 @@ mod test {
     #[test_case("sample1.txt" => is eq(26397) ; "sample")]
     #[test_case("input.txt" => is eq(367227) ; "input")]
     fn part1(input: &str) -> u32 {
-        let mut score = 0;
-        for line in read_to_string(input).unwrap().lines() {
-            score += match validate(line) {
-                Some((')', _)) => 3,
-                Some((']', _)) => 57,
-                Some(('}', _)) => 1197,
-                Some(('>', _)) => 25137,
-                _ => 0,
-            };
-        }
-        score
+        read_to_string(input)
+            .unwrap()
+            .lines()
+            .filter_map(validate)
+            .filter_map(score_syntax_check)
+            .sum()
     }
 
     #[test_case("sample1.txt" => is eq(288957) ; "sample")]
@@ -82,24 +106,7 @@ mod test {
             .unwrap()
             .lines()
             .filter_map(validate)
-            .filter_map(|(_, completion)| {
-                let mut score = 0;
-                for c in completion.chars() {
-                    score *= 5;
-                    score += match c {
-                        ')' => 1,
-                        ']' => 2,
-                        '}' => 3,
-                        '>' => 4,
-                        _ => 0,
-                    };
-                }
-                if score > 0 {
-                    Some(score)
-                } else {
-                    None
-                }
-            })
+            .filter_map(score_autocompletion)
             .collect();
 
         scores.sort();
