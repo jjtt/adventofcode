@@ -13,16 +13,16 @@ fn validate(chunk: &str) -> Option<(char, String)> {
     let mut stack = String::new();
     for c in chunk.chars() {
         if allowed_chars.contains_key(&c) {
-            stack.push(*allowed_chars.get(&c).unwrap());
+            stack.insert(0, *allowed_chars.get(&c).unwrap());
         } else {
-            let closing = stack.pop().unwrap();
+            let closing = stack.remove(0);
             if closing != c {
                 return Some((c, "".to_string()));
             }
         }
     }
     if !stack.is_empty() {
-        return Some(('_', stack.chars().rev().collect()));
+        return Some(('_', stack));
     }
     None
 }
