@@ -45,7 +45,7 @@ fn score_autocompletion((_, completion): (char, String)) -> Option<u64> {
             ']' => 2,
             '}' => 3,
             '>' => 4,
-            _ => 0,
+            _ => panic!("Invalid character in autocompletion: {}", c),
         })
         .reduce(|sum, cur| sum * 5 + cur)
 }
