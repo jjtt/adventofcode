@@ -4,6 +4,14 @@ fn main() {
     println!("Hello, world!");
 }
 
+fn octos_from_input(input: &str) -> Vec<Vec<u8>> {
+    read_to_string(input)
+        .unwrap()
+        .lines()
+        .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u8).collect())
+        .collect()
+}
+
 fn step(octos: &mut Vec<Vec<u8>>) {
     for y in 0..10 {
         for x in 0..10 {
@@ -70,11 +78,7 @@ mod test {
     #[test_case("sample1.txt" => is eq(1656) ; "sample")]
     #[test_case("input.txt" => is eq(1649) ; "input")]
     fn part1(input: &str) -> i32 {
-        let mut octos = read_to_string(input)
-            .unwrap()
-            .lines()
-            .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u8).collect())
-            .collect();
+        let mut octos = octos_from_input(input);
 
         let mut flashes = 0;
 
@@ -90,11 +94,7 @@ mod test {
     #[test_case("sample1.txt" => is eq(195) ; "sample")]
     #[test_case("input.txt" => is eq(256) ; "input")]
     fn part2(input: &str) -> i32 {
-        let mut octos = read_to_string(input)
-            .unwrap()
-            .lines()
-            .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u8).collect())
-            .collect();
+        let mut octos = octos_from_input(input);
 
         let mut flashes = 0;
         let mut counter = 0;
@@ -110,11 +110,7 @@ mod test {
 
     #[test]
     fn first_steps() {
-        let mut octos = read_to_string("sample1.txt")
-            .unwrap()
-            .lines()
-            .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u8).collect())
-            .collect();
+        let mut octos = octos_from_input("sample1.txt");
 
         step(&mut octos);
         assert_eq!(0, flash(&mut octos));
