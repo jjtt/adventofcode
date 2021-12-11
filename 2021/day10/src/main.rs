@@ -1,4 +1,5 @@
 use std::fs::read_to_string;
+use std::ops::ControlFlow;
 
 fn main() {
     println!("Hello, world!");
@@ -15,21 +16,27 @@ fn find_closing(c: char) -> Option<char> {
 }
 
 fn validate(chunk: &str) -> Option<(char, String)> {
-    let mut stack = String::new();
-    for c in chunk.chars() {
-        match find_closing(c) {
-            Some(closing) => stack.insert(0, closing),
+    match chunk
+        .chars()
+        .try_fold(String::new(), |mut stack, c| match find_closing(c) {
+            Some(closing) => {
+                stack.insert(0, closing);
+                ControlFlow::Continue(stack)
+            }
             None => {
                 if stack.remove(0) != c {
-                    return Some((c, "".to_string()));
+                    ControlFlow::Break(c)
+                } else {
+                    ControlFlow::Continue(stack)
                 }
             }
-        }
+        }) {
+        ControlFlow::Break(c) => Some((c, "".to_string())),
+        ControlFlow::Continue(stack) => match stack.as_str() {
+            "" => None,
+            stack => Some(('_', stack.to_string())),
+        },
     }
-    if !stack.is_empty() {
-        return Some(('_', stack));
-    }
-    None
 }
 
 fn score_syntax_check((invalid, _): (char, String)) -> Option<u32> {
