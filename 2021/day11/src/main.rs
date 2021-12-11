@@ -87,6 +87,27 @@ mod test {
         flashes
     }
 
+    #[test_case("sample1.txt" => is eq(195) ; "sample")]
+    #[test_case("input.txt" => is eq(256) ; "input")]
+    fn part2(input: &str) -> i32 {
+        let mut octos = read_to_string(input)
+            .unwrap()
+            .lines()
+            .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u8).collect())
+            .collect();
+
+        let mut flashes = 0;
+        let mut counter = 0;
+        while flashes < 100 {
+            counter += 1;
+            step(&mut octos);
+
+            flashes = flash(&mut octos);
+        }
+
+        counter
+    }
+
     #[test]
     fn first_steps() {
         let mut octos = read_to_string("sample1.txt")
