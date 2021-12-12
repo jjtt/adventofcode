@@ -24,6 +24,49 @@ fn edges_from_input(input: &str) -> MultiMap<String, String> {
     edges
 }
 
+fn walk(
+    current: Vec<String>,
+    edges: MultiMap<String, String>,
+    paths: &mut Vec<Vec<String>>,
+    test: fn(&String, &Vec<String>) -> bool,
+) {
+    let cur = current.last().unwrap();
+    if cur == "end" {
+        paths.push(current)
+    } else {
+        for next in edges.get_vec(cur).unwrap() {
+            if "start" != *next && test(next, &current) {
+                let mut c = current.clone();
+                c.push(next.clone());
+                walk(c, edges.clone(), paths, test);
+            }
+        }
+    }
+}
+
+fn small_caves_at_most_once(next: &String, current: &Vec<String>) -> bool {
+    next.to_lowercase() != *next || !current.contains(next)
+}
+
+fn one_small_cave_at_most_twice(next: &String, current: &Vec<String>) -> bool {
+    if small_caves_at_most_once(next, current) {
+        true
+    } else {
+        current
+            .iter()
+            .filter_map(|cave| match cave.to_lowercase() == *cave {
+                true => Some(((*cave).clone(), 1)),
+                false => None,
+            })
+            .collect::<MultiMap<String, i32>>()
+            .iter_all()
+            .map(|(_, times)| times.len())
+            .max()
+            .unwrap()
+            < 2
+    }
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -42,9 +85,7 @@ mod test {
             vec!["start".to_string()],
             edges,
             &mut paths,
-            |next: &String, current: &Vec<String>| {
-                next.to_lowercase() != *next || !current.contains(next)
-            },
+            small_caves_at_most_once,
         );
 
         paths.len()
@@ -62,48 +103,9 @@ mod test {
             vec!["start".to_string()],
             edges,
             &mut paths,
-            |next: &String, current: &Vec<String>| {
-                if next.to_lowercase() != *next {
-                    true
-                } else if !current.contains(next) {
-                    true
-                } else {
-                    current
-                        .iter()
-                        .filter_map(|cave| match cave.to_lowercase() == *cave {
-                            true => Some(((*cave).clone(), 1)),
-                            false => None,
-                        })
-                        .collect::<MultiMap<String, i32>>()
-                        .iter_all()
-                        .map(|(_, times)| times.len())
-                        .max()
-                        .unwrap()
-                        < 2
-                }
-            },
+            one_small_cave_at_most_twice,
         );
 
         paths.len()
-    }
-
-    fn walk(
-        current: Vec<String>,
-        edges: MultiMap<String, String>,
-        paths: &mut Vec<Vec<String>>,
-        test: fn(&String, &Vec<String>) -> bool,
-    ) {
-        let cur = current.last().unwrap();
-        if cur == "end" {
-            paths.push(current)
-        } else {
-            for next in edges.get_vec(cur).unwrap() {
-                if "start" != *next && test(next, &current) {
-                    let mut c = current.clone();
-                    c.push(next.clone());
-                    walk(c, edges.clone(), paths, test);
-                }
-            }
-        }
     }
 }
