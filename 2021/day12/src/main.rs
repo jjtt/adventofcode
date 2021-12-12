@@ -1,15 +1,27 @@
+use multimap::MultiMap;
 use std::fs::read_to_string;
 
 fn main() {
     println!("Hello, world!");
 }
 
-fn octos_from_input(input: &str) -> Vec<Vec<u8>> {
-    read_to_string(input)
+fn edges_from_input(input: &str) -> MultiMap<String, String> {
+    let one_way = read_to_string(input)
         .unwrap()
         .lines()
-        .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as u8).collect())
-        .collect()
+        .filter_map(|l| l.split_once("-"))
+        .map(|(from, to)| (from.to_string(), to.to_string()))
+        .collect::<MultiMap<String, String>>();
+
+    // add inverse directions
+    let mut edges = one_way.clone();
+    for (from, to_all) in one_way.iter_all() {
+        for to in to_all {
+            edges.insert(to.clone(), from.clone());
+        }
+    }
+
+    edges
 }
 
 #[cfg(test)]
@@ -20,18 +32,29 @@ mod test {
 
     #[test_case("sample1.txt" => is eq(10) ; "sample1")]
     #[test_case("sample2.txt" => is eq(226) ; "sample2")]
-    #[test_case("input.txt" => is eq(0) ; "input")]
-    fn part1(input: &str) -> i32 {
-        let mut octos = octos_from_input(input);
+    #[test_case("input.txt" => is eq(5576) ; "input")]
+    fn part1(input: &str) -> usize {
+        let edges = edges_from_input(input);
 
-        let mut flashes = 0;
+        let mut paths = vec![];
 
-        for _ in 0..100 {
-            step(&mut octos);
+        walk(vec!["start".to_string()], edges, &mut paths);
 
-            flashes += flash(&mut octos);
+        paths.len()
+    }
+
+    fn walk(current: Vec<String>, edges: MultiMap<String, String>, paths: &mut Vec<Vec<String>>) {
+        let cur = current.last().unwrap();
+        if cur == "end" {
+            paths.push(current)
+        } else {
+            for next in edges.get_vec(cur).unwrap() {
+                if next.to_lowercase() != *next || !current.contains(next) {
+                    let mut c = current.clone();
+                    c.push(next.clone());
+                    walk(c, edges.clone(), paths);
+                }
+            }
         }
-
-        flashes
     }
 }
