@@ -38,21 +38,70 @@ mod test {
 
         let mut paths = vec![];
 
-        walk(vec!["start".to_string()], edges, &mut paths);
+        walk(
+            vec!["start".to_string()],
+            edges,
+            &mut paths,
+            |next: &String, current: &Vec<String>| {
+                next.to_lowercase() != *next || !current.contains(next)
+            },
+        );
 
         paths.len()
     }
 
-    fn walk(current: Vec<String>, edges: MultiMap<String, String>, paths: &mut Vec<Vec<String>>) {
+    #[test_case("sample1.txt" => is eq(36) ; "sample1")]
+    #[test_case("sample2.txt" => is eq(3509) ; "sample2")]
+    #[test_case("input.txt" => is eq(152837) ; "input")]
+    fn part2(input: &str) -> usize {
+        let edges = edges_from_input(input);
+
+        let mut paths = vec![];
+
+        walk(
+            vec!["start".to_string()],
+            edges,
+            &mut paths,
+            |next: &String, current: &Vec<String>| {
+                if next.to_lowercase() != *next {
+                    true
+                } else if !current.contains(next) {
+                    true
+                } else {
+                    current
+                        .iter()
+                        .filter_map(|cave| match cave.to_lowercase() == *cave {
+                            true => Some(((*cave).clone(), 1)),
+                            false => None,
+                        })
+                        .collect::<MultiMap<String, i32>>()
+                        .iter_all()
+                        .map(|(_, times)| times.len())
+                        .max()
+                        .unwrap()
+                        < 2
+                }
+            },
+        );
+
+        paths.len()
+    }
+
+    fn walk(
+        current: Vec<String>,
+        edges: MultiMap<String, String>,
+        paths: &mut Vec<Vec<String>>,
+        test: fn(&String, &Vec<String>) -> bool,
+    ) {
         let cur = current.last().unwrap();
         if cur == "end" {
             paths.push(current)
         } else {
             for next in edges.get_vec(cur).unwrap() {
-                if next.to_lowercase() != *next || !current.contains(next) {
+                if "start" != *next && test(next, &current) {
                     let mut c = current.clone();
                     c.push(next.clone());
-                    walk(c, edges.clone(), paths);
+                    walk(c, edges.clone(), paths, test);
                 }
             }
         }
