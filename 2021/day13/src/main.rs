@@ -32,6 +32,47 @@ fn game_from_input(input: &str) -> (HashSet<(i32, i32)>, Vec<(i32, i32)>) {
     (dots, folds)
 }
 
+fn print(dots: &HashSet<(i32, i32)>) {
+    let minx = *dots.iter().map(|(x, _)| x).min().unwrap();
+    let maxx = *dots.iter().map(|(x, _)| x).max().unwrap();
+    let miny = *dots.iter().map(|(_, y)| y).min().unwrap();
+    let maxy = *dots.iter().map(|(_, y)| y).max().unwrap();
+
+    for y in miny..=maxy {
+        for x in minx..=maxx {
+            if dots.contains(&(x, y)) {
+                print!("#");
+            } else {
+                print!(" ");
+            };
+        }
+        println!();
+    }
+    println!();
+}
+
+fn fold(dots: HashSet<(i32, i32)>, (axis, num): (i32, i32)) -> HashSet<(i32, i32)> {
+    let mut folded = HashSet::new();
+
+    for (x, y) in dots {
+        if axis == 1 {
+            if y < num {
+                folded.insert((x, y));
+            } else {
+                folded.insert((x, num - (y - num)));
+            }
+        } else {
+            if x < num {
+                folded.insert((x, y));
+            } else {
+                folded.insert((num - (x - num), y));
+            }
+        }
+    }
+
+    folded
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -57,49 +98,9 @@ mod test {
             dots = fold(dots.clone(), f);
         }
 
+        // Answer is the capital letters printed here
         print(&dots);
 
         dots.len()
-    }
-
-    fn print(dots: &HashSet<(i32, i32)>) {
-        let minx = *dots.iter().map(|(x, _)| x).min().unwrap();
-        let maxx = *dots.iter().map(|(x, _)| x).max().unwrap();
-        let miny = *dots.iter().map(|(_, y)| y).min().unwrap();
-        let maxy = *dots.iter().map(|(_, y)| y).max().unwrap();
-
-        for y in miny..=maxy {
-            for x in minx..=maxx {
-                if dots.contains(&(x, y)) {
-                    print!("#");
-                } else {
-                    print!(".");
-                };
-            }
-            println!();
-        }
-        println!();
-    }
-
-    fn fold(dots: HashSet<(i32, i32)>, (axis, num): (i32, i32)) -> HashSet<(i32, i32)> {
-        let mut folded = HashSet::new();
-
-        for (x, y) in dots {
-            if axis == 1 {
-                if y < num {
-                    folded.insert((x, y));
-                } else {
-                    folded.insert((x, num - (y - num)));
-                }
-            } else {
-                if x < num {
-                    folded.insert((x, y));
-                } else {
-                    folded.insert((num - (x - num), y));
-                }
-            }
-        }
-
-        folded
     }
 }
