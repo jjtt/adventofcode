@@ -48,6 +48,39 @@ mod test {
         dots.len()
     }
 
+    #[test_case("sample1.txt" => is eq(16) ; "sample1")]
+    #[test_case("input.txt" => is eq(95) ; "input")]
+    fn part2(input: &str) -> usize {
+        let (mut dots, folds) = game_from_input(input);
+
+        for f in folds {
+            dots = fold(dots.clone(), f);
+        }
+
+        print(&dots);
+
+        dots.len()
+    }
+
+    fn print(dots: &HashSet<(i32, i32)>) {
+        let minx = *dots.iter().map(|(x, _)| x).min().unwrap();
+        let maxx = *dots.iter().map(|(x, _)| x).max().unwrap();
+        let miny = *dots.iter().map(|(_, y)| y).min().unwrap();
+        let maxy = *dots.iter().map(|(_, y)| y).max().unwrap();
+
+        for y in miny..=maxy {
+            for x in minx..=maxx {
+                if dots.contains(&(x, y)) {
+                    print!("#");
+                } else {
+                    print!(".");
+                };
+            }
+            println!();
+        }
+        println!();
+    }
+
     fn fold(dots: HashSet<(i32, i32)>, (axis, num): (i32, i32)) -> HashSet<(i32, i32)> {
         let mut folded = HashSet::new();
 
