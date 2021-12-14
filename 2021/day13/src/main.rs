@@ -91,6 +91,7 @@ mod test {
 
     #[test_case("sample1.txt" => is eq(16) ; "sample1")]
     #[test_case("input.txt" => is eq(95) ; "input")]
+    #[test_case("inputplusplus.txt" => is eq(95) ; "inputplusplus")]
     fn part2(input: &str) -> usize {
         let (mut dots, folds) = game_from_input(input);
 
