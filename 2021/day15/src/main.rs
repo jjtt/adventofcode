@@ -78,6 +78,33 @@ fn neighbours(x: usize, y: usize, maxx: usize, maxy: usize) -> Vec<(usize, usize
     neighbours
 }
 
+fn embiggen(mut game: Vec<Vec<u32>>) -> Vec<Vec<u32>> {
+    for row in game.iter_mut() {
+        let cols = row.len();
+        for x in 0..4 {
+            for col in (x * cols)..((x + 1) * cols) {
+                let val = *row.get(col).unwrap();
+                row.push((val % 9) + 1);
+            }
+        }
+    }
+
+    let rows = game.len();
+    for y in 0..4 {
+        for row in (y * rows)..((y + 1) * rows) {
+            game.push(
+                game.get(row)
+                    .unwrap()
+                    .iter()
+                    .map(|val| (val % 9) + 1)
+                    .collect(),
+            );
+        }
+    }
+
+    game
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::BinaryHeap;
@@ -89,6 +116,17 @@ mod test {
     #[test_case("input.txt" => is eq(537); "input")]
     fn part1(input: &str) -> u32 {
         let game = game_from_input(input);
+
+        let mut heads = BinaryHeap::new();
+        heads.push(Head { x: 0, y: 0, r: 0 });
+        bfs(heads, game)
+    }
+
+    #[test_case("sample1.txt" => is eq(315); "sample1")]
+    #[test_case("input.txt" => is eq(2881); "input")]
+    fn part2(input: &str) -> u32 {
+        let game = game_from_input(input);
+        let game = embiggen(game);
 
         let mut heads = BinaryHeap::new();
         heads.push(Head { x: 0, y: 0, r: 0 });
