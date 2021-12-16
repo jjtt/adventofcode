@@ -1,4 +1,5 @@
 use binascii::hex2bin;
+use bitreader::BitReader;
 use std::fs::read_to_string;
 
 fn main() {
@@ -13,9 +14,167 @@ struct Node {
     nodes: Option<Vec<Node>>,
 }
 
+fn parse(reader: &mut BitReader, limit: i32) -> Vec<Node> {
+    let mut nodes = vec![];
+
+    let start = reader.position() as i32;
+    let mut i = 0;
+    while i < limit || (reader.position() as i32) < (start - limit) {
+        i += 1;
+        let version = reader.read_u8(3).unwrap();
+        let typeid = reader.read_u8(3).unwrap();
+
+        nodes.push(match typeid {
+            4 => parse_literal(reader, version, typeid),
+            _ => parse_operator(reader, version, typeid),
+        });
+    }
+
+    nodes
+}
+
+fn parse_operator(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
+    let mode = reader.read_u8(1).unwrap();
+    match mode {
+        0 => parse_operator_size(reader, version, typeid),
+        _ => parse_operator_count(reader, version, typeid),
+    }
+}
+
+fn parse_operator_size(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
+    let length = reader.read_u16(15).unwrap() as i32;
+    Node {
+        version,
+        typeid,
+        literal: None,
+        nodes: Some(parse(reader, -length)),
+    }
+}
+
+fn parse_operator_count(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
+    let count = reader.read_u16(11).unwrap() as i32;
+    Node {
+        version,
+        typeid,
+        literal: None,
+        nodes: Some(parse(reader, count)),
+    }
+}
+
+fn parse_literal(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
+    let mut literal: u64 = 0;
+    loop {
+        let group = reader.read_u8(5).unwrap();
+        let val = group & 0b00001111;
+        literal = literal << 4;
+        literal += val as u64;
+        if (group & 0b00010000) == 0 {
+            break;
+        }
+    }
+    Node {
+        version,
+        typeid,
+        literal: Some(literal),
+        nodes: None,
+    }
+}
+
+fn sum_versions(nodes: Vec<Node>) -> u32 {
+    let mut sum = 0;
+
+    for n in nodes {
+        sum += n.version as u32;
+        if n.nodes.is_some() {
+            sum += sum_versions(n.nodes.unwrap());
+        }
+    }
+
+    sum
+}
+
+fn calculate(node: &Node) -> u64 {
+    match node.typeid {
+        4 => node.literal.unwrap(),
+        0 => node
+            .nodes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|n| calculate(n))
+            .sum(),
+        1 => node
+            .nodes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|n| calculate(n))
+            .product(),
+        2 => node
+            .nodes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|n| calculate(n))
+            .min()
+            .unwrap(),
+        3 => node
+            .nodes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|n| calculate(n))
+            .max()
+            .unwrap(),
+        5 => {
+            let c = node
+                .nodes
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|n| calculate(n))
+                .collect::<Vec<u64>>();
+            if c.first() > c.last() {
+                1
+            } else {
+                0
+            }
+        }
+        6 => {
+            let c = node
+                .nodes
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|n| calculate(n))
+                .collect::<Vec<u64>>();
+            if c.first() < c.last() {
+                1
+            } else {
+                0
+            }
+        }
+        7 => {
+            let c = node
+                .nodes
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|n| calculate(n))
+                .collect::<Vec<u64>>();
+            if c.first() == c.last() {
+                1
+            } else {
+                0
+            }
+        }
+
+        _ => todo!(),
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use bitreader::BitReader;
     use test_case::test_case;
 
     use super::*;
@@ -104,72 +263,6 @@ mod test {
         print!("{}", format!("{:08b}", three_bits));
     }
 
-    fn parse(reader: &mut BitReader, limit: i32) -> Vec<Node> {
-        let mut nodes = vec![];
-
-        let start = reader.position() as i32;
-        let mut i = 0;
-        while i < limit || (reader.position() as i32) < (start - limit) {
-            i += 1;
-            let version = reader.read_u8(3).unwrap();
-            let typeid = reader.read_u8(3).unwrap();
-
-            nodes.push(match typeid {
-                4 => parse_literal(reader, version, typeid),
-                _ => parse_operator(reader, version, typeid),
-            });
-        }
-
-        nodes
-    }
-
-    fn parse_operator(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
-        let mode = reader.read_u8(1).unwrap();
-        match mode {
-            0 => parse_operator_size(reader, version, typeid),
-            _ => parse_operator_count(reader, version, typeid),
-        }
-    }
-
-    fn parse_operator_size(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
-        let length = reader.read_u16(15).unwrap() as i32;
-        Node {
-            version,
-            typeid,
-            literal: None,
-            nodes: Some(parse(reader, -length)),
-        }
-    }
-
-    fn parse_operator_count(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
-        let count = reader.read_u16(11).unwrap() as i32;
-        Node {
-            version,
-            typeid,
-            literal: None,
-            nodes: Some(parse(reader, count)),
-        }
-    }
-
-    fn parse_literal(reader: &mut BitReader, version: u8, typeid: u8) -> Node {
-        let mut literal: u64 = 0;
-        loop {
-            let group = reader.read_u8(5).unwrap();
-            let val = group & 0b00001111;
-            literal = literal << 4;
-            literal += val as u64;
-            if (group & 0b00010000) == 0 {
-                break;
-            }
-        }
-        Node {
-            version,
-            typeid,
-            literal: Some(literal),
-            nodes: None,
-        }
-    }
-
     #[test_case("sample1.txt" => is eq(16); "sample1")]
     #[test_case("sample2.txt" => is eq(12); "sample2")]
     #[test_case("sample3.txt" => is eq(23); "sample3")]
@@ -205,103 +298,14 @@ mod test {
         calculate(nodes.first().unwrap())
     }
 
+    #[test_case("sample1.txt" => is eq(15); "sample1")]
+    #[test_case("sample2.txt" => is eq(46); "sample2")]
+    #[test_case("sample3.txt" => is eq(46); "sample3")]
+    #[test_case("sample4.txt" => is eq(54); "sample4")]
     #[test_case("input.txt" => is eq(6802496672062); "input")]
     fn part2(input: &str) -> u64 {
         let nodes = parse_hex_string(read_to_string(input).unwrap().trim());
 
         calculate(nodes.first().unwrap())
-    }
-
-    fn calculate(node: &Node) -> u64 {
-        match node.typeid {
-            4 => node.literal.unwrap(),
-            0 => node
-                .nodes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|n| calculate(n))
-                .sum(),
-            1 => node
-                .nodes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|n| calculate(n))
-                .product(),
-            2 => node
-                .nodes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|n| calculate(n))
-                .min()
-                .unwrap(),
-            3 => node
-                .nodes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|n| calculate(n))
-                .max()
-                .unwrap(),
-            5 => {
-                let c = node
-                    .nodes
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .map(|n| calculate(n))
-                    .collect::<Vec<u64>>();
-                if c.first() > c.last() {
-                    1
-                } else {
-                    0
-                }
-            }
-            6 => {
-                let c = node
-                    .nodes
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .map(|n| calculate(n))
-                    .collect::<Vec<u64>>();
-                if c.first() < c.last() {
-                    1
-                } else {
-                    0
-                }
-            }
-            7 => {
-                let c = node
-                    .nodes
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .map(|n| calculate(n))
-                    .collect::<Vec<u64>>();
-                if c.first() == c.last() {
-                    1
-                } else {
-                    0
-                }
-            }
-
-            _ => todo!(),
-        }
-    }
-
-    fn sum_versions(nodes: Vec<Node>) -> u32 {
-        let mut sum = 0;
-
-        for n in nodes {
-            sum += n.version as u32;
-            if n.nodes.is_some() {
-                sum += sum_versions(n.nodes.unwrap());
-            }
-        }
-
-        sum
     }
 }
