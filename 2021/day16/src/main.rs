@@ -14,6 +14,15 @@ struct Node {
     nodes: Option<Vec<Node>>,
 }
 
+fn parse_hex_string(string: &str) -> Vec<Node> {
+    let mut out = [0u8; 1024];
+    let res = hex2bin(string.as_bytes(), &mut out);
+    let mut reader = BitReader::new(res.unwrap());
+
+    let nodes = parse(&mut reader, 1);
+    nodes
+}
+
 fn parse(reader: &mut BitReader, limit: i32) -> Vec<Node> {
     let mut nodes = vec![];
 
@@ -272,15 +281,6 @@ mod test {
         let nodes = parse_hex_string(read_to_string(input).unwrap().trim());
 
         sum_versions(nodes)
-    }
-
-    fn parse_hex_string(string: &str) -> Vec<Node> {
-        let mut out = [0u8; 1024];
-        let res = hex2bin(string.as_bytes(), &mut out);
-        let mut reader = BitReader::new(res.unwrap());
-
-        let nodes = parse(&mut reader, 1);
-        nodes
     }
 
     #[test_case("D2FE28" => is eq(2021); "sample0")]
