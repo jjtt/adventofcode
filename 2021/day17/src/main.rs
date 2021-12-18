@@ -23,6 +23,7 @@ fn area_from_string(input: String) -> ((i32, i32), (i32, i32)) {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
     use test_case::test_case;
 
     use super::*;
@@ -53,27 +54,19 @@ mod test {
         let minvx = f32::ceil(f32::sqrt(1.0 / 4.0 + 2.0 * x1 as f32) - 1.0 / 2.0) as i32;
         let maxvx = f32::floor(f32::sqrt(1.0 / 4.0 + 2.0 * x2 as f32) - 1.0 / 2.0) as i32;
 
-        dbg!(&x1);
-        dbg!(&minvx);
-        dbg!(&x2);
-        dbg!(&maxvx);
-
         let mut max_height = 0;
 
         const LIMIT: i32 = 300;
         for vx in minvx..=maxvx {
             for vy in 1..=LIMIT {
                 let y = vx * vy + vx - vx * (vx + 1) / 2;
-                //dbg!((&vx, &vy, &y, &y1));
                 if y >= y1 {
                     for n in vx..=LIMIT {
                         let nx = if n <= vx { n } else { vx };
                         let x = nx * vx + nx - nx * (nx + 1) / 2;
                         let y = n * vy + n - n * (n + 1) / 2;
-                        //dbg!((&x, &y, &n));
                         if x1 <= x && x <= x2 && y1 <= y && y <= y2 {
                             let max = vy * (vy + 1) / 2;
-                            //dbg!((&vx, &vy, &n, &max, &max_height));
                             if max > max_height {
                                 max_height = max;
                             }
@@ -84,5 +77,31 @@ mod test {
         }
 
         max_height
+    }
+    #[test_case("sample1.txt" => is eq(112); "sample1")]
+    #[test_case("input.txt" => is eq(4120); "input")]
+    fn part2(input: &str) -> usize {
+        let ((x1, y1), (x2, y2)) = area_from_string(read_to_string(input).unwrap());
+
+        let minvx = f32::ceil(f32::sqrt(1.0 / 4.0 + 2.0 * x1 as f32) - 1.0 / 2.0) as i32;
+        let maxvx = x2;
+
+        let mut hits: HashSet<(i32, i32)> = HashSet::new();
+
+        const LIMIT: i32 = 300;
+        for vx in minvx..=maxvx {
+            for vy in y1..=LIMIT {
+                for n in 1..=LIMIT {
+                    let nx = if n <= vx { n } else { vx };
+                    let x = nx * vx + nx - nx * (nx + 1) / 2;
+                    let y = n * vy + n - n * (n + 1) / 2;
+                    if x1 <= x && x <= x2 && y1 <= y && y <= y2 {
+                        hits.insert((vx, vy));
+                    }
+                }
+            }
+        }
+
+        hits.len()
     }
 }
