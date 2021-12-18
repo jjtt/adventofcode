@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 itertools = "0.10.3"
+scan_fmt = "0.2.6"
 
 [dev-dependencies]
 test-case = { version = "1", features = ["hamcrest_assertions"] }
