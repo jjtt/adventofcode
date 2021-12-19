@@ -4,6 +4,34 @@ fn main() {
     println!("Hello, world!");
 }
 
+fn mag(input: &str) -> u32 {
+    let l = input.len();
+    if l == 1 {
+        input.parse().unwrap()
+    } else {
+        let mut split = 0;
+        let mut brackets = 0;
+        for i in 1..l - 1 {
+            match &input[i..i + 1] {
+                "[" => brackets += 1,
+                "]" => brackets -= 1,
+                "," => {
+                    if brackets == 0 {
+                        split = i;
+                        break;
+                    }
+                }
+                _ => continue,
+            }
+        }
+        3 * mag(&input[1..split]) + 2 * mag(&input[split + 1..l - 1])
+    }
+}
+
+fn add(first: &str, second: &str) -> String {
+    format!("[{},{}]", first, second)
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
@@ -23,28 +51,9 @@ mod test {
         mag(input)
     }
 
-    fn mag(input: &str) -> u32 {
-        let l = input.len();
-        if l == 1 {
-            input.parse().unwrap()
-        } else {
-            let mut split = 0;
-            let mut brackets = 0;
-            for i in 1..l - 1 {
-                match &input[i..i + 1] {
-                    "[" => brackets += 1,
-                    "]" => brackets -= 1,
-                    "," => {
-                        if brackets == 0 {
-                            split = i;
-                            break;
-                        }
-                    }
-                    _ => continue,
-                }
-            }
-            3 * mag(&input[1..split]) + 2 * mag(&input[split + 1..l - 1])
-        }
+    #[test_case("[1,2]","[[3,4],5]" => is eq("[[1,2],[[3,4],5]]"); "simple add")]
+    fn adding(first: &str, second: &str) -> String {
+        add(first, second)
     }
 
     #[test_case("sample1.txt" => is eq(4140); "sample1")]
