@@ -1,6 +1,5 @@
 use crate::SepOrValue::{Sep, Value};
 use num_integer::Integer;
-use std::collections::LinkedList;
 use std::fs::read_to_string;
 
 fn main() {
@@ -27,7 +26,7 @@ enum SepOrValue {
     Value(i32),
 }
 
-fn parseTree(input: &str) -> Tree {
+fn parse_tree(input: &str) -> Tree {
     Tree {
         root: *parse(input).unwrap(),
     }
@@ -88,7 +87,7 @@ fn mag2(node: Node) -> i32 {
     }
 }
 
-fn splitTree(tree: Tree) -> Tree {
+fn split_tree(tree: Tree) -> Tree {
     let (_has_split, node) = split(false, tree.root);
     Tree { root: node }
 }
@@ -117,7 +116,7 @@ fn split(has_split: bool, node: Node) -> (bool, Node) {
             (has_split, node.clone())
         }
     } else {
-        let mut new_has_split = has_split;
+        let new_has_split = has_split;
         let (new_has_split, new_left) = split(new_has_split, *node.left.unwrap());
         let (new_has_split, new_right) = split(new_has_split, *node.right.unwrap());
         (
@@ -131,7 +130,7 @@ fn split(has_split: bool, node: Node) -> (bool, Node) {
     }
 }
 
-fn explodeTree(tree: Tree) -> Tree {
+fn explode_tree(tree: Tree) -> Tree {
     let mut flat = Vec::new();
     flatten(tree.root, &mut flat);
 
@@ -144,9 +143,9 @@ fn explodeTree(tree: Tree) -> Tree {
     while i < flat.len() {
         let mut cur = *flat.get(i).unwrap();
         match cur {
-            SepOrValue::Sep('[') => depth += 1,
-            SepOrValue::Sep(']') => depth -= 1,
-            SepOrValue::Value(v) => {
+            Sep('[') => depth += 1,
+            Sep(']') => depth -= 1,
+            Value(v) => {
                 if depth > 4 && !exploded {
                     out.pop(); // the '['
                     add_to_next = match flat.get(i + 2).unwrap() {
@@ -178,32 +177,7 @@ fn explodeTree(tree: Tree) -> Tree {
     }
 
     let s = &flat_to_string(&out);
-    parseTree(s)
-}
-
-fn explode(node: Link, depth: u32) -> Link {
-    //dbg!(&node);
-    if node.is_none() {
-        return None;
-    }
-    let n = *node.unwrap();
-    if depth < 4 {
-        Some(Box::new(Node {
-            left: explode(n.left, depth + 1),
-            right: explode(n.right, depth + 1),
-            value: n.value,
-        }))
-    } else {
-        if n.value.is_some() {
-            Some(Box::new(n.clone()))
-        } else {
-            Some(Box::new(Node {
-                left: None,
-                right: None,
-                value: Some(0),
-            }))
-        }
-    }
+    parse_tree(s)
 }
 
 fn add(first: &str, second: &str) -> String {
@@ -262,6 +236,25 @@ fn flatten(node: Node, out: &mut Vec<SepOrValue>) {
     }
 }
 
+fn summa(sum: Tree, num: Tree) -> Tree {
+    let mut sum = add2(sum, num);
+    let mut changed = true;
+    while changed {
+        let exploded = explode_tree(sum.clone());
+        if exploded == sum {
+            let splitted = split_tree(exploded.clone());
+            if splitted == exploded {
+                changed = false
+            } else {
+                sum = splitted;
+            }
+        } else {
+            sum = exploded;
+        }
+    }
+    sum
+}
+
 #[cfg(test)]
 mod test {
     use itertools::Itertools;
@@ -272,8 +265,8 @@ mod test {
     #[test]
     fn test_to_string() {
         let num = "[[[[5,0],[7,4]],[5,5]],[6,6]]";
-        assert_eq!(num, to_string(parseTree(num).root));
-        assert_eq!(num, to_string2(parseTree(num).root));
+        assert_eq!(num, to_string(parse_tree(num).root));
+        assert_eq!(num, to_string2(parse_tree(num).root));
     }
 
     #[test_case("9" => is eq(9); "num")]
@@ -285,14 +278,14 @@ mod test {
     #[test_case("[[[[5,0],[7,4]],[5,5]],[6,6]]" => is eq(1137); "5")]
     #[test_case("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]" => is eq(3488); "6")]
     fn magnitude(input: &str) -> i32 {
-        assert_eq!(mag2(parseTree(input).root), mag(input));
+        assert_eq!(mag2(parse_tree(input).root), mag(input));
         mag(input)
     }
 
     #[test_case("[1,2]","[[3,4],5]" => is eq("[[1,2],[[3,4],5]]"); "simple add")]
     fn adding(first: &str, second: &str) -> String {
         let added = add(first, second);
-        let added2 = add2(parseTree(first), parseTree(second));
+        let added2 = add2(parse_tree(first), parse_tree(second));
 
         assert_eq!(added, to_string(added2.root));
 
@@ -305,8 +298,8 @@ mod test {
     #[test_case("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]","[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]" => is eq(true); "one at a time")]
     #[test_case("[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]","[[3,[2,[8,0]]],[9,[5,[7,0]]]]" => is eq(true); "last2")]
     fn exploding(input: &str, out: &str) -> bool {
-        assert_eq!(to_string(explodeTree(parseTree(input)).root), out);
-        assert_eq!(explodeTree(parseTree(input)), parseTree(out));
+        assert_eq!(to_string(explode_tree(parse_tree(input)).root), out);
+        assert_eq!(explode_tree(parse_tree(input)), parse_tree(out));
         true
     }
 
@@ -314,7 +307,7 @@ mod test {
     #[test_case("[[[[0,7],4],[15,[0,13]]],[1,1]]","[[[[0,7],4],[[7,8],[0,13]]],[1,1]]" => is eq(true); "first")]
     #[test_case("[[[[0,7],4],[[7,8],[0,13]]],[1,1]]","[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]" => is eq(true); "second")]
     fn split(input: &str, out: &str) -> bool {
-        assert_eq!(splitTree(parseTree(input)), parseTree(out));
+        assert_eq!(split_tree(parse_tree(input)), parse_tree(out));
         true
     }
 
@@ -322,7 +315,7 @@ mod test {
     #[test_case("input.txt" => is eq(3763); "input")]
     fn part1(input: &str) -> i32 {
         let string = read_to_string(input).unwrap();
-        let mut nums = string.lines().map(parseTree);
+        let mut nums = string.lines().map(parse_tree);
         let mut sum = nums.next().unwrap();
         for num in nums {
             sum = summa(sum, num)
@@ -330,36 +323,17 @@ mod test {
         mag2(sum.root)
     }
 
-    fn summa(sum: Tree, num: Tree) -> Tree {
-        let mut sum = add2(sum, num);
-        let mut changed = true;
-        while changed {
-            let exploded = explodeTree(sum.clone());
-            if exploded == sum {
-                let splitted = splitTree(exploded.clone());
-                if splitted == exploded {
-                    changed = false
-                } else {
-                    sum = splitted;
-                }
-            } else {
-                sum = exploded;
-            }
-        }
-        sum
-    }
-
     #[test_case("sample1.txt" => is eq(3993); "sample1")]
     #[test_case("input.txt" => is eq(4664); "input")]
     fn part2(input: &str) -> i32 {
         let string = read_to_string(input).unwrap();
-        let mut nums = string.lines().map(parseTree);
+        let nums = string.lines().map(parse_tree);
         let mut max = 0;
         for mut pairs in nums.combinations(2) {
             for _ in 0..2 {
                 let first = pairs.get(0).unwrap().clone();
                 let second = pairs.get(1).unwrap().clone();
-                let mut sum = summa(first, second);
+                let sum = summa(first, second);
                 let m = mag2(sum.root);
                 if m > max {
                     max = m;
