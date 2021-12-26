@@ -1,7 +1,7 @@
+use crate::SepOrValue::{Sep, Value};
+use num_integer::Integer;
 use std::collections::LinkedList;
 use std::fs::read_to_string;
-use num_integer::Integer;
-use crate::SepOrValue::{Sep, Value};
 
 fn main() {
     println!("Hello, world!");
@@ -34,18 +34,18 @@ fn parseTree(input: &str) -> Tree {
 }
 
 fn parse(input: &str) -> Link {
-    if ! input.contains(",") {
-        return Some(Box::new(Node{
+    if !input.contains(",") {
+        return Some(Box::new(Node {
             left: None,
             right: None,
             value: Some(input.parse().unwrap()),
-        }))
+        }));
     }
 
     let middle = find_middle_comma(input);
     Some(Box::new(Node {
         left: parse(&input[1..middle]),
-        right: parse(&input[middle + 1..input.len()-1]),
+        right: parse(&input[middle + 1..input.len() - 1]),
         value: None,
     }))
 }
@@ -82,7 +82,7 @@ fn mag(input: &str) -> i32 {
 
 fn mag2(node: Node) -> i32 {
     if node.value.is_some() {
-        return node.value.unwrap()
+        return node.value.unwrap();
     } else {
         3 * mag2(*node.left.unwrap()) + 2 * mag2(*node.right.unwrap())
     }
@@ -90,29 +90,29 @@ fn mag2(node: Node) -> i32 {
 
 fn splitTree(tree: Tree) -> Tree {
     let (_has_split, node) = split(false, tree.root);
-    Tree {
-        root: node
-    }
+    Tree { root: node }
 }
 
-fn split(has_split: bool, node: Node) -> (bool,Node) {
+fn split(has_split: bool, node: Node) -> (bool, Node) {
     if node.value.is_some() {
         let value = node.value.unwrap();
         if !has_split && value >= 10 {
-            (true,
-            Node {
-                left: Some(Box::new(Node {
-                    left: None,
-                    right: None,
-                    value: Some(value.div_floor(&2)),
-                })),
-                right: Some(Box::new(Node {
-                    left: None,
-                    right: None,
-                    value: Some(value.div_ceil(&2)),
-                })),
-                value: None,
-            })
+            (
+                true,
+                Node {
+                    left: Some(Box::new(Node {
+                        left: None,
+                        right: None,
+                        value: Some(value.div_floor(&2)),
+                    })),
+                    right: Some(Box::new(Node {
+                        left: None,
+                        right: None,
+                        value: Some(value.div_ceil(&2)),
+                    })),
+                    value: None,
+                },
+            )
         } else {
             (has_split, node.clone())
         }
@@ -120,12 +120,14 @@ fn split(has_split: bool, node: Node) -> (bool,Node) {
         let mut new_has_split = has_split;
         let (new_has_split, new_left) = split(new_has_split, *node.left.unwrap());
         let (new_has_split, new_right) = split(new_has_split, *node.right.unwrap());
-        (new_has_split,
-        Node{
-            left: Some(Box::new(new_left)),
-            right: Some(Box::new(new_right)),
-            value: None,
-        })
+        (
+            new_has_split,
+            Node {
+                left: Some(Box::new(new_left)),
+                right: Some(Box::new(new_right)),
+                value: None,
+            },
+        )
     }
 }
 
@@ -142,25 +144,33 @@ fn explodeTree(tree: Tree) -> Tree {
     while i < flat.len() {
         let mut cur = *flat.get(i).unwrap();
         match cur {
-            SepOrValue::Sep('[') => { depth += 1 },
-            SepOrValue::Sep(']') => { depth -= 1 },
+            SepOrValue::Sep('[') => depth += 1,
+            SepOrValue::Sep(']') => depth -= 1,
             SepOrValue::Value(v) => {
-                if depth > 4 && ! exploded {
+                if depth > 4 && !exploded {
                     out.pop(); // the '['
-                    add_to_next = match flat.get(i+2).unwrap() {Value(v) => Some(v), _ => None};
+                    add_to_next = match flat.get(i + 2).unwrap() {
+                        Value(v) => Some(v),
+                        _ => None,
+                    };
                     cur = Value(0);
                     i += 3;
                     depth -= 1;
                     exploded = true;
                     if prev_index.is_some() {
-                        out[prev_index.unwrap()] = Value(v + match flat.get(prev_index.unwrap()).unwrap() {Value(v) => *v, _ => 0});
+                        out[prev_index.unwrap()] = Value(
+                            v + match flat.get(prev_index.unwrap()).unwrap() {
+                                Value(v) => *v,
+                                _ => 0,
+                            },
+                        );
                     }
                 } else {
                     cur = Value(v + add_to_next.unwrap_or(&0));
                     add_to_next = None;
                 }
                 prev_index = Some(i);
-            },
+            }
             _ => (),
         }
         out.push(cur);
@@ -179,21 +189,19 @@ fn explode(node: Link, depth: u32) -> Link {
     let n = *node.unwrap();
     if depth < 4 {
         Some(Box::new(Node {
-            left: explode(n.left, depth+1),
-            right: explode(n.right, depth+1),
+            left: explode(n.left, depth + 1),
+            right: explode(n.right, depth + 1),
             value: n.value,
         }))
     } else {
         if n.value.is_some() {
             Some(Box::new(n.clone()))
         } else {
-            Some(Box::new(
-                Node {
-                    left: None,
-                    right: None,
-                    value: Some(0),
-                }
-            ))
+            Some(Box::new(Node {
+                left: None,
+                right: None,
+                value: Some(0),
+            }))
         }
     }
 }
@@ -203,22 +211,22 @@ fn add(first: &str, second: &str) -> String {
 }
 
 fn add2(first: Tree, second: Tree) -> Tree {
-    Tree{
+    Tree {
         root: Node {
             left: Some(Box::new(first.root)),
             right: Some(Box::new(second.root)),
             value: None,
-        }
+        },
     }
 }
 
 fn to_string(node: Node) -> String {
     if node.value.is_some() {
-        return node.value.unwrap().to_string()
+        return node.value.unwrap().to_string();
     } else {
         let mut out = "[".to_string();
         out += to_string(*node.left.unwrap()).as_str();
-        out.push_str( ",");
+        out.push_str(",");
         out += to_string(*node.right.unwrap()).as_str();
         out += "]";
         out
