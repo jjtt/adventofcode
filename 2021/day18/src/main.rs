@@ -264,6 +264,7 @@ fn flatten(node: Node, out: &mut Vec<SepOrValue>) {
 
 #[cfg(test)]
 mod test {
+    use itertools::Itertools;
     use test_case::test_case;
 
     use super::*;
@@ -324,22 +325,48 @@ mod test {
         let mut nums = string.lines().map(parseTree);
         let mut sum = nums.next().unwrap();
         for num in nums {
-            sum = add2(sum, num);
-            let mut changed = true;
-            while changed {
-                let exploded = explodeTree(sum.clone());
-                if exploded == sum {
-                    let splitted = splitTree(exploded.clone());
-                    if splitted == exploded {
-                        changed = false
-                    } else {
-                        sum = splitted;
-                    }
-                } else {
-                    sum = exploded;
-                }
-            }
+            sum = summa(sum, num)
         }
         mag2(sum.root)
+    }
+
+    fn summa(sum: Tree, num: Tree) -> Tree {
+        let mut sum = add2(sum, num);
+        let mut changed = true;
+        while changed {
+            let exploded = explodeTree(sum.clone());
+            if exploded == sum {
+                let splitted = splitTree(exploded.clone());
+                if splitted == exploded {
+                    changed = false
+                } else {
+                    sum = splitted;
+                }
+            } else {
+                sum = exploded;
+            }
+        }
+        sum
+    }
+
+    #[test_case("sample1.txt" => is eq(3993); "sample1")]
+    #[test_case("input.txt" => is eq(4664); "input")]
+    fn part2(input: &str) -> i32 {
+        let string = read_to_string(input).unwrap();
+        let mut nums = string.lines().map(parseTree);
+        let mut max = 0;
+        for mut pairs in nums.combinations(2) {
+            for _ in 0..2 {
+                let first = pairs.get(0).unwrap().clone();
+                let second = pairs.get(1).unwrap().clone();
+                let mut sum = summa(first, second);
+                let m = mag2(sum.root);
+                if m > max {
+                    max = m;
+                }
+                pairs.reverse();
+            }
+        }
+        max
     }
 }
