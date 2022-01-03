@@ -8,13 +8,12 @@ fn main() {
     println!("Hello, world!");
 }
 
-#[cached]
-fn total_distance_squared(beacons: Vec<(i32, i32, i32)>) -> i32 {
+fn total_distance_squared(beacons: Vec<&(i32, i32, i32)>) -> i32 {
     let mut d = 0;
     let length = beacons.len();
     for i in 0..length - 1 {
         for j in (i + 1)..length {
-            d += distance_squared(beacons[i], beacons[j])
+            d += distance_squared(*beacons[i], *beacons[j])
         }
     }
     d
@@ -49,6 +48,8 @@ fn parse_coordinates(beacons: &str) -> Vec<(i32, i32, i32)> {
 #[cfg(test)]
 mod test {
     use indoc::indoc;
+    use multimap::MultiMap;
+    use std::collections::{HashMap, HashSet};
     use test_case::test_case;
 
     use super::*;
@@ -87,18 +88,86 @@ mod test {
         let b1 = parse_coordinates(beacons1);
         let b2 = parse_coordinates(beacons2);
 
-        let distance1 = total_distance_squared(b1);
-        let distance2 = total_distance_squared(b2);
+        let distance1 = total_distance_squared(b1.iter().collect());
+        let distance2 = total_distance_squared(b2.iter().collect());
         assert_eq!(distance1, distance2);
 
         dbg!(distance1);
     }
 
     #[test]
+    fn pair_triplet_distances() {
+        let coords = parse_coordinates(indoc! {"
+            0,0,0
+            1,1,1
+            2,2,2
+            4,4,4
+        "});
+
+        let dists = nlet_distances(&coords, 2);
+        dbg!(&dists);
+        assert_eq!(1, dists.get_vec(&27).unwrap().len());
+        assert_eq!(2, dists.get_vec(&12).unwrap().len());
+        assert_eq!(1, dists.get_vec(&48).unwrap().len());
+        assert_eq!(2, dists.get_vec(&3).unwrap().len());
+
+        let dists = nlet_distances(&coords, 3);
+        dbg!(&dists);
+        assert_eq!(1, dists.get_vec(&72).unwrap().len());
+        assert_eq!(1, dists.get_vec(&18).unwrap().len());
+        assert_eq!(1, dists.get_vec(&78).unwrap().len());
+        assert_eq!(1, dists.get_vec(&42).unwrap().len());
+    }
+
+    fn nlet_distances(
+        coords: &Vec<(i32, i32, i32)>,
+        size: usize,
+    ) -> MultiMap<i32, Vec<&(i32, i32, i32)>> {
+        let mut dists = MultiMap::new();
+
+        for nlet in coords.iter().combinations(size) {
+            let clone = nlet.clone();
+            let dist = total_distance_squared(nlet);
+            dists.insert(dist, clone);
+        }
+
+        dists
+    }
+
+    #[test]
+    fn find_common_12_from_self() {
+        let beacons = parse_coordinates(indoc! {"
+            -618,-824,-621
+            -537,-823,-458
+            -447,-329,318
+            404,-588,-901
+            544,-627,-890
+            528,-643,409
+            -661,-816,-575
+            390,-675,-793
+            423,-701,434
+            -345,-311,381
+            459,-707,401
+            -485,-357,347
+        "});
+
+        let (common0, common1) = find_common_12(&beacons.clone(), &beacons).unwrap();
+
+        assert_eq!(
+            HashSet::<_>::from_iter(beacons.clone()),
+            HashSet::from_iter(common0)
+        );
+        assert_eq!(
+            HashSet::<_>::from_iter(beacons),
+            HashSet::from_iter(common1)
+        );
+    }
+
+    #[test]
     fn find_common_12_from_sample_0_1() {
         let sensors = parse_sensors("sample1.txt");
 
-        let commont_from_0 = parse_coordinates(indoc! {"
+        let common_from_0 = parse_coordinates(indoc! {"
             -618,-824,-621
             -537,-823,-458
             -447,-329,318
@@ -114,27 +183,55 @@ mod test {
         "});
 
         let (common0, common1) = find_common_12(&sensors[0].1, &sensors[1].1).unwrap();
+
+        assert_eq!(common_from_0.len(), common0.len());
+        assert_eq!(common_from_0.len(), common1.len());
+
+        assert_eq!(
+            HashSet::<_>::from_iter(common_from_0),
+            HashSet::from_iter(common0)
+        );
     }
 
     fn find_common_12(
         first: &Vec<(i32, i32, i32)>,
         second: &Vec<(i32, i32, i32)>,
     ) -> Option<(Vec<(i32, i32, i32)>, Vec<(i32, i32, i32)>)> {
-        todo!();
-        for f in first.iter().combinations(12) {
-            let fcopy: Vec<(i32, i32, i32)> = f.iter().map(|c| *c.clone()).collect();
-            let first_dist = total_distance_squared(fcopy.clone());
-            for s in second.iter().combinations(12) {
-                let scopy: Vec<(i32, i32, i32)> = s.iter().map(|c| *c.clone()).collect();
-                let second_dist = total_distance_squared(scopy.clone());
+        let first_dists = nlet_distances(first, 3);
+        let second_dists = nlet_distances(second, 3);
 
-                if first_dist == second_dist {
-                    return Some((fcopy, scopy));
-                }
+        let mut first_common = Vec::new();
+        let mut second_common = Vec::new();
+
+        for dist in first_dists.keys() {
+            if second_dists.contains_key(dist) {
+                let from_first = first_dists.get_vec(dist).unwrap();
+                let from_second = second_dists.get_vec(dist).unwrap();
+
+                assert_eq!(1, from_first.len());
+                assert_eq!(1, from_second.len());
+
+                let from_first = from_first.get(0).unwrap();
+                let from_second = from_second.get(0).unwrap();
+
+                /*
+                Rotations:
+                x,y,z      y,z,x      z,x,y
+                -x,-y,z    -y,-z,x    -z,-x,y
+                x,-y,-z    y,-z,-x    z,-x,-y
+                -x,y,-z    -y,z,-x    -z,x,-y
+                -x,-z,-y   -z,-y,-x   -y,-x,-z
+                x,z,-y     z,y,-x     y,x,-z
+                -x,z,y     -z,y,x     -y,x,z
+                x,-z,y     z,-y,x     y,-x,z
+                 */
+
+                first_common.extend(from_first.iter().map(|(x, y, z)| (*x, *y, *z)));
+                second_common.extend(from_second.iter().map(|(x, y, z)| (*x, *y, *z)));
             }
         }
 
-        None
+        return Some((first_common, second_common));
     }
 
     #[test_case("sample1.txt" => is eq(79); "sample1")]
