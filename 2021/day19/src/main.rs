@@ -164,6 +164,32 @@ mod test {
     }
 
     #[test]
+    fn are_collinear() {
+        let l1 = (1, 1, 1);
+        let l2 = (2, 2, 2);
+        let l3 = (3, 3, 3);
+        let n = (1, 2, 3);
+
+        assert!(collinear(l1, l2, l3));
+        assert!(!collinear(l1, l2, n));
+        assert!(!collinear(l1, n, l3));
+        assert!(!collinear(n, l2, l3));
+    }
+
+    fn collinear(p1: (i32, i32, i32), p2: (i32, i32, i32), p3: (i32, i32, i32)) -> bool {
+        let u = (p1.0 - p2.0, p1.1 - p2.1, p1.2 - p2.2);
+        let v = (p1.0 - p3.0, p1.1 - p3.1, p1.2 - p3.2);
+        assert!(u.0 != 0 || u.1 != 0 || u.2 != 0);
+        assert!(v.0 != 0 || v.1 != 0 || v.2 != 0);
+
+        let x = u.1 * v.2 - u.2 * v.1;
+        let y = u.2 * v.0 - u.0 * v.2;
+        let z = u.0 * v.1 - u.1 * v.0;
+
+        x == 0 && y == 0 && z == 0
+    }
+
+    #[test]
     fn find_common_12_from_sample_0_1() {
         let sensors = parse_sensors("sample1.txt");
 
