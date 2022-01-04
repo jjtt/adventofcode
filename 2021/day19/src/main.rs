@@ -10,14 +10,58 @@ type Point = (i32, i32, i32);
 #[derive(Debug, IntoEnumIterator, PartialEq, Clone)]
 enum Rotation {
     XYZ,
+    YZX,
+    ZXY,
+    XnYnZ,
+    YnZnX,
+    ZnXnY,
+    XYnZn,
+    YZnXn,
+    ZXnYn,
     XnYZn,
+    YnZXn,
+    ZnXYn,
+    XnZnYn,
+    ZnYnXn,
+    YnXnZn,
+    XZYn,
+    ZYXn,
+    YXZn,
+    XnZY,
+    ZnYX,
+    YnXZ,
+    XZnY,
+    ZYnX,
+    YXnZ,
 }
 
 impl Rotation {
     fn rotate(&self, p: Point) -> Point {
         match self {
             Self::XYZ => p.clone(),
+            Self::YZX => (p.1, p.2, p.0),
+            Self::ZXY => (p.2, p.0, p.1),
+            Self::XnYnZ => (-p.0, -p.1, p.2),
+            Self::YnZnX => (-p.1, -p.2, p.0),
+            Self::ZnXnY => (-p.2, -p.0, p.1),
+            Self::XYnZn => (p.0, -p.1, -p.2),
+            Self::YZnXn => (p.1, -p.2, -p.0),
+            Self::ZXnYn => (p.2, -p.0, -p.1),
             Self::XnYZn => (-p.0, p.1, -p.2),
+            Self::YnZXn => (-p.1, p.2, -p.0),
+            Self::ZnXYn => (-p.2, p.0, -p.1),
+            Self::XnZnYn => (-p.0, -p.2, -p.1),
+            Self::ZnYnXn => (-p.2, -p.1, -p.0),
+            Self::YnXnZn => (-p.1, -p.0, -p.2),
+            Self::XZYn => (p.0, p.2, -p.1),
+            Self::ZYXn => (p.2, p.1, -p.0),
+            Self::YXZn => (p.1, p.0, -p.2),
+            Self::XnZY => (-p.0, p.2, p.1),
+            Self::ZnYX => (-p.2, p.1, p.0),
+            Self::YnXZ => (-p.1, p.0, p.2),
+            Self::XZnY => (p.0, -p.2, p.1),
+            Self::ZYnX => (p.2, -p.1, p.0),
+            Self::YXnZ => (p.1, -p.0, p.2),
         }
     }
 }
@@ -207,16 +251,22 @@ mod test {
 
     #[test]
     fn find_matching_ops_just_rotate() {
-        let triplet0 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
-        let triplet1 = [(0, 0, 0), (-1, 0, 0), (0, 1, 0)];
+        let reference1 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
+        let reference2 = [(0, 0, 1), (2, 0, 0), (0, 3, 0)];
+        let other1 = [(0, 0, 0), (-1, 0, 0), (0, 1, 0)];
+        let other2 = [(0, 0, -1), (0, -2, 0), (-3, 0, 0)];
 
         assert_eq!(
-            triplet0,
-            apply_rotation(triplet1, &find_op(triplet0, triplet1).rotation)
+            reference1,
+            apply_rotation(other1, &find_op(reference1, other1).rotation)
         );
         assert_eq!(
-            triplet0,
-            apply_rotation(triplet0, &find_op(triplet0, triplet0).rotation)
+            reference1,
+            apply_rotation(reference1, &find_op(reference1, reference1).rotation)
+        );
+        assert_eq!(
+            reference2,
+            apply_rotation(other2, &find_op(reference2, other2).rotation)
         );
     }
 
@@ -347,18 +397,6 @@ mod test {
 
                 let from_first = &from_first[0];
                 let from_second = &from_second[0];
-
-                /*
-                Rotations:
-                x,y,z      y,z,x      z,x,y
-                -x,-y,z    -y,-z,x    -z,-x,y
-                x,-y,-z    y,-z,-x    z,-x,-y
-                -x,y,-z    -y,z,-x    -z,x,-y
-                -x,-z,-y   -z,-y,-x   -y,-x,-z
-                x,z,-y     z,y,-x     y,x,-z
-                -x,z,y     -z,y,x     -y,x,z
-                x,-z,y     z,-y,x     y,-x,z
-                 */
 
                 first_common.extend(
                     [from_first.0, from_first.1, from_first.2]
