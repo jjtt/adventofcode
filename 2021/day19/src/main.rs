@@ -4,11 +4,13 @@ use cached::proc_macro::cached;
 use itertools::Itertools;
 use std::fs::read_to_string;
 
+type Point = (i32, i32, i32);
+
 fn main() {
     println!("Hello, world!");
 }
 
-fn total_distance_squared(beacons: Vec<&(i32, i32, i32)>) -> i32 {
+fn total_distance_squared(beacons: Vec<&Point>) -> i32 {
     let mut d = 0;
     let length = beacons.len();
     for i in 0..length - 1 {
@@ -19,17 +21,17 @@ fn total_distance_squared(beacons: Vec<&(i32, i32, i32)>) -> i32 {
     d
 }
 
-fn distance_squared(b1: (i32, i32, i32), b2: (i32, i32, i32)) -> i32 {
+fn distance_squared(b1: Point, b2: Point) -> i32 {
     (b1.0 - b2.0).pow(2) + (b1.1 - b2.1).pow(2) + (b1.2 - b2.2).pow(2)
 }
 
-fn parse_sensors(input: &str) -> Vec<(i32, Vec<(i32, i32, i32)>)> {
+fn parse_sensors(input: &str) -> Vec<(i32, Vec<Point>)> {
     let s = read_to_string(input).unwrap();
 
     s.split("\n\n").map(parse_sensor).collect()
 }
 
-fn parse_sensor(input: &str) -> (i32, Vec<(i32, i32, i32)>) {
+fn parse_sensor(input: &str) -> (i32, Vec<Point>) {
     let (s, c) = input.split_once("\n").unwrap();
 
     (
@@ -38,7 +40,7 @@ fn parse_sensor(input: &str) -> (i32, Vec<(i32, i32, i32)>) {
     )
 }
 
-fn parse_coordinates(beacons: &str) -> Vec<(i32, i32, i32)> {
+fn parse_coordinates(beacons: &str) -> Vec<Point> {
     beacons
         .lines()
         .filter_map(|l| l.split(",").map(|c| c.parse().unwrap()).collect_tuple())
@@ -104,20 +106,21 @@ mod test {
             4,4,4
         "});
 
-        let dists = triplet_distances(&coords);
+        let mut dists = triplet_distances(&coords);
         dbg!(&dists);
-        assert_eq!(1, dists.get_vec(&40).unwrap().len());
-        assert_eq!(1, dists.get_vec(&76).unwrap().len());
-        assert_eq!(1, dists.get_vec(&74).unwrap().len());
-        assert_eq!(1, dists.get_vec(&16).unwrap().len());
+        assert_eq!(1, dists.remove(&40).unwrap().len());
+        assert_eq!(1, dists.remove(&76).unwrap().len());
+        assert_eq!(1, dists.remove(&74).unwrap().len());
+        assert_eq!(1, dists.remove(&16).unwrap().len());
+        assert!(dists.is_empty());
     }
 
-    fn triplet_distances(coords: &Vec<(i32, i32, i32)>) -> MultiMap<i32, Vec<&(i32, i32, i32)>> {
+    fn triplet_distances(coords: &Vec<Point>) -> MultiMap<i32, (&Point, &Point, &Point)> {
         let mut dists = MultiMap::new();
 
         for nlet in coords.iter().combinations(3) {
             if !collinear(*nlet[0], *nlet[1], *nlet[2]) {
-                let clone = nlet.clone();
+                let clone = (nlet[0], nlet[1], nlet[2]);
                 let dist = total_distance_squared(nlet);
                 dists.insert(dist, clone);
             }
@@ -168,7 +171,7 @@ mod test {
         assert!(!collinear(n, l2, l3));
     }
 
-    fn collinear(p1: (i32, i32, i32), p2: (i32, i32, i32), p3: (i32, i32, i32)) -> bool {
+    fn collinear(p1: Point, p2: Point, p3: Point) -> bool {
         let u = (p1.0 - p2.0, p1.1 - p2.1, p1.2 - p2.2);
         let v = (p1.0 - p3.0, p1.1 - p3.1, p1.2 - p3.2);
         assert!(u.0 != 0 || u.1 != 0 || u.2 != 0);
@@ -211,10 +214,7 @@ mod test {
         );
     }
 
-    fn find_common_12(
-        first: &Vec<(i32, i32, i32)>,
-        second: &Vec<(i32, i32, i32)>,
-    ) -> Option<(Vec<(i32, i32, i32)>, Vec<(i32, i32, i32)>)> {
+    fn find_common_12(first: &Vec<Point>, second: &Vec<Point>) -> Option<(Vec<Point>, Vec<Point>)> {
         let first_dists = triplet_distances(first);
         let second_dists = triplet_distances(second);
 
@@ -229,8 +229,8 @@ mod test {
                 assert_eq!(1, from_first.len());
                 assert_eq!(1, from_second.len());
 
-                let from_first = from_first.get(0).unwrap();
-                let from_second = from_second.get(0).unwrap();
+                let from_first = &from_first[0];
+                let from_second = &from_second[0];
 
                 /*
                 Rotations:
@@ -244,8 +244,16 @@ mod test {
                 x,-z,y     z,-y,x     y,-x,z
                  */
 
-                first_common.extend(from_first.iter().map(|(x, y, z)| (*x, *y, *z)));
-                second_common.extend(from_second.iter().map(|(x, y, z)| (*x, *y, *z)));
+                first_common.extend(
+                    [from_first.0, from_first.1, from_first.2]
+                        .iter()
+                        .map(|(x, y, z)| (*x, *y, *z)),
+                );
+                second_common.extend(
+                    [from_second.0, from_second.1, from_second.2]
+                        .iter()
+                        .map(|(x, y, z)| (*x, *y, *z)),
+                );
             }
         }
 
