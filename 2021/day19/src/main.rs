@@ -1,10 +1,31 @@
 #[macro_use]
 extern crate scan_fmt;
 use cached::proc_macro::cached;
+use enum_iterator::IntoEnumIterator;
 use itertools::Itertools;
 use std::fs::read_to_string;
 
 type Point = (i32, i32, i32);
+
+#[derive(Debug, IntoEnumIterator, PartialEq, Clone)]
+enum Rotation {
+    XYZ,
+    XnYZn,
+}
+
+impl Rotation {
+    fn rotate(&self, p: Point) -> Point {
+        match self {
+            Self::XYZ => p.clone(),
+            Self::XnYZn => (-p.0, p.1, -p.2),
+        }
+    }
+}
+
+struct Op {
+    rotation: Rotation,
+    translation: Point,
+}
 
 fn main() {
     println!("Hello, world!");
@@ -182,6 +203,101 @@ mod test {
         let z = u.0 * v.1 - u.1 * v.0;
 
         x == 0 && y == 0 && z == 0
+    }
+
+    #[test]
+    fn find_matching_ops_just_rotate() {
+        let triplet0 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
+        let triplet1 = [(0, 0, 0), (-1, 0, 0), (0, 1, 0)];
+
+        assert_eq!(
+            triplet0,
+            apply_rotation(triplet1, &find_op(triplet0, triplet1).rotation)
+        );
+        assert_eq!(
+            triplet0,
+            apply_rotation(triplet0, &find_op(triplet0, triplet0).rotation)
+        );
+    }
+
+    fn apply_rotation(triplet1: [Point; 3], rotation: &Rotation) -> [Point; 3] {
+        [
+            rotation.rotate(triplet1[0]),
+            rotation.rotate(triplet1[1]),
+            rotation.rotate(triplet1[2]),
+        ]
+    }
+
+    fn apply_translation(triplet1: [Point; 3], translation: &Point) -> [Point; 3] {
+        [
+            (
+                triplet1[0].0 + translation.0,
+                triplet1[0].1 + translation.1,
+                triplet1[0].2 + translation.2,
+            ),
+            (
+                triplet1[1].0 + translation.0,
+                triplet1[1].1 + translation.1,
+                triplet1[1].2 + translation.2,
+            ),
+            (
+                triplet1[2].0 + translation.0,
+                triplet1[2].1 + translation.1,
+                triplet1[2].2 + translation.2,
+            ),
+        ]
+    }
+
+    fn find_op(triplet0: [Point; 3], triplet1: [Point; 3]) -> Op {
+        for rotation in Rotation::into_enum_iter() {
+            for permutation in (0..3).permutations(3) {
+                let candidate = [
+                    triplet1[permutation[0]],
+                    triplet1[permutation[1]],
+                    triplet1[permutation[2]],
+                ];
+                let rotated = apply_rotation(candidate, &rotation);
+                let translation = diff(triplet0[0], rotated[0]);
+                if translation == diff(triplet0[1], rotated[1])
+                    && translation == diff(triplet0[2], rotated[2])
+                {
+                    return Op {
+                        rotation,
+                        translation,
+                    };
+                }
+            }
+        }
+        panic!("No rotation found");
+    }
+
+    fn diff(p1: Point, p2: Point) -> Point {
+        (p1.0 - p2.0, p1.1 - p2.1, p1.2 - p2.2)
+    }
+
+    #[test]
+    fn find_matching_ops_rotate_permute() {
+        let triplet0 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
+        let triplet1 = [(-1, 0, 0), (0, 0, 0), (0, 1, 0)];
+
+        let rotated = apply_rotation(triplet1, &find_op(triplet0, triplet1).rotation);
+        assert_eq!(triplet0[0], rotated[1]);
+        assert_eq!(triplet0[1], rotated[0]);
+        assert_eq!(triplet0[2], rotated[2]);
+    }
+
+    #[test]
+    fn find_matching_ops_rotate_permute_translate() {
+        let triplet0 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
+        let triplet1 = [(-1, 0, 1), (0, 0, 1), (0, 1, 1)];
+
+        let op = find_op(triplet0, triplet1);
+        assert_eq!(op.translation, (0, 0, 1));
+        let rotated = apply_rotation(triplet1, &op.rotation);
+        let translated = apply_translation(rotated, &op.translation);
+        assert_eq!(triplet0[0], translated[1]);
+        assert_eq!(triplet0[1], translated[0]);
+        assert_eq!(triplet0[2], translated[2]);
     }
 
     #[test]
