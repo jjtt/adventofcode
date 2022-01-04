@@ -96,39 +96,31 @@ mod test {
     }
 
     #[test]
-    fn pair_triplet_distances() {
+    fn some_triplet_distances() {
         let coords = parse_coordinates(indoc! {"
             0,0,0
-            1,1,1
-            2,2,2
+            1,1,2
+            2,1,2
             4,4,4
         "});
 
-        let dists = nlet_distances(&coords, 2);
+        let dists = triplet_distances(&coords);
         dbg!(&dists);
-        assert_eq!(1, dists.get_vec(&27).unwrap().len());
-        assert_eq!(2, dists.get_vec(&12).unwrap().len());
-        assert_eq!(1, dists.get_vec(&48).unwrap().len());
-        assert_eq!(2, dists.get_vec(&3).unwrap().len());
-
-        let dists = nlet_distances(&coords, 3);
-        dbg!(&dists);
-        assert_eq!(1, dists.get_vec(&72).unwrap().len());
-        assert_eq!(1, dists.get_vec(&18).unwrap().len());
-        assert_eq!(1, dists.get_vec(&78).unwrap().len());
-        assert_eq!(1, dists.get_vec(&42).unwrap().len());
+        assert_eq!(1, dists.get_vec(&40).unwrap().len());
+        assert_eq!(1, dists.get_vec(&76).unwrap().len());
+        assert_eq!(1, dists.get_vec(&74).unwrap().len());
+        assert_eq!(1, dists.get_vec(&16).unwrap().len());
     }
 
-    fn nlet_distances(
-        coords: &Vec<(i32, i32, i32)>,
-        size: usize,
-    ) -> MultiMap<i32, Vec<&(i32, i32, i32)>> {
+    fn triplet_distances(coords: &Vec<(i32, i32, i32)>) -> MultiMap<i32, Vec<&(i32, i32, i32)>> {
         let mut dists = MultiMap::new();
 
-        for nlet in coords.iter().combinations(size) {
-            let clone = nlet.clone();
-            let dist = total_distance_squared(nlet);
-            dists.insert(dist, clone);
+        for nlet in coords.iter().combinations(3) {
+            if !collinear(*nlet[0], *nlet[1], *nlet[2]) {
+                let clone = nlet.clone();
+                let dist = total_distance_squared(nlet);
+                dists.insert(dist, clone);
+            }
         }
 
         dists
@@ -223,8 +215,8 @@ mod test {
         first: &Vec<(i32, i32, i32)>,
         second: &Vec<(i32, i32, i32)>,
     ) -> Option<(Vec<(i32, i32, i32)>, Vec<(i32, i32, i32)>)> {
-        let first_dists = nlet_distances(first, 3);
-        let second_dists = nlet_distances(second, 3);
+        let first_dists = triplet_distances(first);
+        let second_dists = triplet_distances(second);
 
         let mut first_common = Vec::new();
         let mut second_common = Vec::new();
