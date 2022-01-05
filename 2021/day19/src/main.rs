@@ -1,8 +1,10 @@
 #[macro_use]
 extern crate scan_fmt;
+
 use enum_iterator::IntoEnumIterator;
 use itertools::Itertools;
 use multimap::MultiMap;
+use std::collections::HashSet;
 use std::fs::read_to_string;
 
 type Point = (i32, i32, i32);
@@ -66,6 +68,7 @@ impl Rotation {
     }
 }
 
+#[derive(Debug)]
 struct Op {
     rotation: Rotation,
     translation: Point,
@@ -112,12 +115,12 @@ fn parse_coordinates(beacons: &str) -> Vec<Point> {
         .collect()
 }
 
-fn triplet_distances(coords: &Vec<Point>) -> MultiMap<i32, (&Point, &Point, &Point)> {
+fn triplet_distances(coords: &Vec<Point>) -> MultiMap<i32, [&Point; 3]> {
     let mut dists = MultiMap::new();
 
     for nlet in coords.iter().combinations(3) {
         if !collinear(*nlet[0], *nlet[1], *nlet[2]) {
-            let clone = (nlet[0], nlet[1], nlet[2]);
+            let clone = [nlet[0], nlet[1], nlet[2]];
             let dist = total_distance_squared(nlet);
             dists.insert(dist, clone);
         }
@@ -139,15 +142,15 @@ fn collinear(p1: Point, p2: Point, p3: Point) -> bool {
     x == 0 && y == 0 && z == 0
 }
 
-fn apply_rotation(triplet1: [Point; 3], rotation: &Rotation) -> [Point; 3] {
+fn apply_rotation(triplet1: [&Point; 3], rotation: &Rotation) -> [Point; 3] {
     [
-        rotation.rotate(triplet1[0]),
-        rotation.rotate(triplet1[1]),
-        rotation.rotate(triplet1[2]),
+        rotation.rotate(*triplet1[0]),
+        rotation.rotate(*triplet1[1]),
+        rotation.rotate(*triplet1[2]),
     ]
 }
 
-fn apply_translation(triplet1: [Point; 3], translation: &Point) -> [Point; 3] {
+fn apply_translation(triplet1: [&Point; 3], translation: &Point) -> [Point; 3] {
     [
         (
             triplet1[0].0 + translation.0,
@@ -167,7 +170,7 @@ fn apply_translation(triplet1: [Point; 3], translation: &Point) -> [Point; 3] {
     ]
 }
 
-fn find_op(triplet0: [Point; 3], triplet1: [Point; 3]) -> Op {
+fn find_op(triplet0: [&Point; 3], triplet1: [&Point; 3]) -> Option<Op> {
     for rotation in Rotation::into_enum_iter() {
         for permutation in (0..3).permutations(3) {
             let candidate = [
@@ -176,30 +179,33 @@ fn find_op(triplet0: [Point; 3], triplet1: [Point; 3]) -> Op {
                 triplet1[permutation[2]],
             ];
             let rotated = apply_rotation(candidate, &rotation);
-            let translation = diff(triplet0[0], rotated[0]);
-            if translation == diff(triplet0[1], rotated[1])
-                && translation == diff(triplet0[2], rotated[2])
+            let translation = diff(triplet0[0], &rotated[0]);
+            if translation == diff(triplet0[1], &rotated[1])
+                && translation == diff(triplet0[2], &rotated[2])
             {
-                return Op {
+                return Some(Op {
                     rotation,
                     translation,
-                };
+                });
             }
         }
     }
-    panic!("No rotation found");
+    None
 }
 
-fn diff(p1: Point, p2: Point) -> Point {
+fn diff(p1: &Point, p2: &Point) -> Point {
     (p1.0 - p2.0, p1.1 - p2.1, p1.2 - p2.2)
 }
 
-fn find_common_12(first: &Vec<Point>, second: &Vec<Point>) -> Option<(Vec<Point>, Vec<Point>)> {
+fn find_common_12(
+    first: &Vec<Point>,
+    second: &Vec<Point>,
+) -> Option<(HashSet<Point>, HashSet<Point>)> {
     let first_dists = triplet_distances(first);
     let second_dists = triplet_distances(second);
 
-    let mut first_common = Vec::new();
-    let mut second_common = Vec::new();
+    let mut first_common = HashSet::new();
+    let mut second_common = HashSet::new();
 
     for dist in first_dists.keys() {
         if second_dists.contains_key(dist) {
@@ -212,16 +218,16 @@ fn find_common_12(first: &Vec<Point>, second: &Vec<Point>) -> Option<(Vec<Point>
             let from_first = &from_first[0];
             let from_second = &from_second[0];
 
-            first_common.extend(
-                [from_first.0, from_first.1, from_first.2]
-                    .iter()
-                    .map(|(x, y, z)| (*x, *y, *z)),
-            );
-            second_common.extend(
-                [from_second.0, from_second.1, from_second.2]
-                    .iter()
-                    .map(|(x, y, z)| (*x, *y, *z)),
-            );
+            let op = find_op(*from_first, *from_second);
+            if op.is_none() {
+                dbg!(dist);
+                dbg!(from_first);
+                dbg!(from_second);
+                dbg!(&op);
+            } else {
+                first_common.extend(from_first.iter().map(|(x, y, z)| (*x, *y, *z)));
+                second_common.extend(from_second.iter().map(|(x, y, z)| (*x, *y, *z)));
+            }
         }
     }
 
@@ -231,7 +237,6 @@ fn find_common_12(first: &Vec<Point>, second: &Vec<Point>) -> Option<(Vec<Point>
 #[cfg(test)]
 mod test {
     use indoc::indoc;
-    use std::collections::HashSet;
     use test_case::test_case;
 
     use super::*;
@@ -339,48 +344,62 @@ mod test {
 
     #[test]
     fn find_matching_ops_just_rotate() {
-        let reference1 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
-        let reference2 = [(0, 0, 1), (2, 0, 0), (0, 3, 0)];
-        let other1 = [(0, 0, 0), (-1, 0, 0), (0, 1, 0)];
-        let other2 = [(0, 0, -1), (0, -2, 0), (-3, 0, 0)];
+        let reference1 = [&(0, 0, 0), &(1, 0, 0), &(0, 1, 0)];
+        let reference2 = [&(0, 0, 1), &(2, 0, 0), &(0, 3, 0)];
+        let other1 = [&(0, 0, 0), &(-1, 0, 0), &(0, 1, 0)];
+        let other2 = [&(0, 0, -1), &(0, -2, 0), &(-3, 0, 0)];
 
         assert_eq!(
             reference1,
-            apply_rotation(other1, &find_op(reference1, other1).rotation)
+            apply_rotation(other1, &find_op(reference1, other1).unwrap().rotation)
+                .iter()
+                .collect::<Vec<&Point>>()[0..3]
         );
         assert_eq!(
             reference1,
-            apply_rotation(reference1, &find_op(reference1, reference1).rotation)
+            apply_rotation(
+                reference1,
+                &find_op(reference1, reference1).unwrap().rotation
+            )
+            .iter()
+            .collect::<Vec<&Point>>()[0..3]
         );
         assert_eq!(
             reference2,
-            apply_rotation(other2, &find_op(reference2, other2).rotation)
+            apply_rotation(other2, &find_op(reference2, other2).unwrap().rotation)
+                .iter()
+                .collect::<Vec<&Point>>()[0..3]
         );
     }
 
     #[test]
     fn find_matching_ops_rotate_permute() {
-        let triplet0 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
-        let triplet1 = [(-1, 0, 0), (0, 0, 0), (0, 1, 0)];
+        let triplet0 = [&(0, 0, 0), &(1, 0, 0), &(0, 1, 0)];
+        let triplet1 = [&(-1, 0, 0), &(0, 0, 0), &(0, 1, 0)];
 
-        let rotated = apply_rotation(triplet1, &find_op(triplet0, triplet1).rotation);
-        assert_eq!(triplet0[0], rotated[1]);
-        assert_eq!(triplet0[1], rotated[0]);
-        assert_eq!(triplet0[2], rotated[2]);
+        let rotated = apply_rotation(triplet1, &find_op(triplet0, triplet1).unwrap().rotation);
+        assert_eq!(triplet0[0], &rotated[1]);
+        assert_eq!(triplet0[1], &rotated[0]);
+        assert_eq!(triplet0[2], &rotated[2]);
     }
 
     #[test]
     fn find_matching_ops_rotate_permute_translate() {
-        let triplet0 = [(0, 0, 0), (1, 0, 0), (0, 1, 0)];
-        let triplet1 = [(-1, 0, 1), (0, 0, 1), (0, 1, 1)];
+        let triplet0 = [&(0, 0, 0), &(1, 0, 0), &(0, 1, 0)];
+        let triplet1 = [&(-1, 0, 1), &(0, 0, 1), &(0, 1, 1)];
 
-        let op = find_op(triplet0, triplet1);
+        let op = find_op(triplet0, triplet1).unwrap();
         assert_eq!(op.translation, (0, 0, 1));
         let rotated = apply_rotation(triplet1, &op.rotation);
-        let translated = apply_translation(rotated, &op.translation);
-        assert_eq!(triplet0[0], translated[1]);
-        assert_eq!(triplet0[1], translated[0]);
-        assert_eq!(triplet0[2], translated[2]);
+        let translated = apply_translation(
+            rotated.iter().collect::<Vec<&Point>>()[0..3]
+                .try_into()
+                .expect("slice with incorrect length"),
+            &op.translation,
+        );
+        assert_eq!(*triplet0[0], translated[1]);
+        assert_eq!(triplet0[1], &translated[0]);
+        assert_eq!(*triplet0[2], translated[2]);
     }
 
     #[test]
@@ -404,13 +423,12 @@ mod test {
 
         let (common0, common1) = find_common_12(&sensors[0].1, &sensors[1].1).unwrap();
 
+        dbg!(&common0);
+
         assert_eq!(common_from_0.len(), common0.len());
         assert_eq!(common_from_0.len(), common1.len());
 
-        assert_eq!(
-            HashSet::<_>::from_iter(common_from_0),
-            HashSet::from_iter(common0)
-        );
+        assert_eq!(HashSet::<_>::from_iter(common_from_0), common0);
     }
 
     #[test_case("sample1.txt" => is eq(79); "sample1")]
