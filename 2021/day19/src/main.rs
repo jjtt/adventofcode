@@ -438,7 +438,7 @@ mod test {
     }
 
     #[test_case("sample1.txt" => is eq(79); "sample1")]
-    #[test_case("input.txt" => is eq(0); "input")]
+    #[test_case("input.txt" => is eq(381); "input")]
     fn part1(input: &str) -> usize {
         let sensors = parse_sensors(input);
 
