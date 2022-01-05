@@ -9,7 +9,7 @@ use std::fs::read_to_string;
 
 type Point = (i32, i32, i32);
 
-#[derive(Debug, IntoEnumIterator, PartialEq, Clone)]
+#[derive(Debug, IntoEnumIterator, PartialEq, Clone, Eq, Hash)]
 enum Rotation {
     XYZ,
     YZX,
@@ -68,7 +68,7 @@ impl Rotation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 struct Op {
     rotation: Rotation,
     translation: Point,
@@ -207,6 +207,8 @@ fn find_common_12(
     let mut first_common = HashSet::new();
     let mut second_common = HashSet::new();
 
+    let mut ops = HashSet::new();
+
     for dist in first_dists.keys() {
         if second_dists.contains_key(dist) {
             let from_first = first_dists.get_vec(dist).unwrap();
@@ -225,11 +227,14 @@ fn find_common_12(
                 dbg!(from_second);
                 dbg!(&op);
             } else {
+                ops.insert(op.unwrap());
                 first_common.extend(from_first.iter().map(|(x, y, z)| (*x, *y, *z)));
                 second_common.extend(from_second.iter().map(|(x, y, z)| (*x, *y, *z)));
             }
         }
     }
+
+    assert_eq!(1, ops.len());
 
     return Some((first_common, second_common));
 }
@@ -278,8 +283,6 @@ mod test {
         let distance1 = total_distance_squared(b1.iter().collect());
         let distance2 = total_distance_squared(b2.iter().collect());
         assert_eq!(distance1, distance2);
-
-        dbg!(distance1);
     }
 
     #[test]
@@ -292,7 +295,6 @@ mod test {
         "});
 
         let mut dists = triplet_distances(&coords);
-        dbg!(&dists);
         assert_eq!(1, dists.remove(&40).unwrap().len());
         assert_eq!(1, dists.remove(&76).unwrap().len());
         assert_eq!(1, dists.remove(&74).unwrap().len());
@@ -422,8 +424,6 @@ mod test {
         "});
 
         let (common0, common1) = find_common_12(&sensors[0].1, &sensors[1].1).unwrap();
-
-        dbg!(&common0);
 
         assert_eq!(common_from_0.len(), common0.len());
         assert_eq!(common_from_0.len(), common1.len());
