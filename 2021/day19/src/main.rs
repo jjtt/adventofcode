@@ -200,7 +200,7 @@ fn diff(p1: &Point, p2: &Point) -> Point {
 fn find_common_12(
     first: &Vec<Point>,
     second: &Vec<Point>,
-) -> Option<(HashSet<Point>, HashSet<Point>)> {
+) -> Option<(HashSet<Point>, HashSet<Point>, Op)> {
     let first_dists = triplet_distances(first);
     let second_dists = triplet_distances(second);
 
@@ -214,17 +214,18 @@ fn find_common_12(
             let from_first = first_dists.get_vec(dist).unwrap();
             let from_second = second_dists.get_vec(dist).unwrap();
 
-            assert_eq!(1, from_first.len());
-            assert_eq!(1, from_second.len());
+            // TODO: there may be multiple matches, but we're only handling the first
+            //assert_eq!(1, from_first.len());
+            //assert_eq!(1, from_second.len());
 
             let from_first = &from_first[0];
             let from_second = &from_second[0];
 
             let op = find_op(*from_first, *from_second);
             if op.is_none() {
-                dbg!(dist);
-                dbg!(from_first);
-                dbg!(from_second);
+                //dbg!(dist);
+                //dbg!(from_first);
+                //dbg!(from_second);
                 dbg!(&op);
             } else {
                 ops.insert(op.unwrap());
@@ -234,13 +235,18 @@ fn find_common_12(
         }
     }
 
-    assert_eq!(1, ops.len());
+    if ops.len() != 1 {
+        None
+    } else {
+        let op = ops.into_iter().next().unwrap();
 
-    return Some((first_common, second_common));
+        Some((first_common, second_common, op))
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use hamcrest2::matchers::has::Has;
     use indoc::indoc;
     use test_case::test_case;
 
@@ -319,7 +325,7 @@ mod test {
             -485,-357,347
         "});
 
-        let (common0, common1) = find_common_12(&beacons.clone(), &beacons).unwrap();
+        let (common0, common1, _) = find_common_12(&beacons.clone(), &beacons).unwrap();
 
         assert_eq!(
             HashSet::<_>::from_iter(beacons.clone()),
@@ -423,7 +429,7 @@ mod test {
             -485,-357,347
         "});
 
-        let (common0, common1) = find_common_12(&sensors[0].1, &sensors[1].1).unwrap();
+        let (common0, common1, _) = find_common_12(&sensors[0].1, &sensors[1].1).unwrap();
 
         assert_eq!(common_from_0.len(), common0.len());
         assert_eq!(common_from_0.len(), common1.len());
@@ -433,9 +439,41 @@ mod test {
 
     #[test_case("sample1.txt" => is eq(79); "sample1")]
     #[test_case("input.txt" => is eq(0); "input")]
-    fn part1(input: &str) -> i32 {
+    fn part1(input: &str) -> usize {
         let sensors = parse_sensors(input);
 
-        0
+        let mut beacons: Vec<Point> = Vec::new();
+        beacons.extend(&sensors[0].1);
+
+        let other_sensors = &sensors[1..];
+        let mut processed_sensors = HashSet::new();
+
+        while processed_sensors.len() < other_sensors.len() {
+            for sensor in other_sensors {
+                if !processed_sensors.contains(sensor) {
+                    match find_common_12(&beacons, &sensor.1) {
+                        Some((common0, common1, op)) => {
+                            for beacon in &sensor.1 {
+                                if !common1.contains(beacon) {
+                                    let rotated = op.rotation.rotate(*beacon);
+                                    let translated = (
+                                        rotated.0 + op.translation.0,
+                                        rotated.1 + op.translation.1,
+                                        rotated.2 + op.translation.2,
+                                    );
+                                    beacons.push(translated);
+                                }
+                            }
+
+                            processed_sensors.insert(sensor);
+                            break;
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        }
+
+        beacons.len()
     }
 }
