@@ -244,9 +244,61 @@ fn find_common_12(
     }
 }
 
+fn combine_sensors(sensors: &Vec<(i32, Vec<Point>)>) -> (Vec<Point>, Vec<Point>) {
+    let mut beacons: Vec<Point> = Vec::new();
+    let mut sensor_positions = Vec::new();
+
+    beacons.extend(&sensors[0].1);
+    sensor_positions.push((0, 0, 0));
+
+    let other_sensors = &sensors[1..];
+    let mut processed_sensors = HashSet::new();
+
+    while processed_sensors.len() < other_sensors.len() {
+        for sensor in other_sensors {
+            if !processed_sensors.contains(sensor) {
+                match find_common_12(&beacons, &sensor.1) {
+                    Some((_common0, common1, op)) => {
+                        for beacon in &sensor.1 {
+                            if !common1.contains(beacon) {
+                                let rotated = op.rotation.rotate(*beacon);
+                                let translated = (
+                                    rotated.0 + op.translation.0,
+                                    rotated.1 + op.translation.1,
+                                    rotated.2 + op.translation.2,
+                                );
+                                beacons.push(translated);
+                                sensor_positions.push(op.translation);
+                            }
+                        }
+
+                        processed_sensors.insert(sensor);
+                        break;
+                    }
+                    _ => (),
+                }
+            }
+        }
+    }
+    (beacons, sensor_positions)
+}
+
+fn max_manhattan_distance(points: Vec<Point>) -> i32 {
+    let mut max = 0;
+    for pair in points.iter().combinations(2) {
+        let first = pair[0];
+        let second = pair[1];
+        let dist =
+            (first.0 - second.0).abs() + (first.1 - second.1).abs() + (first.2 - second.2).abs();
+        if dist > max {
+            max = dist;
+        }
+    }
+    max
+}
+
 #[cfg(test)]
 mod test {
-    use hamcrest2::matchers::has::Has;
     use indoc::indoc;
     use test_case::test_case;
 
@@ -306,6 +358,14 @@ mod test {
         assert_eq!(1, dists.remove(&74).unwrap().len());
         assert_eq!(1, dists.remove(&16).unwrap().len());
         assert!(dists.is_empty());
+    }
+
+    #[test_case(vec![(0,0,0),(1,1,1)] => is eq(3); "1")]
+    #[test_case(vec![(0,0,0),(1,1,1),(0,1,0)] => is eq(3); "2")]
+    #[test_case(vec![(0,0,0),(1,1,1),(-1,-2,1)] => is eq(5); "3")]
+    #[test_case(vec![(-1,-2,1),(0,0,0)] => is eq(4); "4")]
+    fn finding_max_manhattan_distances(points: Vec<Point>) -> i32 {
+        max_manhattan_distance(points)
     }
 
     #[test]
@@ -442,38 +502,18 @@ mod test {
     fn part1(input: &str) -> usize {
         let sensors = parse_sensors(input);
 
-        let mut beacons: Vec<Point> = Vec::new();
-        beacons.extend(&sensors[0].1);
-
-        let other_sensors = &sensors[1..];
-        let mut processed_sensors = HashSet::new();
-
-        while processed_sensors.len() < other_sensors.len() {
-            for sensor in other_sensors {
-                if !processed_sensors.contains(sensor) {
-                    match find_common_12(&beacons, &sensor.1) {
-                        Some((common0, common1, op)) => {
-                            for beacon in &sensor.1 {
-                                if !common1.contains(beacon) {
-                                    let rotated = op.rotation.rotate(*beacon);
-                                    let translated = (
-                                        rotated.0 + op.translation.0,
-                                        rotated.1 + op.translation.1,
-                                        rotated.2 + op.translation.2,
-                                    );
-                                    beacons.push(translated);
-                                }
-                            }
-
-                            processed_sensors.insert(sensor);
-                            break;
-                        }
-                        _ => (),
-                    }
-                }
-            }
-        }
+        let (beacons, _) = combine_sensors(&sensors);
 
         beacons.len()
+    }
+
+    #[test_case("sample1.txt" => is eq(3621); "sample1")]
+    #[test_case("input.txt" => is eq(12201); "input")]
+    fn part2(input: &str) -> i32 {
+        let sensors = parse_sensors(input);
+
+        let (_, sensor_positions) = combine_sensors(&sensors);
+
+        max_manhattan_distance(sensor_positions)
     }
 }
