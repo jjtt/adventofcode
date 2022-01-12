@@ -60,6 +60,25 @@ fn apply(algo: &Vec<bool>, image: HashSet<(i32, i32)>) -> HashSet<(i32, i32)> {
     out
 }
 
+fn print(image: &HashSet<(i32, i32)>) {
+    let x_min = image.iter().map(|(x, _)| x).min().unwrap();
+    let x_max = image.iter().map(|(x, _)| x).max().unwrap();
+    let y_min = image.iter().map(|(_, y)| y).min().unwrap();
+    let y_max = image.iter().map(|(_, y)| y).max().unwrap();
+
+    for y in *y_min..=*y_max {
+        for x in *x_min..=*x_max {
+            if image.contains(&(x, y)) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+    println!();
+}
+
 #[cfg(test)]
 mod test {
     use indoc::indoc;
@@ -100,8 +119,11 @@ mod test {
     fn part1(input: &str) -> usize {
         let (algo, image) = parse_input(input);
 
+        print(&image);
         let image = apply(&algo, image);
+        print(&image);
         let image = apply(&algo, image);
+        print(&image);
 
         image.len()
     }
