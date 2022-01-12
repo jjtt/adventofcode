@@ -114,6 +114,14 @@ mod test {
         assert_eq!(34, neighbours_to_index(&image, 2, 2));
     }
 
+    #[test]
+    fn indices_for_input() {
+        let (_, image) = parse_input("input.txt");
+
+        assert_eq!(431, neighbours_to_index(&image, 98, 98));
+        assert_eq!(31, neighbours_to_index(&image, 1, 1));
+    }
+
     #[test_case("sample1.txt" => is eq(35); "sample1")]
     #[test_case("input.txt" => is eq(0); "input")]
     fn part1(input: &str) -> usize {
