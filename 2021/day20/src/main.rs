@@ -208,4 +208,22 @@ mod test {
 
         image.len()
     }
+
+    #[test_case("sample1.txt" => is eq(3351); "sample1")]
+    #[test_case("input.txt" => is eq(17497); "input")]
+    fn part2(input: &str) -> usize {
+        let (algo, mut image) = parse_input(input);
+
+        let min = *image.iter().map(|(x, _)| x).min().unwrap_or(&0);
+        let max = *image.iter().map(|(x, _)| x).max().unwrap_or(&0);
+
+        let mut negative = false;
+        for d in 0..50 {
+            let (i, n) = apply(&algo, image, min - d, max + d, negative);
+            image = i;
+            negative = n;
+        }
+
+        image.len()
+    }
 }
