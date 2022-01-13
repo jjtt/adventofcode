@@ -57,6 +57,31 @@ fn parse_starting_positions(input: &str) -> ((i32, i32), (i32, i32)) {
     )
 }
 
+fn play(pos1: i32, pos2: i32, score1: i32, score2: i32, repeat: usize) -> (usize, usize) {
+    if score1 >= 21 {
+        return (repeat, 0);
+    } else if score2 >= 21 {
+        return (0, repeat);
+    }
+
+    let throws = [(3, 1), (4, 3), (5, 6), (6, 7), (7, 6), (8, 3), (9, 1)];
+
+    throws
+        .map(|(t, r)| {
+            play(
+                pos2,
+                (pos1 + t) % 10,
+                score2,
+                score1 + ((pos1 + t) % 10) + 1,
+                repeat * r,
+            )
+        })
+        .iter()
+        .fold((0, 0), |(sum1, sum2), (wins2, wins1)| {
+            (sum1 + wins1, sum2 + wins2)
+        })
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -100,12 +125,26 @@ mod test {
 
         let mut cur = 0;
         while score[0] < 1000 && score[1] < 1000 {
-            let cast = die.next3_mod10();
-            pos[cur] = (pos[cur] + cast) % 10;
+            let throw = die.next3_mod10();
+            pos[cur] = (pos[cur] + throw) % 10;
             score[cur] += pos[cur] + 1;
             cur = (cur + 1) % 2;
         }
 
         score[cur] * die.throws
+    }
+
+    #[test_case("sample1.txt" => is eq(444356092776315); "sample1")]
+    #[test_case("input.txt" => is eq(303121579983974); "input")]
+    fn part2(input: &str) -> usize {
+        let ((_, pos1), (_, pos2)) = parse_starting_positions(input);
+
+        let (wins1, wins2) = play(pos1 - 1, pos2 - 1, 0, 0, 1);
+
+        if wins1 > wins2 {
+            wins1
+        } else {
+            wins2
+        }
     }
 }
