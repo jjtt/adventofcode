@@ -64,6 +64,43 @@ fn find_split_coordinates(
     )
 }
 
+fn split(
+    step: &(bool, Range<i32>, Range<i32>, Range<i32>),
+    x: Vec<i32>,
+    y: Vec<i32>,
+    z: Vec<i32>,
+) -> Vec<(bool, Range<i32>, Range<i32>, Range<i32>)> {
+    let split_x = split_range(&step.1, x);
+    let split_y = split_range(&step.2, y);
+    let split_z = split_range(&step.3, z);
+
+    split_x
+        .into_iter()
+        .cartesian_product(split_y)
+        .cartesian_product(split_z)
+        .map(|((x, y), z)| (step.0, x, y, z))
+        .collect()
+}
+
+fn split_range(range: &Range<i32>, splits: Vec<i32>) -> Vec<Range<i32>> {
+    let mut out = vec![];
+
+    let mut last = range.start;
+    for s in splits {
+        if s > range.start && s < range.end {
+            out.push(last..s);
+            last = s;
+        }
+    }
+    out.push(last..range.end);
+
+    out
+}
+
+fn count(x: &Range<i32>, y: &Range<i32>, z: &Range<i32>) -> usize {
+    (x.end - x.start) as usize * (y.end - y.start) as usize * (z.end - z.start) as usize
+}
+
 #[cfg(test)]
 mod test {
     use test_case::test_case;
@@ -105,39 +142,6 @@ mod test {
 
         let s = split(&steps.first().unwrap(), vec![11], vec![11], vec![11]);
         assert_eq!(8, s.len());
-    }
-
-    fn split(
-        step: &(bool, Range<i32>, Range<i32>, Range<i32>),
-        x: Vec<i32>,
-        y: Vec<i32>,
-        z: Vec<i32>,
-    ) -> Vec<(bool, Range<i32>, Range<i32>, Range<i32>)> {
-        let split_x = split_range(&step.1, x);
-        let split_y = split_range(&step.2, y);
-        let split_z = split_range(&step.3, z);
-
-        split_x
-            .into_iter()
-            .cartesian_product(split_y)
-            .cartesian_product(split_z)
-            .map(|((x, y), z)| (step.0, x, y, z))
-            .collect()
-    }
-
-    fn split_range(range: &Range<i32>, splits: Vec<i32>) -> Vec<Range<i32>> {
-        let mut out = vec![];
-
-        let mut last = range.start;
-        for s in splits {
-            if s > range.start && s < range.end {
-                out.push(last..s);
-                last = s;
-            }
-        }
-        out.push(last..range.end);
-
-        out
     }
 
     #[test_case("sample1.txt" => is eq(39); "sample1")]
@@ -198,9 +202,5 @@ mod test {
         }
 
         on.iter().map(|(x, y, z)| count(x, y, z)).sum()
-    }
-
-    fn count(x: &Range<i32>, y: &Range<i32>, z: &Range<i32>) -> usize {
-        (x.end - x.start) as usize * (y.end - y.start) as usize * (z.end - z.start) as usize
     }
 }
