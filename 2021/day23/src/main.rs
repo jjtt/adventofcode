@@ -361,8 +361,8 @@ fn dfs_min_cost(state: &State, cur_min: usize) -> (usize, Vec<State>) {
         let mut min = usize::MAX;
         let mut solution = vec![];
         for m in find_moves(state) {
-            println!("{}", print(m.0));
-            continue;
+            //println!("{}", print(m.0));
+            //continue;
             if cur_min < usize::MAX && cur_min + m.1 >= min {
                 // can't find a cheap one here
                 continue;
@@ -657,9 +657,22 @@ mod test {
     }
 
     #[test]
-    fn part1_sample1_is_too_expensive_why() {
-        let state = parse_situation(
-            indoc! {"
+    fn verify_part2_sample1_cost() {
+        let moves = [
+            parse_situation(
+                indoc! {"
+                #############
+                #...........#
+                ###B#C#B#D###
+                  #D#C#B#A#
+                  #D#B#A#C#
+                  #A#D#C#A#
+                  #########
+                "}
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #..........D#
                 ###B#C#B#.###
@@ -668,10 +681,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #A.........D#
                 ###B#C#B#.###
@@ -680,10 +693,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #A........BD#
                 ###B#C#.#.###
@@ -692,10 +705,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #A......B.BD#
                 ###B#C#.#.###
@@ -704,10 +717,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.....B.BD#
                 ###B#C#.#.###
@@ -716,10 +729,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA...C.B.BD#
                 ###B#.#.#.###
@@ -728,10 +741,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.....B.BD#
                 ###B#.#.#.###
@@ -740,10 +753,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA...C.B.BD#
                 ###B#.#.#.###
@@ -752,10 +765,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.....B.BD#
                 ###B#.#.#.###
@@ -764,10 +777,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA...B.B.BD#
                 ###B#.#.#.###
@@ -776,10 +789,10 @@ mod test {
                   #A#D#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D.B.B.BD#
                 ###B#.#.#.###
@@ -788,10 +801,10 @@ mod test {
                   #A#.#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D...B.BD#
                 ###B#.#.#.###
@@ -800,10 +813,10 @@ mod test {
                   #A#B#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D.....BD#
                 ###B#.#.#.###
@@ -812,10 +825,10 @@ mod test {
                   #A#B#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D......D#
                 ###B#.#.#.###
@@ -824,10 +837,10 @@ mod test {
                   #A#B#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D...C..D#
                 ###B#.#.#.###
@@ -836,10 +849,10 @@ mod test {
                   #A#B#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D......D#
                 ###B#.#C#.###
@@ -848,10 +861,10 @@ mod test {
                   #A#B#C#A#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D.....AD#
                 ###B#.#C#.###
@@ -860,10 +873,10 @@ mod test {
                   #A#B#C#.#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.......AD#
                 ###B#.#C#.###
@@ -872,10 +885,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.B.....AD#
                 ###.#.#C#.###
@@ -884,10 +897,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.......AD#
                 ###.#B#C#.###
@@ -896,10 +909,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA...D...AD#
                 ###.#B#C#.###
@@ -908,10 +921,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.......AD#
                 ###.#B#C#.###
@@ -920,10 +933,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #AA.D.....AD#
                 ###.#B#C#.###
@@ -932,10 +945,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #A..D.....AD#
                 ###.#B#C#.###
@@ -944,10 +957,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #...D.....AD#
                 ###.#B#C#.###
@@ -956,10 +969,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #.........AD#
                 ###.#B#C#.###
@@ -968,10 +981,10 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
-        let state = parse_situation(
-            indoc! {"
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
                 #############
                 #..........D#
                 ###A#B#C#.###
@@ -980,10 +993,32 @@ mod test {
                   #A#B#C#D#
                   #########
                 "}
-            .to_string(),
-        );
+                .to_string(),
+            ),
+            parse_situation(
+                indoc! {"
+                #############
+                #...........#
+                ###A#B#C#D###
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+                .to_string(),
+            ),
+        ];
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let mut cost = 0;
+        for i in 0..moves.len() {
+            for m in find_moves(&moves[i]) {
+                if m.0 == moves[i + 1] {
+                    cost += m.1;
+                }
+            }
+        }
+
+        assert_eq!(44169, cost);
     }
 
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
