@@ -354,20 +354,18 @@ fn dfs(state: &State) -> Vec<Vec<State>> {
     }
 }
 
-fn dfs_min_cost(state: &State, cur_min: usize) -> (usize, Vec<State>) {
+fn dfs_min_cost(state: &State) -> (usize, Vec<State>) {
     if is_finished(state) {
         (0, vec![state.clone()])
     } else {
         let mut min = usize::MAX;
         let mut solution = vec![];
         for m in find_moves(state) {
-            //println!("{}", print(m.0));
-            //continue;
-            if cur_min < usize::MAX && cur_min + m.1 >= min {
+            if m.1 > min {
                 // can't find a cheap one here
                 continue;
             }
-            let s = dfs_min_cost(&m.0, min);
+            let s = dfs_min_cost(&m.0);
             if s.0 < usize::MAX && s.0 + m.1 < min {
                 min = s.0 + m.1;
                 solution = vec![state.clone()];
@@ -546,7 +544,7 @@ mod test {
             .to_string(),
         );
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -571,7 +569,7 @@ mod test {
 
         println!("{}", print(state));
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -594,7 +592,7 @@ mod test {
             .to_string(),
         );
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -619,7 +617,7 @@ mod test {
 
         println!("{}", print(state));
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -646,7 +644,7 @@ mod test {
 
         println!("{}", print(state));
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -1026,7 +1024,7 @@ mod test {
     fn part1(input: &str) -> usize {
         let state = parse_situation(read_to_string(input).unwrap());
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in solution.1 {
             println!("{}", print(m));
@@ -1036,11 +1034,11 @@ mod test {
     }
 
     #[test_case("sample1_2.txt" => is eq(44169); "sample1")]
-    #[test_case("input_2.txt" => is eq(0); "input")]
+    #[test_case("input_2.txt" => is eq(43814); "input")]
     fn part2(input: &str) -> usize {
         let state = parse_situation(read_to_string(input).unwrap());
 
-        let solution = dfs_min_cost(&state, usize::MAX);
+        let solution = dfs_min_cost(&state);
 
         for m in solution.1 {
             println!("{}", print(m));
