@@ -86,7 +86,7 @@ fn is_finished(state: &[char; 19]) -> bool {
         ]
 }
 
-fn find_moves(state: &[char; 19]) -> Vec<[char; 19]> {
+fn find_moves(state: &[char; 19]) -> Vec<([char; 19], usize)> {
     let pods = amphipods(state);
 
     let mut moves = vec![];
@@ -98,7 +98,7 @@ fn find_moves(state: &[char; 19]) -> Vec<[char; 19]> {
     moves
 }
 
-fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<[char; 19]> {
+fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<([char; 19], usize)> {
     if is_final_position_for(amphipod_type, pos, state) {
         return vec![];
     }
@@ -114,29 +114,13 @@ fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<[char; 
             'D' => (6, 7),
             _ => panic!("Unsupported amphipod type: {}", amphipod_type),
         };
-        if is_allowed_move_for(amphipod_type, pos, back, state) {
-            let mut m = state.clone();
-            m[pos] = '.';
-            m[back] = amphipod_type;
-            moves.push(m);
-        }
-
-        if is_allowed_move_for(amphipod_type, pos, front, state) {
-            let mut m = state.clone();
-            m[pos] = '.';
-            m[front] = amphipod_type;
-            moves.push(m);
-        }
+        moves.extend(create_allowed_move(amphipod_type, pos, state, back));
+        moves.extend(create_allowed_move(amphipod_type, pos, state, front));
     } else {
         // moving out
         let allowed_hallway_positions = vec![8, 9, 11, 13, 15, 17, 18];
         for hall_pos in allowed_hallway_positions {
-            if is_allowed_move_for(amphipod_type, pos, hall_pos, state) {
-                let mut m = state.clone();
-                m[pos] = '.';
-                m[hall_pos] = amphipod_type;
-                moves.push(m);
-            }
+            moves.extend(create_allowed_move(amphipod_type, pos, state, hall_pos));
         }
     }
 
@@ -157,26 +141,43 @@ fn is_final_position_for(amphipod_type: char, pos: usize, state: &[char; 19]) ->
     }
 }
 
+fn create_allowed_move(
+    amphipod_type: char,
+    pos: usize,
+    state: &[char; 19],
+    back: usize,
+) -> Option<([char; 19], usize)> {
+    let cost = is_allowed_move_for(amphipod_type, pos, back, state);
+    if cost > 0 {
+        let mut m = state.clone();
+        m[pos] = '.';
+        m[back] = amphipod_type;
+        Some((m, cost))
+    } else {
+        None
+    }
+}
+
 fn is_allowed_move_for(
     amphipod_type: char,
     start_pos: usize,
     target_pos: usize,
     state: &[char; 19],
-) -> bool {
+) -> usize {
     // doorways are always clear
     assert!(state[10] == '.' && state[12] == '.' && state[14] == '.' && state[16] == '.');
 
     // target must be clear
     if state[target_pos] != '.' {
-        return false;
+        return 0;
     }
 
     if !room_matches_type(amphipod_type, target_pos) {
-        return false;
+        return 0;
     }
 
     if wrong_type_in_room(target_pos, state) {
-        return false;
+        return 0;
     }
 
     let (s, t) = if start_pos < 8 {
@@ -187,7 +188,7 @@ fn is_allowed_move_for(
 
     // can not move in/out?
     if back_of_room_blocked(s, state) {
-        return false;
+        return 0;
     }
 
     let steps_out = 2 - (s % 2);
@@ -203,9 +204,24 @@ fn is_allowed_move_for(
         ),
     };
 
-    (cmp::min(out, t)..cmp::max(out, t))
+    if !(cmp::min(out, t)..cmp::max(out, t))
         .skip(1)
         .all(|p| state[p] == '.')
+    {
+        0
+    } else {
+        (steps_out + if out < t { t - out } else { out - t }) * cost_for(amphipod_type)
+    }
+}
+
+fn cost_for(amphipod_type: char) -> usize {
+    match amphipod_type {
+        'A' => 1,
+        'B' => 10,
+        'C' => 100,
+        'D' => 1000,
+        _ => panic!("Unsupperted amphipod type: {}", amphipod_type),
+    }
 }
 
 fn wrong_type_in_room(pos: usize, state: &[char; 19]) -> bool {
@@ -317,7 +333,8 @@ mod test {
 
         assert_eq!(1, moves.len());
 
-        assert!(is_finished(moves.first().unwrap()));
+        assert!(is_finished(&moves.first().unwrap().0));
+        assert_eq!(3, moves.first().unwrap().1);
     }
 
     #[test]
@@ -337,7 +354,8 @@ mod test {
 
         assert_eq!(1, moves.len());
 
-        assert!(is_finished(moves.first().unwrap()));
+        assert!(is_finished(&moves.first().unwrap().0));
+        assert_eq!(2000, moves.first().unwrap().1);
     }
 
     #[test]
@@ -357,9 +375,10 @@ mod test {
 
         assert_eq!(2, moves.len());
 
-        assert!(!is_finished(moves.first().unwrap()));
-        assert!(!is_finished(moves.last().unwrap()));
+        assert!(!is_finished(&moves.first().unwrap().0));
+        assert!(!is_finished(&moves.last().unwrap().0));
         assert_ne!(moves.first().unwrap(), moves.last().unwrap());
+        assert_eq!(7000, moves.first().unwrap().1 + moves.last().unwrap().1);
     }
 
     #[test]
@@ -379,9 +398,10 @@ mod test {
 
         assert_eq!(2, moves.len());
 
-        assert!(!is_finished(moves.first().unwrap()));
-        assert!(!is_finished(moves.last().unwrap()));
+        assert!(!is_finished(&moves.first().unwrap().0));
+        assert!(!is_finished(&moves.last().unwrap().0));
         assert_ne!(moves.first().unwrap(), moves.last().unwrap());
+        assert_eq!(3300, moves.first().unwrap().1 + moves.last().unwrap().1);
     }
 
     #[test]
@@ -428,18 +448,17 @@ mod test {
     }
 
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
-    //#[test_case("input.txt" => is eq(0); "input")]
+    #[test_case("input.txt" => is eq(0); "input")]
     fn part1(input: &str) -> usize {
         let state = parse_situation(read_to_string(input).unwrap());
 
-        let solutions = dfs(&state);
+        let solution = dfs_min_cost(&state);
 
-        for m in solutions.first().unwrap() {
-            println!("{}", print(*m));
+        for m in solution.1 {
+            println!("{}", print(m));
         }
-        assert_eq!(1, solutions.len());
 
-        solutions.len()
+        solution.0
     }
 
     fn dfs(state: &[char; 19]) -> Vec<Vec<[char; 19]>> {
@@ -448,12 +467,32 @@ mod test {
         } else {
             let mut solutions = vec![];
             for m in find_moves(state) {
-                for mut solution in dfs(&m) {
+                for mut solution in dfs(&m.0) {
                     solution.insert(0, state.clone());
                     solutions.push(solution);
                 }
             }
             solutions
+        }
+    }
+
+    fn dfs_min_cost(state: &[char; 19]) -> (usize, Vec<[char; 19]>) {
+        if is_finished(state) {
+            (0, vec![state.clone()])
+        } else {
+            let mut min = usize::MAX;
+            let mut solution = vec![];
+            let mut move_cost = 0;
+            for m in find_moves(state) {
+                let s = dfs_min_cost(&m.0);
+                if s.0 < min {
+                    min = s.0;
+                    move_cost = m.1;
+                    solution = vec![state.clone()];
+                    solution.extend(s.1);
+                }
+            }
+            (min + move_cost, solution)
         }
     }
 }
