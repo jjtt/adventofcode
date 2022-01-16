@@ -118,7 +118,8 @@ fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<([char;
         moves.extend(create_allowed_move(amphipod_type, pos, state, front));
     } else {
         // moving out
-        let allowed_hallway_positions = vec![8, 9, 11, 13, 15, 17, 18];
+
+        let allowed_hallway_positions = vec![13, 11, 15, 9, 17, 8, 18];
         for hall_pos in allowed_hallway_positions {
             moves.extend(create_allowed_move(amphipod_type, pos, state, hall_pos));
         }
