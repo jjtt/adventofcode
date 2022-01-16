@@ -293,17 +293,17 @@ fn room_matches_type(amphipod_type: char, pos: usize) -> bool {
 }
 
 fn back_of_room_blocked(pos: usize, state: &State) -> bool {
-    (pos == 0 && state[1] != '.')
-        || (pos == 1 && state[2] != '.')
+    (pos == 0 && (state[1] != '.' || state[2] != '.' || state[3] != '.'))
+        || (pos == 1 && (state[2] != '.' || state[3] != '.'))
         || (pos == 2 && state[3] != '.')
-        || (pos == 4 && state[5] != '.')
-        || (pos == 5 && state[6] != '.')
+        || (pos == 4 && (state[5] != '.' || state[6] != '.' || state[7] != '.'))
+        || (pos == 5 && (state[6] != '.' || state[7] != '.'))
         || (pos == 6 && state[7] != '.')
-        || (pos == 8 && state[9] != '.')
-        || (pos == 9 && state[10] != '.')
+        || (pos == 8 && (state[9] != '.' || state[10] != '.' || state[11] != '.'))
+        || (pos == 9 && (state[10] != '.' || state[11] != '.'))
         || (pos == 10 && state[11] != '.')
-        || (pos == 12 && state[13] != '.')
-        || (pos == 13 && state[14] != '.')
+        || (pos == 12 && (state[13] != '.' || state[14] != '.' || state[15] != '.'))
+        || (pos == 13 && (state[14] != '.' || state[15] != '.'))
         || (pos == 14 && state[15] != '.')
 }
 
