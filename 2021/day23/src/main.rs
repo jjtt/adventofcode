@@ -462,13 +462,58 @@ mod test {
 
         let solution = dfs_min_cost(&state);
 
+        for m in &solution.1 {
+            println!("{}", print(*m));
+        }
+
+        assert_eq!(1143, solution.0);
+        assert_eq!(12, solution.1.len());
+    }
+
+    #[test]
+    fn why_choose_an_expensive_extra_step_for_b() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #.A.....A...#
+                ###.#.#C#D###
+                  #B#B#C#D#
+                  #########
+            "}
+            .to_string(),
+        );
+
+        let solution = dfs_min_cost(&state);
 
         for m in &solution.1 {
             println!("{}", print(*m));
         }
 
-        assert_eq!(0, solution.0);
-        assert_eq!(1, solution.1.len());
+        assert_eq!(5, solution.1.len());
+        assert_eq!(59, solution.0); // not sure if 59 is the correct answer, but 79 isn't
+    }
+
+    #[test]
+    fn why_choose_an_expensive_extra_step_for_b_2() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #.A.........#
+                ###B#.#C#D###
+                  #A#B#C#D#
+                  #########
+            "}
+            .to_string(),
+        );
+
+        let solution = dfs_min_cost(&state);
+
+        for m in &solution.1 {
+            println!("{}", print(*m));
+        }
+
+        assert_eq!(4, solution.1.len());
+        assert_eq!(42, solution.0);
     }
 
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
@@ -506,17 +551,15 @@ mod test {
         } else {
             let mut min = usize::MAX;
             let mut solution = vec![];
-            let mut move_cost = 0;
             for m in find_moves(state) {
                 let s = dfs_min_cost(&m.0);
-                if s.0 < min {
-                    min = s.0;
-                    move_cost = m.1;
+                if s.0 < usize::MAX && s.0 + m.1 < min {
+                    min = s.0 + m.1;
                     solution = vec![state.clone()];
                     solution.extend(s.1);
                 }
             }
-            (min + move_cost, solution)
+            (min, solution)
         }
     }
 }
