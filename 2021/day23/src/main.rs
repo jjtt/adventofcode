@@ -361,6 +361,8 @@ fn dfs_min_cost(state: &State, cur_min: usize) -> (usize, Vec<State>) {
         let mut min = usize::MAX;
         let mut solution = vec![];
         for m in find_moves(state) {
+            //println!("{}", print(m.0));
+            //continue;
             if cur_min < usize::MAX && cur_min + m.1 >= min {
                 // can't find a cheap one here
                 continue;
@@ -625,6 +627,33 @@ mod test {
 
         assert_eq!(3, solution.1.len());
         assert_eq!(9, solution.0);
+    }
+
+    #[test]
+    fn cost_for_deep_rooms() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #DD.D.D.....#
+                ###A#B#C#.###
+                  #A#B#C#.#
+                  #A#B#C#.#
+                  #A#B#C#.#
+                  #########
+              "}
+            .to_string(),
+        );
+
+        println!("{}", print(state));
+
+        let solution = dfs_min_cost(&state, usize::MAX);
+
+        for m in &solution.1 {
+            println!("{}", print(*m));
+        }
+
+        assert_eq!(5, solution.1.len());
+        assert_eq!(33000, solution.0);
     }
 
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
