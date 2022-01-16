@@ -361,8 +361,8 @@ fn dfs_min_cost(state: &State, cur_min: usize) -> (usize, Vec<State>) {
         let mut min = usize::MAX;
         let mut solution = vec![];
         for m in find_moves(state) {
-            //println!("{}", print(m.0));
-            //continue;
+            println!("{}", print(m.0));
+            continue;
             if cur_min < usize::MAX && cur_min + m.1 >= min {
                 // can't find a cheap one here
                 continue;
@@ -654,6 +654,336 @@ mod test {
 
         assert_eq!(5, solution.1.len());
         assert_eq!(33000, solution.0);
+    }
+
+    #[test]
+    fn part1_sample1_is_too_expensive_why() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #..........D#
+                ###B#C#B#.###
+                  #D#C#B#A#
+                  #D#B#A#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #A.........D#
+                ###B#C#B#.###
+                  #D#C#B#.#
+                  #D#B#A#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #A........BD#
+                ###B#C#.#.###
+                  #D#C#B#.#
+                  #D#B#A#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #A......B.BD#
+                ###B#C#.#.###
+                  #D#C#.#.#
+                  #D#B#A#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.....B.BD#
+                ###B#C#.#.###
+                  #D#C#.#.#
+                  #D#B#.#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA...C.B.BD#
+                ###B#.#.#.###
+                  #D#C#.#.#
+                  #D#B#.#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.....B.BD#
+                ###B#.#.#.###
+                  #D#C#.#.#
+                  #D#B#C#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA...C.B.BD#
+                ###B#.#.#.###
+                  #D#.#.#.#
+                  #D#B#C#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.....B.BD#
+                ###B#.#.#.###
+                  #D#.#C#.#
+                  #D#B#C#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA...B.B.BD#
+                ###B#.#.#.###
+                  #D#.#C#.#
+                  #D#.#C#C#
+                  #A#D#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D.B.B.BD#
+                ###B#.#.#.###
+                  #D#.#C#.#
+                  #D#.#C#C#
+                  #A#.#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D...B.BD#
+                ###B#.#.#.###
+                  #D#.#C#.#
+                  #D#.#C#C#
+                  #A#B#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D.....BD#
+                ###B#.#.#.###
+                  #D#.#C#.#
+                  #D#B#C#C#
+                  #A#B#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D......D#
+                ###B#.#.#.###
+                  #D#B#C#.#
+                  #D#B#C#C#
+                  #A#B#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D...C..D#
+                ###B#.#.#.###
+                  #D#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D......D#
+                ###B#.#C#.###
+                  #D#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#A#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D.....AD#
+                ###B#.#C#.###
+                  #D#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#.#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.......AD#
+                ###B#.#C#.###
+                  #D#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.B.....AD#
+                ###.#.#C#.###
+                  #D#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.......AD#
+                ###.#B#C#.###
+                  #D#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA...D...AD#
+                ###.#B#C#.###
+                  #.#B#C#.#
+                  #D#B#C#.#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.......AD#
+                ###.#B#C#.###
+                  #.#B#C#.#
+                  #D#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.D.....AD#
+                ###.#B#C#.###
+                  #.#B#C#.#
+                  #.#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #A..D.....AD#
+                ###.#B#C#.###
+                  #.#B#C#.#
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #...D.....AD#
+                ###.#B#C#.###
+                  #A#B#C#.#
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #.........AD#
+                ###.#B#C#.###
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #..........D#
+                ###A#B#C#.###
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #A#B#C#D#
+                  #########
+                "}
+            .to_string(),
+        );
+
+        let solution = dfs_min_cost(&state, usize::MAX);
     }
 
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
