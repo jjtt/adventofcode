@@ -5,7 +5,9 @@ use std::cmp;
 
 use std::fs::read_to_string;
 
-fn parse_situation(s: String) -> [char; 19] {
+type State = [char; 27];
+
+fn parse_situation(s: String) -> State {
     let mut lines = s.lines();
 
     assert_eq!("#############", lines.next().unwrap());
@@ -30,17 +32,41 @@ fn parse_situation(s: String) -> [char; 19] {
     )
     .unwrap();
 
-    assert_eq!("  #########", lines.next().unwrap());
+    let possibly_folded = lines.next().unwrap();
+    let basement = if "  #########" == possibly_folded {
+        (('A', 'B', 'C', 'D'), ('A', 'B', 'C', 'D'))
+    } else {
+        (
+            scan_fmt!(possibly_folded, "  #{}#{}#{}#{}#", char, char, char, char).unwrap(),
+            scan_fmt!(
+                lines.next().unwrap(),
+                "  #{}#{}#{}#{}#",
+                char,
+                char,
+                char,
+                char
+            )
+            .unwrap(),
+        )
+    };
 
     let mut hall = hallway[0..11].chars();
 
     [
+        basement.1 .0,
+        basement.0 .0,
         bottom.0,
         top.0,
+        basement.1 .1,
+        basement.0 .1,
         bottom.1,
         top.1,
+        basement.1 .2,
+        basement.0 .2,
         bottom.2,
         top.2,
+        basement.1 .3,
+        basement.0 .3,
         bottom.3,
         top.3,
         hall.next().unwrap(),
@@ -57,33 +83,39 @@ fn parse_situation(s: String) -> [char; 19] {
     ]
 }
 
-fn print(state: [char; 19]) -> String {
+fn print(state: State) -> String {
     let mut s = String::new();
 
     s += "#############\n";
     s += "#";
-    s.extend(state[8..19].iter());
+    s.extend(state[16..27].iter());
     s += "#\n";
     s += format!(
         "###{}#{}#{}#{}###\n",
-        state[1], state[3], state[5], state[7]
+        state[3], state[7], state[11], state[15]
     )
     .as_str();
-    s += format!("  #{}#{}#{}#{}#\n", state[0], state[2], state[4], state[6]).as_str();
+    s += format!(
+        "  #{}#{}#{}#{}#\n",
+        state[2], state[6], state[10], state[14]
+    )
+    .as_str();
+    s += format!("  #{}#{}#{}#{}#\n", state[1], state[5], state[9], state[13]).as_str();
+    s += format!("  #{}#{}#{}#{}#\n", state[0], state[4], state[8], state[12]).as_str();
     s += "  #########\n";
 
     s
 }
 
-fn is_finished(state: &[char; 19]) -> bool {
+fn is_finished(state: &State) -> bool {
     *state
         == [
-            'A', 'A', 'B', 'B', 'C', 'C', 'D', 'D', '.', '.', '.', '.', '.', '.', '.', '.', '.',
-            '.', '.',
+            'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C', 'C', 'C', 'D', 'D', 'D', 'D', '.',
+            '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
         ]
 }
 
-fn find_moves(state: &[char; 19]) -> Vec<([char; 19], usize)> {
+fn find_moves(state: &State) -> Vec<(State, usize)> {
     let pods = amphipods(state);
 
     let mut moves = vec![];
@@ -95,28 +127,30 @@ fn find_moves(state: &[char; 19]) -> Vec<([char; 19], usize)> {
     moves
 }
 
-fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<([char; 19], usize)> {
+fn moves_for(amphipod_type: char, pos: usize, state: &State) -> Vec<(State, usize)> {
     if is_final_position_for(amphipod_type, pos, state) {
         return vec![];
     }
 
     let mut moves = vec![];
 
-    if pos >= 8 {
+    if pos >= 16 {
         // moving in
-        let (back, front) = match amphipod_type {
-            'A' => (0, 1),
-            'B' => (2, 3),
-            'C' => (4, 5),
-            'D' => (6, 7),
+        let (backbackback, backback, back, front) = match amphipod_type {
+            'A' => (0, 1, 2, 3),
+            'B' => (4, 5, 6, 7),
+            'C' => (8, 9, 10, 11),
+            'D' => (12, 13, 14, 15),
             _ => panic!("Unsupported amphipod type: {}", amphipod_type),
         };
+        moves.extend(create_allowed_move(amphipod_type, pos, state, backbackback));
+        moves.extend(create_allowed_move(amphipod_type, pos, state, backback));
         moves.extend(create_allowed_move(amphipod_type, pos, state, back));
         moves.extend(create_allowed_move(amphipod_type, pos, state, front));
     } else {
         // moving out
 
-        let allowed_hallway_positions = vec![13, 11, 15, 9, 17, 8, 18];
+        let allowed_hallway_positions = vec![21, 19, 23, 17, 25, 16, 26];
         for hall_pos in allowed_hallway_positions {
             moves.extend(create_allowed_move(amphipod_type, pos, state, hall_pos));
         }
@@ -125,16 +159,24 @@ fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<([char;
     moves
 }
 
-fn is_final_position_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> bool {
+fn is_final_position_for(amphipod_type: char, pos: usize, state: &State) -> bool {
     match pos {
         0 => 'A' == amphipod_type,
         1 => 'A' == amphipod_type && state[0] == 'A',
-        2 => 'B' == amphipod_type,
-        3 => 'B' == amphipod_type && state[2] == 'B',
-        4 => 'C' == amphipod_type,
-        5 => 'C' == amphipod_type && state[4] == 'C',
-        6 => 'D' == amphipod_type,
-        7 => 'D' == amphipod_type && state[6] == 'D',
+        2 => 'A' == amphipod_type && state[1] == 'A',
+        3 => 'A' == amphipod_type && state[2] == 'A',
+        4 => 'B' == amphipod_type,
+        5 => 'B' == amphipod_type && state[4] == 'B',
+        6 => 'B' == amphipod_type && state[5] == 'B',
+        7 => 'B' == amphipod_type && state[6] == 'B',
+        8 => 'C' == amphipod_type,
+        9 => 'C' == amphipod_type && state[8] == 'C',
+        10 => 'C' == amphipod_type && state[9] == 'C',
+        11 => 'C' == amphipod_type && state[10] == 'C',
+        12 => 'D' == amphipod_type,
+        13 => 'D' == amphipod_type && state[12] == 'D',
+        14 => 'D' == amphipod_type && state[13] == 'D',
+        15 => 'D' == amphipod_type && state[14] == 'D',
         _ => false,
     }
 }
@@ -142,14 +184,14 @@ fn is_final_position_for(amphipod_type: char, pos: usize, state: &[char; 19]) ->
 fn create_allowed_move(
     amphipod_type: char,
     pos: usize,
-    state: &[char; 19],
-    back: usize,
-) -> Option<([char; 19], usize)> {
-    let cost = is_allowed_move_for(amphipod_type, pos, back, state);
+    state: &State,
+    target_pos: usize,
+) -> Option<(State, usize)> {
+    let cost = is_allowed_move_for(amphipod_type, pos, target_pos, state);
     if cost > 0 {
         let mut m = state.clone();
         m[pos] = '.';
-        m[back] = amphipod_type;
+        m[target_pos] = amphipod_type;
         Some((m, cost))
     } else {
         None
@@ -160,10 +202,10 @@ fn is_allowed_move_for(
     amphipod_type: char,
     start_pos: usize,
     target_pos: usize,
-    state: &[char; 19],
+    state: &State,
 ) -> usize {
     // doorways are always clear
-    assert!(state[10] == '.' && state[12] == '.' && state[14] == '.' && state[16] == '.');
+    assert!(state[18] == '.' && state[20] == '.' && state[22] == '.' && state[24] == '.');
 
     // target must be clear
     if state[target_pos] != '.' {
@@ -178,7 +220,7 @@ fn is_allowed_move_for(
         return 0;
     }
 
-    let (s, t) = if start_pos < 8 {
+    let (s, t) = if start_pos < 16 {
         (start_pos, target_pos)
     } else {
         (target_pos, start_pos)
@@ -189,13 +231,13 @@ fn is_allowed_move_for(
         return 0;
     }
 
-    let steps_out = 2 - (s % 2);
+    let steps_out = 4 - (s % 4);
 
     let out = match s {
-        0 | 1 => 10,
-        2 | 3 => 12,
-        4 | 5 => 14,
-        6 | 7 => 16,
+        0 | 1 | 2 | 3 => 18,
+        4 | 5 | 6 | 7 => 20,
+        8 | 9 | 10 | 11 => 22,
+        12 | 13 | 14 | 15 => 24,
         _ => panic!(
             "Start or end must be in a room: {} (start:{}, end:{})",
             s, start_pos, target_pos
@@ -222,72 +264,72 @@ fn cost_for(amphipod_type: char) -> usize {
     }
 }
 
-fn wrong_type_in_room(pos: usize, state: &[char; 19]) -> bool {
+fn wrong_type_in_room(pos: usize, state: &State) -> bool {
     match pos {
         1 => state[0] != 'A',
-        3 => state[2] != 'B',
-        5 => state[4] != 'C',
-        7 => state[6] != 'D',
+        2 => state[0] != 'A' || state[1] != 'A',
+        3 => state[0] != 'A' || state[1] != 'A' || state[2] != 'A',
+        5 => state[4] != 'B',
+        6 => state[4] != 'B' || state[5] != 'B',
+        7 => state[4] != 'B' || state[5] != 'B' || state[6] != 'B',
+        9 => state[8] != 'C',
+        10 => state[8] != 'C' || state[9] != 'C',
+        11 => state[8] != 'C' || state[9] != 'C' || state[10] != 'C',
+        13 => state[12] != 'D',
+        14 => state[12] != 'D' || state[13] != 'D',
+        15 => state[12] != 'D' || state[13] != 'D' || state[14] != 'D',
         _ => false,
     }
 }
 
 fn room_matches_type(amphipod_type: char, pos: usize) -> bool {
     match pos {
-        0 | 1 => 'A' == amphipod_type,
-        2 | 3 => 'B' == amphipod_type,
-        4 | 5 => 'C' == amphipod_type,
-        6 | 7 => 'D' == amphipod_type,
+        0 | 1 | 2 | 3 => 'A' == amphipod_type,
+        4 | 5 | 6 | 7 => 'B' == amphipod_type,
+        8 | 9 | 10 | 11 => 'C' == amphipod_type,
+        12 | 13 | 14 | 15 => 'D' == amphipod_type,
         _ => true,
     }
 }
 
-fn back_of_room_blocked(pos: usize, state: &[char; 19]) -> bool {
+fn back_of_room_blocked(pos: usize, state: &State) -> bool {
     (pos == 0 && state[1] != '.')
+        || (pos == 1 && state[2] != '.')
         || (pos == 2 && state[3] != '.')
         || (pos == 4 && state[5] != '.')
+        || (pos == 5 && state[6] != '.')
         || (pos == 6 && state[7] != '.')
+        || (pos == 8 && state[9] != '.')
+        || (pos == 9 && state[10] != '.')
+        || (pos == 10 && state[11] != '.')
+        || (pos == 12 && state[13] != '.')
+        || (pos == 13 && state[14] != '.')
+        || (pos == 14 && state[15] != '.')
 }
 
-fn amphipods(state: &[char; 19]) -> [(char, usize); 8] {
-    let mut pods = [(' ', 0); 8];
-    let mut seen_a = false;
-    let mut seen_b = false;
-    let mut seen_c = false;
-    let mut seen_d = false;
+fn amphipods(state: &State) -> [(char, usize); 16] {
+    let mut pods = [(' ', 0); 16];
+    let mut count_a = 0;
+    let mut count_b = 0;
+    let mut count_c = 0;
+    let mut count_d = 0;
     for (i, c) in state.iter().enumerate() {
         match c {
             'A' => {
-                if seen_a {
-                    pods[1] = (*c, i)
-                } else {
-                    pods[0] = (*c, i);
-                    seen_a = true
-                }
+                pods[0 + count_a] = (*c, i);
+                count_a += 1;
             }
             'B' => {
-                if seen_b {
-                    pods[3] = (*c, i)
-                } else {
-                    pods[2] = (*c, i);
-                    seen_b = true
-                }
+                pods[4 + count_b] = (*c, i);
+                count_b += 1;
             }
             'C' => {
-                if seen_c {
-                    pods[5] = (*c, i)
-                } else {
-                    pods[4] = (*c, i);
-                    seen_c = true
-                }
+                pods[8 + count_c] = (*c, i);
+                count_c += 1;
             }
             'D' => {
-                if seen_d {
-                    pods[7] = (*c, i)
-                } else {
-                    pods[6] = (*c, i);
-                    seen_d = true
-                }
+                pods[12 + count_d] = (*c, i);
+                count_d += 1;
             }
             '.' => (),
             _ => panic!("Unexpected character: {}", c),
@@ -297,7 +339,7 @@ fn amphipods(state: &[char; 19]) -> [(char, usize); 8] {
     pods
 }
 
-fn dfs(state: &[char; 19]) -> Vec<Vec<[char; 19]>> {
+fn dfs(state: &State) -> Vec<Vec<State>> {
     if is_finished(state) {
         vec![vec![state.clone()]]
     } else {
@@ -312,7 +354,7 @@ fn dfs(state: &[char; 19]) -> Vec<Vec<[char; 19]>> {
     }
 }
 
-fn dfs_min_cost(state: &[char; 19], cur_min: usize) -> (usize, Vec<[char; 19]>) {
+fn dfs_min_cost(state: &State, cur_min: usize) -> (usize, Vec<State>) {
     if is_finished(state) {
         (0, vec![state.clone()])
     } else {
@@ -347,9 +389,9 @@ mod test {
 
     #[test]
     fn print_sample1() {
-        let state = parse_situation(read_to_string("sample1.txt").unwrap());
+        let state = parse_situation(read_to_string("sample1_2.txt").unwrap());
 
-        assert_eq!(read_to_string("sample1.txt").unwrap(), print(state));
+        assert_eq!(read_to_string("sample1_2.txt").unwrap(), print(state));
     }
 
     #[test]
@@ -430,7 +472,13 @@ mod test {
             .to_string(),
         );
 
+        println!("{}", print(state));
+
         let moves = find_moves(&state);
+
+        for m in moves.iter() {
+            println!("{}", print(m.0));
+        }
 
         assert_eq!(2, moves.len());
 
@@ -519,6 +567,8 @@ mod test {
             .to_string(),
         );
 
+        println!("{}", print(state));
+
         let solution = dfs_min_cost(&state, usize::MAX);
 
         for m in &solution.1 {
@@ -552,9 +602,48 @@ mod test {
         assert_eq!(42, solution.0);
     }
 
+    #[test]
+    fn why_doesnt_a_go_home() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #.A.....A...#
+                ###.#B#C#D###
+                  #.#B#C#D#
+                  #########
+              "}
+            .to_string(),
+        );
+
+        println!("{}", print(state));
+
+        let solution = dfs_min_cost(&state, usize::MAX);
+
+        for m in &solution.1 {
+            println!("{}", print(*m));
+        }
+
+        assert_eq!(3, solution.1.len());
+        assert_eq!(9, solution.0);
+    }
+
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
     #[test_case("input.txt" => is eq(14148); "input")]
     fn part1(input: &str) -> usize {
+        let state = parse_situation(read_to_string(input).unwrap());
+
+        let solution = dfs_min_cost(&state, usize::MAX);
+
+        for m in solution.1 {
+            println!("{}", print(m));
+        }
+
+        solution.0
+    }
+
+    #[test_case("sample1_2.txt" => is eq(44169); "sample1")]
+    #[test_case("input_2.txt" => is eq(0); "input")]
+    fn part2(input: &str) -> usize {
         let state = parse_situation(read_to_string(input).unwrap());
 
         let solution = dfs_min_cost(&state, usize::MAX);
