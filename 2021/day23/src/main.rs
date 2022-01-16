@@ -86,13 +86,13 @@ fn is_finished(state: &[char; 19]) -> bool {
         ]
 }
 
-fn find_moves(state: [char; 19]) -> Vec<[char; 19]> {
-    let pods = amphipods(&state);
+fn find_moves(state: &[char; 19]) -> Vec<[char; 19]> {
+    let pods = amphipods(state);
 
     let mut moves = vec![];
 
     for (c, pos) in pods {
-        moves.extend(moves_for(c, pos, &state));
+        moves.extend(moves_for(c, pos, state));
     }
 
     moves
@@ -119,7 +119,6 @@ fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<[char; 
             m[pos] = '.';
             m[back] = amphipod_type;
             moves.push(m);
-            println!("{}", print(m));
         }
 
         if is_allowed_move_for(amphipod_type, pos, front, state) {
@@ -127,7 +126,6 @@ fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<[char; 
             m[pos] = '.';
             m[front] = amphipod_type;
             moves.push(m);
-            println!("{}", print(m));
         }
     } else {
         // moving out
@@ -138,7 +136,6 @@ fn moves_for(amphipod_type: char, pos: usize, state: &[char; 19]) -> Vec<[char; 
                 m[pos] = '.';
                 m[hall_pos] = amphipod_type;
                 moves.push(m);
-                println!("{}", print(m));
             }
         }
     }
@@ -316,7 +313,7 @@ mod test {
             .to_string(),
         );
 
-        let moves = find_moves(state);
+        let moves = find_moves(&state);
 
         assert_eq!(1, moves.len());
 
@@ -336,7 +333,7 @@ mod test {
             .to_string(),
         );
 
-        let moves = find_moves(state);
+        let moves = find_moves(&state);
 
         assert_eq!(1, moves.len());
 
@@ -356,7 +353,7 @@ mod test {
             .to_string(),
         );
 
-        let moves = find_moves(state);
+        let moves = find_moves(&state);
 
         assert_eq!(2, moves.len());
 
@@ -378,7 +375,7 @@ mod test {
             .to_string(),
         );
 
-        let moves = find_moves(state);
+        let moves = find_moves(&state);
 
         assert_eq!(2, moves.len());
 
@@ -387,11 +384,76 @@ mod test {
         assert_ne!(moves.first().unwrap(), moves.last().unwrap());
     }
 
+    #[test]
+    fn find_solution_for_easy_case() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #A..........#
+                ###.#B#C#D###
+                  #A#B#C#D#
+                  #########
+        "}
+            .to_string(),
+        );
+
+        let solutions = dfs(&state);
+
+        assert_eq!(1, solutions.len());
+        assert_eq!(2, solutions.first().unwrap().len());
+    }
+
+    #[test]
+    fn find_solution_for_slightly_harder_case() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #AA.........#
+                ###.#B#C#D###
+                  #.#B#C#D#
+                  #########
+        "}
+            .to_string(),
+        );
+
+        let solutions = dfs(&state);
+
+        assert_eq!(1, solutions.len());
+
+        for m in solutions.first().unwrap() {
+            println!("{}", print(*m));
+        }
+
+        assert_eq!(3, solutions.first().unwrap().len());
+    }
+
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
-    #[test_case("input.txt" => is eq(0); "input")]
+    //#[test_case("input.txt" => is eq(0); "input")]
     fn part1(input: &str) -> usize {
         let state = parse_situation(read_to_string(input).unwrap());
 
-        0
+        let solutions = dfs(&state);
+
+        for m in solutions.first().unwrap() {
+            println!("{}", print(*m));
+        }
+        assert_eq!(1, solutions.len());
+
+        solutions.len()
+    }
+
+    fn dfs(state: &[char; 19]) -> Vec<Vec<[char; 19]>> {
+        if is_finished(state) {
+            vec![vec![state.clone()]]
+        } else {
+            let mut solutions = vec![];
+            for m in find_moves(state) {
+                for mut solution in dfs(&m) {
+                    solution.insert(0, state.clone());
+                    solutions.push(solution);
+                }
+            }
+            solutions
+        }
     }
 }
