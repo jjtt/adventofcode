@@ -1,12 +1,9 @@
 #[macro_use]
 extern crate scan_fmt;
 
-use itertools::{all, Itertools};
 use std::cmp;
-use std::collections::HashSet;
 
 use std::fs::read_to_string;
-use std::ops::Range;
 
 fn parse_situation(s: String) -> [char; 19] {
     let mut lines = s.lines();
@@ -300,6 +297,43 @@ fn amphipods(state: &[char; 19]) -> [(char, usize); 8] {
     pods
 }
 
+fn dfs(state: &[char; 19]) -> Vec<Vec<[char; 19]>> {
+    if is_finished(state) {
+        vec![vec![state.clone()]]
+    } else {
+        let mut solutions = vec![];
+        for m in find_moves(state) {
+            for mut solution in dfs(&m.0) {
+                solution.insert(0, state.clone());
+                solutions.push(solution);
+            }
+        }
+        solutions
+    }
+}
+
+fn dfs_min_cost(state: &[char; 19], cur_min: usize) -> (usize, Vec<[char; 19]>) {
+    if is_finished(state) {
+        (0, vec![state.clone()])
+    } else {
+        let mut min = usize::MAX;
+        let mut solution = vec![];
+        for m in find_moves(state) {
+            if cur_min < usize::MAX && cur_min + m.1 >= min {
+                // can't find a cheap one here
+                continue;
+            }
+            let s = dfs_min_cost(&m.0, min);
+            if s.0 < usize::MAX && s.0 + m.1 < min {
+                min = s.0 + m.1;
+                solution = vec![state.clone()];
+                solution.extend(s.1);
+            }
+        }
+        (min, solution)
+    }
+}
+
 fn main() {
     println!("Hello, world!");
 }
@@ -530,42 +564,5 @@ mod test {
         }
 
         solution.0
-    }
-
-    fn dfs(state: &[char; 19]) -> Vec<Vec<[char; 19]>> {
-        if is_finished(state) {
-            vec![vec![state.clone()]]
-        } else {
-            let mut solutions = vec![];
-            for m in find_moves(state) {
-                for mut solution in dfs(&m.0) {
-                    solution.insert(0, state.clone());
-                    solutions.push(solution);
-                }
-            }
-            solutions
-        }
-    }
-
-    fn dfs_min_cost(state: &[char; 19], cur_min: usize) -> (usize, Vec<[char; 19]>) {
-        if is_finished(state) {
-            (0, vec![state.clone()])
-        } else {
-            let mut min = usize::MAX;
-            let mut solution = vec![];
-            for m in find_moves(state) {
-                if cur_min < usize::MAX && cur_min + m.1 >= min {
-                    // can't find a cheap one here
-                    continue;
-                }
-                let s = dfs_min_cost(&m.0, min);
-                if s.0 < usize::MAX && s.0 + m.1 < min {
-                    min = s.0 + m.1;
-                    solution = vec![state.clone()];
-                    solution.extend(s.1);
-                }
-            }
-            (min, solution)
-        }
     }
 }
