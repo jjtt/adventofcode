@@ -462,7 +462,7 @@ mod test {
             .to_string(),
         );
 
-        let solution = dfs_min_cost(&state);
+        let solution = dfs_min_cost(&state, usize::MAX);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -485,7 +485,7 @@ mod test {
             .to_string(),
         );
 
-        let solution = dfs_min_cost(&state);
+        let solution = dfs_min_cost(&state, usize::MAX);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -508,7 +508,7 @@ mod test {
             .to_string(),
         );
 
-        let solution = dfs_min_cost(&state);
+        let solution = dfs_min_cost(&state, usize::MAX);
 
         for m in &solution.1 {
             println!("{}", print(*m));
@@ -523,7 +523,7 @@ mod test {
     fn part1(input: &str) -> usize {
         let state = parse_situation(read_to_string(input).unwrap());
 
-        let solution = dfs_min_cost(&state);
+        let solution = dfs_min_cost(&state, usize::MAX);
 
         for m in solution.1 {
             println!("{}", print(m));
@@ -547,14 +547,18 @@ mod test {
         }
     }
 
-    fn dfs_min_cost(state: &[char; 19]) -> (usize, Vec<[char; 19]>) {
+    fn dfs_min_cost(state: &[char; 19], cur_min: usize) -> (usize, Vec<[char; 19]>) {
         if is_finished(state) {
             (0, vec![state.clone()])
         } else {
             let mut min = usize::MAX;
             let mut solution = vec![];
             for m in find_moves(state) {
-                let s = dfs_min_cost(&m.0);
+                if cur_min < usize::MAX && cur_min + m.1 >= min {
+                    // can't find a cheap one here
+                    continue;
+                }
+                let s = dfs_min_cost(&m.0, min);
                 if s.0 < usize::MAX && s.0 + m.1 < min {
                     min = s.0 + m.1;
                     solution = vec![state.clone()];
