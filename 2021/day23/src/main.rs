@@ -233,16 +233,7 @@ fn is_allowed_move_for(
 
     let steps_out = 4 - (s % 4);
 
-    let out = match s {
-        0 | 1 | 2 | 3 => 18,
-        4 | 5 | 6 | 7 => 20,
-        8 | 9 | 10 | 11 => 22,
-        12 | 13 | 14 | 15 => 24,
-        _ => panic!(
-            "Start or end must be in a room: {} (start:{}, end:{})",
-            s, start_pos, target_pos
-        ),
-    };
+    let out = find_out(s);
 
     if !(cmp::min(out, t)..cmp::max(out, t))
         .skip(1)
@@ -251,6 +242,16 @@ fn is_allowed_move_for(
         0
     } else {
         (steps_out + if out < t { t - out } else { out - t }) * cost_for(amphipod_type)
+    }
+}
+
+fn find_out(s: usize) -> usize {
+    match s {
+        0 | 1 | 2 | 3 => 18,
+        4 | 5 | 6 | 7 => 20,
+        8 | 9 | 10 | 11 => 22,
+        12 | 13 | 14 | 15 => 24,
+        _ => panic!("Start or end must be in a room: {}", s),
     }
 }
 
@@ -361,7 +362,7 @@ fn dfs_min_cost(state: &State) -> (usize, Vec<State>) {
         let mut min = usize::MAX;
         let mut solution = vec![];
         for m in find_moves(state) {
-            if m.1 > min {
+            if m.1 + cost_estimate(&m.0) > min {
                 // can't find a cheap one here
                 continue;
             }
@@ -374,6 +375,31 @@ fn dfs_min_cost(state: &State) -> (usize, Vec<State>) {
         }
         (min, solution)
     }
+}
+
+fn cost_estimate(state: &State) -> usize {
+    amphipods(&state)
+        .map(|(pod, pos)| {
+            let in_pos = match pod {
+                'A' => 18,
+                'B' => 20,
+                'C' => 22,
+                'D' => 24,
+                _ => panic!(),
+            };
+            if pos < 16 {
+                if room_matches_type(pod, pos) {
+                    0
+                } else {
+                    let out_pos = find_out(pos);
+                    (out_pos.max(in_pos) - out_pos.min(in_pos) + 4 - pos % 4 + 1) * cost_for(pod)
+                }
+            } else {
+                (pos.max(in_pos) - pos.min(in_pos) + 1) * cost_for(pod)
+            }
+        })
+        .iter()
+        .sum()
 }
 
 fn main() {
@@ -552,6 +578,8 @@ mod test {
 
         assert_eq!(1143, solution.0);
         assert_eq!(12, solution.1.len());
+
+        assert!(solution.0 > cost_estimate(&state));
     }
 
     #[test]
@@ -652,6 +680,26 @@ mod test {
 
         assert_eq!(5, solution.1.len());
         assert_eq!(33000, solution.0);
+    }
+
+    #[test]
+    fn cost_estimate_for_four_ds_outside() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #DD.D.D.....#
+                ###A#B#C#.###
+                  #A#B#C#.#
+                  #A#B#C#.#
+                  #A#B#C#.#
+                  #########
+              "}
+            .to_string(),
+        );
+
+        let cost_estimate = cost_estimate(&state);
+
+        assert_eq!(27000, cost_estimate);
     }
 
     #[test]
