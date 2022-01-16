@@ -447,6 +447,30 @@ mod test {
         assert_eq!(3, solutions.first().unwrap().len());
     }
 
+    #[test]
+    fn find_solution_for_harder_case_based_on_input() {
+        let state = parse_situation(
+            indoc! {"
+                #############
+                #.A.........#
+                ###.#A#C#D###
+                  #B#C#B#D#
+                  #########
+          "}
+            .to_string(),
+        );
+
+        let solution = dfs_min_cost(&state);
+
+
+        for m in &solution.1 {
+            println!("{}", print(*m));
+        }
+
+        assert_eq!(0, solution.0);
+        assert_eq!(1, solution.1.len());
+    }
+
     #[test_case("sample1.txt" => is eq(12521); "sample1")]
     #[test_case("input.txt" => is eq(0); "input")]
     fn part1(input: &str) -> usize {
