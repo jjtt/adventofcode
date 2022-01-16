@@ -295,6 +295,7 @@ fn amphipods(state: &[char; 19]) -> [(char, usize); 8] {
             _ => panic!("Unexpected character: {}", c),
         }
     }
+    pods.reverse();
     pods
 }
 
