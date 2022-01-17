@@ -1,3 +1,4 @@
+use crate::Instruction::*;
 use itertools::Itertools;
 use std::env::var;
 use std::fs::read_to_string;
@@ -24,7 +25,8 @@ impl Op {
         let p: Vec<&str> = s.split(" ").collect();
         match p[0] {
             "inp" => Op::inp(p[1]),
-            "mul" => Op::mul(p[1], p[2]),
+            "mul" => Op::op(MUL, p[1], p[2]),
+            "eql" => Op::op(EQL, p[1], p[2]),
             _ => todo!("{}", p[0]),
         }
     }
@@ -41,17 +43,17 @@ impl Op {
 
     fn inp(a: &str) -> Op {
         Op {
-            instruction: Instruction::INP,
+            instruction: INP,
             a: Op::variable_or_literal(a).0,
             b: 0,
             b_literal: None,
         }
     }
 
-    fn mul(a: &str, b: &str) -> Op {
+    fn op(instruction: Instruction, a: &str, b: &str) -> Op {
         let b = Op::variable_or_literal(b);
         Op {
-            instruction: Instruction::MUL,
+            instruction,
             a: Op::variable_or_literal(a).0,
             b: b.0,
             b_literal: b.1,
@@ -82,8 +84,9 @@ impl Program {
             let a = op.a;
             let b_value = op.b_literal.unwrap_or(self.variables[op.b]);
             match instruction {
-                Instruction::INP => self.variables[a] = *i.next().unwrap(),
-                Instruction::MUL => self.variables[a] *= b_value,
+                INP => self.variables[a] = *i.next().unwrap(),
+                MUL => self.variables[a] *= b_value,
+                EQL => self.variables[a] = if self.variables[a] == b_value { 1 } else { 0 },
                 _ => panic!("Running {:?} not implemented", instruction),
             }
         }
@@ -127,10 +130,10 @@ mod test {
     fn sample2() {
         let mut program = Program::parse_program(read_to_string("sample2.txt").unwrap());
 
-        assert_eq!(1, program.run(vec![1, 3]).1);
-        assert_eq!(1, program.run(vec![2, 6]).1);
-        assert_eq!(1, program.run(vec![-2, -6]).1);
-        assert_eq!(0, program.run(vec![1, 1]).1);
+        assert_eq!(1, program.run(vec![1, 3]).3);
+        assert_eq!(1, program.run(vec![2, 6]).3);
+        assert_eq!(1, program.run(vec![-2, -6]).3);
+        assert_eq!(0, program.run(vec![1, 1]).3);
     }
 
     #[test]
