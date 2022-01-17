@@ -13,6 +13,8 @@ scan_fmt = "0.2.6"
 cached = "0.26.2"
 multimap = "0.8.3"
 enum-iterator = "0.7.0"
+strum = "0.23.0"
+strum_macros = "0.23.1"
 
 [dev-dependencies]
 test-case = { version = "1", features = ["hamcrest_assertions"] }

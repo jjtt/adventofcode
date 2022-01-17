@@ -2,8 +2,10 @@ use crate::Instruction::*;
 use itertools::Itertools;
 use std::env::var;
 use std::fs::read_to_string;
+use std::str::FromStr;
+use strum_macros::EnumString;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumString)]
 enum Instruction {
     INP,
     ADD,
@@ -25,9 +27,11 @@ impl Op {
         let p: Vec<&str> = s.split(" ").collect();
         match p[0] {
             "inp" => Op::inp(p[1]),
-            "mul" => Op::op(MUL, p[1], p[2]),
-            "eql" => Op::op(EQL, p[1], p[2]),
-            _ => todo!("{}", p[0]),
+            _ => Op::op(
+                Instruction::from_str(p[0].to_uppercase().as_str()).unwrap(),
+                p[1],
+                p[2],
+            ),
         }
     }
 
@@ -85,7 +89,10 @@ impl Program {
             let b_value = op.b_literal.unwrap_or(self.variables[op.b]);
             match instruction {
                 INP => self.variables[a] = *i.next().unwrap(),
+                ADD => self.variables[a] += b_value,
                 MUL => self.variables[a] *= b_value,
+                DIV => self.variables[a] /= b_value,
+                MOD => self.variables[a] %= b_value,
                 EQL => self.variables[a] = if self.variables[a] == b_value { 1 } else { 0 },
                 _ => panic!("Running {:?} not implemented", instruction),
             }
