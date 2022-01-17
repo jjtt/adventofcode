@@ -1,6 +1,4 @@
 use crate::Instruction::*;
-use itertools::Itertools;
-use std::env::var;
 use std::fs::read_to_string;
 use std::str::FromStr;
 use strum_macros::EnumString;
@@ -19,7 +17,7 @@ struct Op {
     instruction: Instruction,
     a: usize,
     b: usize,
-    b_literal: Option<i32>,
+    b_literal: Option<i64>,
 }
 
 impl Op {
@@ -35,13 +33,13 @@ impl Op {
         }
     }
 
-    fn variable_or_literal(variable: &str) -> (usize, Option<i32>) {
+    fn variable_or_literal(variable: &str) -> (usize, Option<i64>) {
         match variable {
             "w" => (0, None),
             "x" => (1, None),
             "y" => (2, None),
             "z" => (3, None),
-            _ => (0, variable.parse::<i32>().ok()),
+            _ => (0, variable.parse().ok()),
         }
     }
 
@@ -68,7 +66,7 @@ impl Op {
 struct Program {
     ops: Vec<Op>,
     pc: usize,
-    variables: [i32; 4],
+    variables: [i64; 4],
 }
 
 impl Program {
@@ -80,7 +78,7 @@ impl Program {
         }
     }
 
-    fn run(&mut self, input: Vec<i32>) -> (i32, i32, i32, i32) {
+    fn run(&mut self, input: Vec<i64>) -> (i64, i64, i64, i64) {
         self.reset();
         let mut i = input.iter();
         while let Some(op) = self.step() {
@@ -91,10 +89,16 @@ impl Program {
                 INP => self.variables[a] = *i.next().unwrap(),
                 ADD => self.variables[a] += b_value,
                 MUL => self.variables[a] *= b_value,
-                DIV => self.variables[a] /= b_value,
-                MOD => self.variables[a] %= b_value,
+                DIV => {
+                    assert_ne!(0, b_value);
+                    self.variables[a] /= b_value
+                }
+                MOD => {
+                    assert!(self.variables[a] >= 0);
+                    assert!(b_value > 0);
+                    self.variables[a] %= b_value
+                }
                 EQL => self.variables[a] = if self.variables[a] == b_value { 1 } else { 0 },
-                _ => panic!("Running {:?} not implemented", instruction),
             }
         }
         (
@@ -164,7 +168,7 @@ mod test {
                 continue;
             }
 
-            let nums = s.chars().map(|c| c.to_digit(10).unwrap() as i32).collect();
+            let nums = s.chars().map(|c| c.to_digit(10).unwrap() as i64).collect();
             if program.run(nums).3 == 0 {
                 assert_eq!(0, serial);
                 break;
