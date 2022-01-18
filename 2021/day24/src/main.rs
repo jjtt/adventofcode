@@ -81,12 +81,34 @@ impl Program {
     fn run(&mut self, input: Vec<i64>) -> (i64, i64, i64, i64) {
         self.reset();
         let mut i = input.iter();
+        while !self.end() {
+            let input = *i.next().unwrap();
+            self.run_one_input(input);
+        }
+        (
+            self.variables[0],
+            self.variables[1],
+            self.variables[2],
+            self.variables[3],
+        )
+    }
+
+    fn run_one_input(&mut self, input: i64) {
+        let mut input_consumed = false;
         while let Some(op) = self.step() {
+            match (&op.instruction, input_consumed) {
+                (INP, false) => input_consumed = true,
+                (INP, true) => {
+                    self.unstep();
+                    break;
+                }
+                _ => (),
+            }
             let instruction = op.instruction.clone();
             let a = op.a;
             let b_value = op.b_literal.unwrap_or(self.variables[op.b]);
             match instruction {
-                INP => self.variables[a] = *i.next().unwrap(),
+                INP => self.variables[a] = input,
                 ADD => self.variables[a] += b_value,
                 MUL => self.variables[a] *= b_value,
                 DIV => {
@@ -101,12 +123,6 @@ impl Program {
                 EQL => self.variables[a] = if self.variables[a] == b_value { 1 } else { 0 },
             }
         }
-        (
-            self.variables[0],
-            self.variables[1],
-            self.variables[2],
-            self.variables[3],
-        )
     }
 
     fn step(&mut self) -> Option<&Op> {
@@ -114,9 +130,20 @@ impl Program {
         self.pc += 1;
         op
     }
-    fn reset(&mut self) {
+
+    fn unstep(&mut self) {
+        self.pc -= 1;
+    }
+
+    fn end(&self) -> bool {
+        self.pc >= self.ops.len()
+    }
+
+    fn reset(&mut self) -> (usize, [i64; 4]) {
+        let state = (self.pc, self.variables);
         self.pc = 0;
         self.variables = [0; 4];
+        state
     }
 }
 
@@ -127,6 +154,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn sample1() {
@@ -162,17 +190,26 @@ mod test {
     fn part1() {
         let mut program = Program::parse_program(read_to_string("input.txt").unwrap());
 
-        for serial in (11111111111111i64..=99999999999999i64).rev() {
-            let s = format!("{:014}", serial);
-            if s.contains("0") {
-                continue;
-            }
+        let mut init_states = HashSet::from([(0, [0i64; 4]); 1]);
 
-            let nums = s.chars().map(|c| c.to_digit(10).unwrap() as i64).collect();
-            if program.run(nums).3 == 0 {
-                assert_eq!(0, serial);
-                break;
+        for i in 0..14 {
+            let mut digit_results = HashSet::new();
+            for state in init_states {
+                for digit in 1i64..=9i64 {
+                    program.pc = state.0;
+                    program.variables = state.1;
+                    program.run_one_input(digit);
+                    digit_results.insert(program.reset());
+                }
             }
+            dbg!(digit_results.len());
+            //dbg!(&digit_results);
+            init_states = digit_results;
         }
+
+        let valid: Vec<&(usize, [i64; 4])> = init_states.iter().filter(|s| s.1[3] == 0).collect();
+
+        assert_eq!(7, valid.len());
+        dbg!(valid);
     }
 }
