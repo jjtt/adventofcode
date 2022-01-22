@@ -154,7 +154,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
 
     #[test]
     fn sample1() {
@@ -190,16 +190,22 @@ mod test {
     fn part1() {
         let mut program = Program::parse_program(read_to_string("input.txt").unwrap());
 
-        let mut init_states = HashSet::from([(0, [0i64; 4]); 1]);
+        let mut init_states = HashMap::from([((0, [0i64; 4]), 0); 1]);
 
-        for i in 0..14 {
-            let mut digit_results = HashSet::new();
-            for state in init_states {
+        for _ in 0..14 {
+            let mut digit_results: HashMap<(usize, [i64; 4]), i64> = HashMap::new();
+            for (state, how_to_get_there) in init_states {
                 for digit in 1i64..=9i64 {
                     program.pc = state.0;
                     program.variables = state.1;
                     program.run_one_input(digit);
-                    digit_results.insert(program.reset());
+                    let r = program.reset();
+                    let current_max = digit_results.get(&r);
+                    if current_max.is_none()
+                        || *current_max.unwrap() < (how_to_get_there * 10 + digit)
+                    {
+                        digit_results.insert(r, how_to_get_there * 10 + digit);
+                    }
                 }
             }
             dbg!(digit_results.len());
@@ -207,9 +213,14 @@ mod test {
             init_states = digit_results;
         }
 
-        let valid: Vec<&(usize, [i64; 4])> = init_states.iter().filter(|s| s.1[3] == 0).collect();
+        let valid: Vec<(&(usize, [i64; 4]), &i64)> =
+            init_states.iter().filter(|s| s.0 .1[3] == 0).collect();
 
         assert_eq!(7, valid.len());
-        dbg!(valid);
+        dbg!(&valid);
+
+        let max_serial = valid.iter().map(|(_, serial)| *serial).max().unwrap();
+
+        assert_eq!(98998519596997, *max_serial);
     }
 }
