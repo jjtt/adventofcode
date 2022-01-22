@@ -1,4 +1,5 @@
 use crate::Instruction::*;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::str::FromStr;
 use strum_macros::EnumString;
@@ -147,6 +148,39 @@ impl Program {
     }
 }
 
+fn find_valid_input(program: &mut Program, test: fn(i64, i64) -> bool) -> i64 {
+    let mut init_states = HashMap::from([((0, [0i64; 4]), 0); 1]);
+
+    for _ in 0..14 {
+        let mut digit_results: HashMap<(usize, [i64; 4]), i64> = HashMap::new();
+        for (state, how_to_get_there) in init_states {
+            for digit in 1i64..=9i64 {
+                program.pc = state.0;
+                program.variables = state.1;
+                program.run_one_input(digit);
+                let r = program.reset();
+                let current_best = digit_results.get(&r);
+                let current = how_to_get_there * 10 + digit;
+                if current_best.is_none() || test(*current_best.unwrap(), current) {
+                    digit_results.insert(r, current);
+                }
+            }
+        }
+        init_states = digit_results;
+    }
+
+    let valid: Vec<(&(usize, [i64; 4]), &i64)> =
+        init_states.iter().filter(|s| s.0 .1[3] == 0).collect();
+
+    assert_eq!(7, valid.len());
+
+    let init = if test(0, 1) { i64::MIN } else { i64::MAX };
+    valid
+        .iter()
+        .map(|(_, serial)| *serial)
+        .fold(init, |old, new| if test(old, *new) { *new } else { old })
+}
+
 fn main() {
     println!("Hello, world!");
 }
@@ -154,7 +188,6 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::HashMap;
 
     #[test]
     fn sample1() {
@@ -190,37 +223,17 @@ mod test {
     fn part1() {
         let mut program = Program::parse_program(read_to_string("input.txt").unwrap());
 
-        let mut init_states = HashMap::from([((0, [0i64; 4]), 0); 1]);
+        let serial = find_valid_input(&mut program, |old: i64, new: i64| old < new);
 
-        for _ in 0..14 {
-            let mut digit_results: HashMap<(usize, [i64; 4]), i64> = HashMap::new();
-            for (state, how_to_get_there) in init_states {
-                for digit in 1i64..=9i64 {
-                    program.pc = state.0;
-                    program.variables = state.1;
-                    program.run_one_input(digit);
-                    let r = program.reset();
-                    let current_max = digit_results.get(&r);
-                    if current_max.is_none()
-                        || *current_max.unwrap() < (how_to_get_there * 10 + digit)
-                    {
-                        digit_results.insert(r, how_to_get_there * 10 + digit);
-                    }
-                }
-            }
-            dbg!(digit_results.len());
-            //dbg!(&digit_results);
-            init_states = digit_results;
-        }
+        assert_eq!(98998519596997, serial);
+    }
 
-        let valid: Vec<(&(usize, [i64; 4]), &i64)> =
-            init_states.iter().filter(|s| s.0 .1[3] == 0).collect();
+    #[test]
+    fn part2() {
+        let mut program = Program::parse_program(read_to_string("input.txt").unwrap());
 
-        assert_eq!(7, valid.len());
-        dbg!(&valid);
+        let serial = find_valid_input(&mut program, |old: i64, new: i64| old > new);
 
-        let max_serial = valid.iter().map(|(_, serial)| *serial).max().unwrap();
-
-        assert_eq!(98998519596997, *max_serial);
+        assert_eq!(31521119151421, serial);
     }
 }
