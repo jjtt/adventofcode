@@ -148,7 +148,7 @@ impl Program {
     }
 }
 
-fn find_valid_input(program: &mut Program, test: fn(i64, i64) -> bool) -> i64 {
+fn find_valid_input(program: &mut Program, test: fn(i64, i64) -> i64) -> i64 {
     let mut init_states = HashMap::from([((0, [0i64; 4]), 0); 1]);
 
     for _ in 0..14 {
@@ -161,7 +161,7 @@ fn find_valid_input(program: &mut Program, test: fn(i64, i64) -> bool) -> i64 {
                 let r = program.reset();
                 let current_best = digit_results.get(&r);
                 let current = how_to_get_there * 10 + digit;
-                if current_best.is_none() || test(*current_best.unwrap(), current) {
+                if current_best.is_none() || test(*current_best.unwrap(), current) == current {
                     digit_results.insert(r, current);
                 }
             }
@@ -174,11 +174,11 @@ fn find_valid_input(program: &mut Program, test: fn(i64, i64) -> bool) -> i64 {
 
     assert_eq!(7, valid.len());
 
-    let init = if test(0, 1) { i64::MIN } else { i64::MAX };
     valid
         .iter()
-        .map(|(_, serial)| *serial)
-        .fold(init, |old, new| if test(old, *new) { *new } else { old })
+        .map(|(_, serial)| **serial)
+        .reduce(test)
+        .unwrap()
 }
 
 fn main() {
@@ -223,7 +223,7 @@ mod test {
     fn part1() {
         let mut program = Program::parse_program(read_to_string("input.txt").unwrap());
 
-        let serial = find_valid_input(&mut program, |old: i64, new: i64| old < new);
+        let serial = find_valid_input(&mut program, i64::max);
 
         assert_eq!(98998519596997, serial);
     }
@@ -232,7 +232,7 @@ mod test {
     fn part2() {
         let mut program = Program::parse_program(read_to_string("input.txt").unwrap());
 
-        let serial = find_valid_input(&mut program, |old: i64, new: i64| old > new);
+        let serial = find_valid_input(&mut program, i64::min);
 
         assert_eq!(31521119151421, serial);
     }
