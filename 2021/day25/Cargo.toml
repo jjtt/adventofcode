@@ -1,0 +1,21 @@
+[package]
+name = "day25"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.10.3"
+num-integer = "0.1.44"
+indoc = "1.0.3"
+scan_fmt = "0.2.6"
+cached = "0.26.2"
+multimap = "0.8.3"
+enum-iterator = "0.7.0"
+strum = "0.23.0"
+strum_macros = "0.23.1"
+
+[dev-dependencies]
+test-case = { version = "1", features = ["hamcrest_assertions"] }
+hamcrest2 = "0.3.0"
