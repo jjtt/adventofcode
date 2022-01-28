@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate scan_fmt;
+use counter::Counter;
 use itertools::Itertools;
 use std::collections::HashSet;
 
@@ -94,6 +95,7 @@ fn count(x: &Range<i32>, y: &Range<i32>, z: &Range<i32>) -> usize {
 
 #[cfg(test)]
 mod test {
+    use std::iter;
     use test_case::test_case;
 
     use super::*;
@@ -149,5 +151,31 @@ mod test {
         }
 
         on.iter().map(|(x, y, z)| count(x, y, z)).sum()
+    }
+
+    #[test_case("sample2.txt" => is eq(1 + 2000000); "sample2")]
+    #[test_case("input.txt" => is eq(15343601); "input")]
+    fn part2(input: &str) -> usize {
+        let steps = parse_reboot_steps(input);
+
+        let (x, y, z) = find_split_coordinates(&steps);
+
+        let mut on: Counter<_, usize> = Counter::new();
+
+        for step in steps
+            .iter()
+            .flat_map(|step| split(step, x.clone(), y.clone(), z.clone()))
+        {
+            let expanded = (step.1, step.2, step.3);
+
+            match step.0.as_str() {
+                "turn on " => on.update(iter::once(expanded)),
+                "turn off " => on.subtract(iter::once(expanded)),
+                "toggle " => on.update(iter::repeat(expanded).take(2)),
+                _ => panic!("Unsupported: '{}'", step.0),
+            };
+        }
+
+        on.iter().map(|((x, y, z), c)| count(x, y, z) * c).sum()
     }
 }
