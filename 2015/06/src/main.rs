@@ -10,17 +10,15 @@ fn main() {
     println!("Hello, world!");
 }
 
-fn parse_reboot_steps(input: &str) -> Vec<(bool, Range<i32>, Range<i32>, Range<i32>)> {
+fn parse_reboot_steps(input: &str) -> Vec<(String, Range<i32>, Range<i32>, Range<i32>)> {
     read_to_string(input)
         .unwrap()
         .lines()
         .map(|line| {
             scan_fmt!(
                 line,
-                "{} x={d}..{d},y={d}..{d},z={d}..{d}",
+                "{[^0-9]} {d},{d} through {d},{d}",
                 String,
-                i32,
-                i32,
                 i32,
                 i32,
                 i32,
@@ -28,19 +26,12 @@ fn parse_reboot_steps(input: &str) -> Vec<(bool, Range<i32>, Range<i32>, Range<i
             )
             .unwrap()
         })
-        .map(|(on_off, xmin, xmax, ymin, ymax, zmin, zmax)| {
-            (
-                if "on" == on_off { true } else { false },
-                xmin..xmax + 1,
-                ymin..ymax + 1,
-                zmin..zmax + 1,
-            )
-        })
+        .map(|(on_off, xmin, ymin, xmax, ymax)| (on_off, xmin..xmax + 1, ymin..ymax + 1, 0..1))
         .collect()
 }
 
 fn find_split_coordinates(
-    steps: &Vec<(bool, Range<i32>, Range<i32>, Range<i32>)>,
+    steps: &Vec<(String, Range<i32>, Range<i32>, Range<i32>)>,
 ) -> (Vec<i32>, Vec<i32>, Vec<i32>) {
     (
         steps
@@ -65,11 +56,11 @@ fn find_split_coordinates(
 }
 
 fn split(
-    step: &(bool, Range<i32>, Range<i32>, Range<i32>),
+    step: &(String, Range<i32>, Range<i32>, Range<i32>),
     x: Vec<i32>,
     y: Vec<i32>,
     z: Vec<i32>,
-) -> Vec<(bool, Range<i32>, Range<i32>, Range<i32>)> {
+) -> Vec<(String, Range<i32>, Range<i32>, Range<i32>)> {
     let split_x = split_range(&step.1, x);
     let split_y = split_range(&step.2, y);
     let split_z = split_range(&step.3, z);
@@ -78,7 +69,7 @@ fn split(
         .into_iter()
         .cartesian_product(split_y)
         .cartesian_product(split_z)
-        .map(|((x, y), z)| (step.0, x, y, z))
+        .map(|((x, y), z)| (step.0.clone(), x, y, z))
         .collect()
 }
 
@@ -113,9 +104,9 @@ mod test {
 
         let (x, y, z) = find_split_coordinates(&steps);
 
-        assert_eq!(vec![9, 10, 11, 12, 13, 14], x);
-        assert_eq!(vec![9, 10, 11, 12, 13, 14], y);
-        assert_eq!(vec![9, 10, 11, 12, 13, 14], z);
+        assert_eq!(vec![0, 499, 501, 1000], x);
+        assert_eq!(vec![0, 1, 499, 501, 1000], y);
+        assert_eq!(vec![0, 1], z);
     }
 
     #[test]
@@ -125,60 +116,12 @@ mod test {
         let (x, y, z) = find_split_coordinates(&steps);
 
         let s = split(&steps.first().unwrap(), x, y, z);
-        assert_eq!(27, s.len());
-
-        let s = split(&steps.first().unwrap(), vec![11], vec![], vec![]);
-        assert_eq!(2, s.len());
-        assert_eq!(
-            vec![
-                (true, 10..11, 10..13, 10..13),
-                (true, 11..13, 10..13, 10..13)
-            ],
-            s
-        );
-
-        let s = split(&steps.first().unwrap(), vec![11], vec![], vec![11]);
-        assert_eq!(4, s.len());
-
-        let s = split(&steps.first().unwrap(), vec![11], vec![11], vec![11]);
-        assert_eq!(8, s.len());
+        assert_eq!(12, s.len());
     }
 
     #[test_case("sample1.txt" => is eq(1000000-1000-4); "sample1")]
-    #[test_case("input.txt" => is eq(0); "input")]
+    #[test_case("input.txt" => is eq(400410); "input")]
     fn part1(input: &str) -> usize {
-        let steps = parse_reboot_steps(input);
-
-        let mut on: HashSet<(i32, i32, i32)> = HashSet::new();
-
-        for step in steps.into_iter().filter(|(_, x, y, z)| {
-            x.start >= -50
-                && x.end <= 51
-                && y.start >= -50
-                && y.end <= 51
-                && z.start >= -50
-                && z.end <= 51
-        }) {
-            let expanded = step
-                .1
-                .cartesian_product(step.2)
-                .cartesian_product(step.3)
-                .map(|((x, y), z)| (x, y, z))
-                .collect::<HashSet<(i32, i32, i32)>>();
-
-            if step.0 {
-                on = on.union(&expanded).cloned().collect();
-            } else {
-                on = on.difference(&expanded).cloned().collect();
-            }
-        }
-
-        on.len()
-    }
-
-    #[test_case("sample1.txt" => is eq(0); "sample1")]
-    #[test_case("input.txt" => is eq(0); "input")]
-    fn part2(input: &str) -> usize {
         let steps = parse_reboot_steps(input);
 
         let (x, y, z) = find_split_coordinates(&steps);
@@ -191,11 +134,18 @@ mod test {
         {
             let expanded = (step.1, step.2, step.3);
 
-            if step.0 {
-                on.insert(expanded);
-            } else {
-                on.remove(&expanded);
-            }
+            match step.0.as_str() {
+                "turn on " => on.insert(expanded),
+                "turn off " => on.remove(&expanded),
+                "toggle " => {
+                    if on.contains(&expanded) {
+                        on.remove(&expanded)
+                    } else {
+                        on.insert(expanded)
+                    }
+                }
+                _ => panic!("Unsupported: '{}'", step.0),
+            };
         }
 
         on.iter().map(|(x, y, z)| count(x, y, z)).sum()
