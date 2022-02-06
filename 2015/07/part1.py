@@ -57,3 +57,5 @@ if f == "sample1.txt":
     assert 123 == evaluate(gates, "foobar")
 elif f == "input.txt":
     assert 16076 == evaluate(gates, "a")
+elif f == "input_part2.txt":
+    assert 2797 == evaluate(gates, "a")
