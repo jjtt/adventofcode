@@ -41,3 +41,21 @@ print(
         ]
     )
 )
+
+perms = [list(p) for p in itertools.permutations(names) if p[0] <= p[-1]]
+
+print(
+    max(
+        [
+            sum(
+                [
+                    happies[p[i + 1]][p[i]] + happies[p[i + 1]][p[i + 2]]
+                    for i in range(len(names) - 2)
+                ]
+            )
+            + happies[p[0]][p[1]]
+            + happies[p[-1]][p[-2]]
+            for p in perms
+        ]
+    )
+)
