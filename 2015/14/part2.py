@@ -29,10 +29,17 @@ f = open(sys.argv[1])
 reindeer = parse(f.readlines())
 
 pos = {name: 0 for (name, _, _, _) in reindeer}
+points = {name: 0 for name in pos.keys()}
 
 for t in range(1, int(sys.argv[2]) + 1):
     for (n, s, m, r) in reindeer:
         pos[n] = pos[n] + fly(s, m, r, t)
+    lead = max(pos, key=pos.get)
+    lead_dist = pos[lead]
+    for (n, d) in pos.items():
+        if d == lead_dist:
+            points[n] = points[n] + 1
 
-winner = max(pos, key=pos.get)
-print(f"t={t}: {winner} {pos[winner]}")
+
+winner = max(points, key=points.get)
+print(f"t={t}: {winner} {points[winner]}")
