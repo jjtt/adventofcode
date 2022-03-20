@@ -69,11 +69,11 @@ print(recipe)
 v = value(recipe, ingredients)
 print(v)
 
-TRIES = 10000
+TRIES = 1000
 nochange = TRIES
 while nochange > 0:
     nochange -= 1
-    recipe2 = mutate(recipe)
+    recipe2 = mutate(mutate(recipe))
     v2 = value(recipe2, ingredients)
     if v2 >= v:
         print("found better")
