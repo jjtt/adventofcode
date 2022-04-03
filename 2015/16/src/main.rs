@@ -29,7 +29,7 @@ fn filter_part2(sue: &HashMap<String, i32>, evidence: &HashMap<String, i32>) -> 
 }
 
 fn filter_sues(
-    input: String,
+    input: &String,
     evidence: &HashMap<String, i32>,
     filter: fn(&HashMap<String, i32>, &HashMap<String, i32>) -> bool,
 ) -> (i32, HashMap<String, i32>) {
@@ -59,11 +59,11 @@ fn main() {
         .collect();
 
     let input = read_to_string("input.txt").unwrap();
-    let sue = filter_sues(input.clone(), &evidence, filter_part1);
+    let sue = filter_sues(&input, &evidence, filter_part1);
 
     println!("Part 1 - Sue {}", sue.0);
 
-    let sue = filter_sues(input, &evidence, filter_part2);
+    let sue = filter_sues(&input, &evidence, filter_part2);
 
     println!("Part 2 - Sue {}", sue.0);
 }
