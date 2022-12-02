@@ -11,18 +11,19 @@ enum RPS {
 
 impl RPS {
     fn from(first: &str, second: &str) -> anyhow::Result<(RPS, RPS)> {
-        Ok(match (first, second) {
-            ("A", "X") => (RPS::Rock, RPS::Rock),
-            ("A", "Y") => (RPS::Rock, RPS::Paper),
-            ("A", "Z") => (RPS::Rock, RPS::Scissors),
-            ("B", "X") => (RPS::Paper, RPS::Rock),
-            ("B", "Y") => (RPS::Paper, RPS::Paper),
-            ("B", "Z") => (RPS::Paper, RPS::Scissors),
-            ("C", "X") => (RPS::Scissors, RPS::Rock),
-            ("C", "Y") => (RPS::Scissors, RPS::Paper),
-            ("C", "Z") => (RPS::Scissors, RPS::Scissors),
-            _ => bail!("Unsupported: {first}, {second}"),
-        })
+        let first = match first {
+            "A" => RPS::Rock,
+            "B" => RPS::Paper,
+            "C" => RPS::Scissors,
+            _ => bail!("Unsupported: {first}"),
+        };
+        let second = match second {
+            "X" => RPS::Rock,
+            "Y" => RPS::Paper,
+            "Z" => RPS::Scissors,
+            _ => bail!("Unsupported: {second}"),
+        };
+        Ok((first, second))
     }
 
     fn from2(first: &str, second: &str) -> anyhow::Result<(RPS, RPS)> {
@@ -43,14 +44,12 @@ impl RPS {
 
     fn score(&self, my: RPS) -> i32 {
         my as i32
-            + match (*self, my) {
-                (RPS::Rock, RPS::Paper) => 6,
-                (RPS::Paper, RPS::Scissors) => 6,
-                (RPS::Scissors, RPS::Rock) => 6,
-                (RPS::Rock, RPS::Scissors) => 0,
-                (RPS::Paper, RPS::Rock) => 0,
-                (RPS::Scissors, RPS::Paper) => 0,
-                _ => 3,
+            + if self.win() == my {
+                6
+            } else if self.draw() == my {
+                3
+            } else {
+                0
             }
     }
 
