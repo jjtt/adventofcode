@@ -73,26 +73,25 @@ impl RPS {
 }
 
 fn parse1(row: &str) -> anyhow::Result<(RPS, RPS)> {
-    parse(row, false)
+    parse(row, RPS::from)
 }
 
 fn parse2(row: &str) -> anyhow::Result<(RPS, RPS)> {
-    parse(row, true)
+    parse(row, RPS::from2)
 }
 
-fn parse(row: &str, part2: bool) -> anyhow::Result<(RPS, RPS)> {
+fn parse<F>(row: &str, from: F) -> anyhow::Result<(RPS, RPS)>
+where
+    F: Fn(&str, &str) -> anyhow::Result<(RPS, RPS)>,
+{
     let (first, second) = scan_fmt!(row, "{} {}", String, String)?;
-    if part2 {
-        RPS::from2(first.as_str(), second.as_str())
-    } else {
-        RPS::from(first.as_str(), second.as_str())
-    }
+    from(first.as_str(), second.as_str())
 }
 
-fn read(
-    input: &str,
-    parse: fn(&str) -> anyhow::Result<(RPS, RPS)>,
-) -> anyhow::Result<Vec<(RPS, RPS)>> {
+fn read<F>(input: &str, parse: F) -> anyhow::Result<Vec<(RPS, RPS)>>
+where
+    F: Fn(&str) -> anyhow::Result<(RPS, RPS)>,
+{
     read_to_string(input)?.lines().map(parse).collect()
 }
 
