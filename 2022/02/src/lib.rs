@@ -10,13 +10,35 @@ enum RPS {
 }
 
 impl RPS {
-    fn from(input: &str) -> anyhow::Result<RPS> {
-        Ok(match input {
-            "A" | "X" => RPS::Rock,
-            "B" | "Y" => RPS::Paper,
-            "C" | "Z" => RPS::Scissors,
-            _ => bail!("Unsupported: {input}"),
+    fn from(first: &str, second: &str) -> anyhow::Result<(RPS, RPS)> {
+        Ok(match (first, second) {
+            ("A", "X") => (RPS::Rock, RPS::Rock),
+            ("A", "Y") => (RPS::Rock, RPS::Paper),
+            ("A", "Z") => (RPS::Rock, RPS::Scissors),
+            ("B", "X") => (RPS::Paper, RPS::Rock),
+            ("B", "Y") => (RPS::Paper, RPS::Paper),
+            ("B", "Z") => (RPS::Paper, RPS::Scissors),
+            ("C", "X") => (RPS::Scissors, RPS::Rock),
+            ("C", "Y") => (RPS::Scissors, RPS::Paper),
+            ("C", "Z") => (RPS::Scissors, RPS::Scissors),
+            _ => bail!("Unsupported: {first}, {second}"),
         })
+    }
+
+    fn from2(first: &str, second: &str) -> anyhow::Result<(RPS, RPS)> {
+        let first = match first {
+            "A" => RPS::Rock,
+            "B" => RPS::Paper,
+            "C" => RPS::Scissors,
+            _ => bail!("Unsupported: {first}"),
+        };
+        let second = match (first, second) {
+            (f, "X") => f.lose(),
+            (f, "Y") => f.draw(),
+            (f, "Z") => f.win(),
+            _ => bail!("Unsupported: {second}"),
+        };
+        Ok((first, second))
     }
 
     fn score(&self, my: RPS) -> i32 {
@@ -31,19 +53,52 @@ impl RPS {
                 _ => 3,
             }
     }
+
+    fn lose(&self) -> RPS {
+        match *self {
+            RPS::Rock => RPS::Scissors,
+            RPS::Paper => RPS::Rock,
+            RPS::Scissors => RPS::Paper,
+        }
+    }
+    fn draw(&self) -> RPS {
+        *self
+    }
+    fn win(&self) -> RPS {
+        match *self {
+            RPS::Rock => RPS::Paper,
+            RPS::Paper => RPS::Scissors,
+            RPS::Scissors => RPS::Rock,
+        }
+    }
 }
 
-fn parse(row: &str) -> anyhow::Result<(RPS, RPS)> {
+fn parse1(row: &str) -> anyhow::Result<(RPS, RPS)> {
+    parse(row, false)
+}
+
+fn parse2(row: &str) -> anyhow::Result<(RPS, RPS)> {
+    parse(row, true)
+}
+
+fn parse(row: &str, part2: bool) -> anyhow::Result<(RPS, RPS)> {
     let (first, second) = scan_fmt!(row, "{} {}", String, String)?;
-    Ok((RPS::from(first.as_str())?, RPS::from(second.as_str())?))
+    if part2 {
+        RPS::from2(first.as_str(), second.as_str())
+    } else {
+        RPS::from(first.as_str(), second.as_str())
+    }
 }
 
-fn read(input: &str) -> anyhow::Result<Vec<(RPS, RPS)>> {
+fn read(
+    input: &str,
+    parse: fn(&str) -> anyhow::Result<(RPS, RPS)>,
+) -> anyhow::Result<Vec<(RPS, RPS)>> {
     read_to_string(input)?.lines().map(parse).collect()
 }
 
-fn play(input: &str) -> anyhow::Result<i32> {
-    Ok(read(input)?
+fn play(input: &str, parse: fn(&str) -> anyhow::Result<(RPS, RPS)>) -> anyhow::Result<i32> {
+    Ok(read(input, parse)?
         .into_iter()
         .map(|(other, me)| other.score(me))
         .sum())
@@ -55,18 +110,19 @@ mod tests {
 
     #[test]
     fn rps() {
-        assert_eq!(RPS::Rock, RPS::from("A").unwrap());
-        assert_eq!(RPS::Paper, RPS::from("B").unwrap());
-        assert_eq!(RPS::Scissors, RPS::from("C").unwrap());
-        assert_eq!(RPS::Rock, RPS::from("X").unwrap());
-        assert_eq!(RPS::Paper, RPS::from("Y").unwrap());
-        assert_eq!(RPS::Scissors, RPS::from("Z").unwrap());
-        assert!(RPS::from("J").is_err());
+        assert_eq!(RPS::Rock, RPS::from("A", "X").unwrap().0);
+        assert_eq!(RPS::Paper, RPS::from("B", "X").unwrap().0);
+        assert_eq!(RPS::Scissors, RPS::from("C", "X").unwrap().0);
+        assert_eq!(RPS::Rock, RPS::from("A", "X").unwrap().1);
+        assert_eq!(RPS::Paper, RPS::from("A", "Y").unwrap().1);
+        assert_eq!(RPS::Scissors, RPS::from("A", "Z").unwrap().1);
+        assert!(RPS::from("J", "X").is_err());
     }
 
     #[test]
     fn parsing() {
-        assert_eq!((RPS::Rock, RPS::Rock), parse("A X").unwrap());
+        assert_eq!((RPS::Rock, RPS::Rock), parse1("A X").unwrap());
+        assert_eq!((RPS::Rock, RPS::Scissors), parse2("A X").unwrap());
     }
 
     #[test]
@@ -77,7 +133,7 @@ mod tests {
                 (RPS::Paper, RPS::Rock),
                 (RPS::Scissors, RPS::Scissors),
             ],
-            read("sample.txt").unwrap()
+            read("sample.txt", parse1).unwrap()
         );
     }
 
@@ -88,7 +144,20 @@ mod tests {
 
     #[test]
     fn playing() {
-        assert_eq!(15, play("sample.txt").unwrap());
-        assert_eq!(15422, play("input.txt").unwrap());
+        assert_eq!(15, play("sample.txt", parse1).unwrap());
+        assert_eq!(15422, play("input.txt", parse1).unwrap());
+        assert_eq!(15442, play("input.txt", parse2).unwrap());
+    }
+    #[test]
+    fn lose_draw_win() {
+        assert_eq!(RPS::Rock, RPS::Paper.lose());
+        assert_eq!(RPS::Paper, RPS::Scissors.lose());
+        assert_eq!(RPS::Scissors, RPS::Rock.lose());
+        assert_eq!(RPS::Paper, RPS::Paper.draw());
+        assert_eq!(RPS::Scissors, RPS::Scissors.draw());
+        assert_eq!(RPS::Rock, RPS::Rock.draw());
+        assert_eq!(RPS::Scissors, RPS::Paper.win());
+        assert_eq!(RPS::Rock, RPS::Scissors.win());
+        assert_eq!(RPS::Paper, RPS::Rock.win());
     }
 }
