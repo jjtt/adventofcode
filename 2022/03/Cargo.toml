@@ -10,5 +10,12 @@ anyhow = "1.0.66"
 scan_fmt = "0.2.6"
 itertools = "0.10.5"
 
+[dev-dependencies]
+criterion = "0.4.0"
+
+[[bench]]
+name = "part2"
+harness = false
+
 [features]
 bench_nightly = []

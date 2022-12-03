@@ -1,8 +1,5 @@
-#![cfg_attr(feature = "bench_nightly", feature(test))]
-use crate::solution::{part1, part2};
+use d03::solution::{part1, part2};
 use std::time::Instant;
-
-mod solution;
 
 #[derive(Debug)]
 enum Part {
