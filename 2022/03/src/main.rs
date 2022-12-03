@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "bench", feature(test))]
+#![cfg_attr(feature = "bench_nightly", feature(test))]
 use crate::solution::{part1, part2};
 use std::time::Instant;
 
