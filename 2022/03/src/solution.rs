@@ -1,6 +1,4 @@
-use anyhow::bail;
 use itertools::Itertools;
-use scan_fmt::scan_fmt;
 use std::cmp::Ordering;
 use std::fs::read_to_string;
 
@@ -15,12 +13,12 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    let input = read_to_string(input).unwrap();
-    input
+    read_to_string(input)
+        .unwrap()
         .lines()
         .enumerate()
         .map(|(index, item)| (index / 3, item))
-        .group_by(|(group, item)|*group)
+        .group_by(|(group, _)| *group)
         .into_iter()
         .map(|(_, items)| items.map(|(_, item)| item).collect_tuple().unwrap())
         .map(find_first_common_badge)
@@ -90,7 +88,7 @@ fn find_first_common_badge(triplet: (&str, &str, &str)) -> char {
         } else if right_char > left_char && right_char > middle_char {
             l = left_sorted.next();
         } else {
-            return left_char
+            return left_char;
         }
     }
     panic!("Could not find common item: {triplet:?}")
@@ -137,8 +135,22 @@ mod tests {
 
     #[test]
     fn finding_first_common_badge() {
-        assert_eq!('r', find_first_common_badge(("vJrwpWtwJgWrhcsFMMfFFhFp", "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL", "PmmdzqPrVvPwwTWBwg")));
-        assert_eq!('Z', find_first_common_badge(("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn", "ttgJtRGJQctTZtZT", "CrZsJsPPZsGzwwsLwLmpwMDw")));
+        assert_eq!(
+            'r',
+            find_first_common_badge((
+                "vJrwpWtwJgWrhcsFMMfFFhFp",
+                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
+                "PmmdzqPrVvPwwTWBwg"
+            ))
+        );
+        assert_eq!(
+            'Z',
+            find_first_common_badge((
+                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
+                "ttgJtRGJQctTZtZT",
+                "CrZsJsPPZsGzwwsLwLmpwMDw"
+            ))
+        );
     }
 
     #[test]
