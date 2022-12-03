@@ -15,8 +15,17 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    input
+        .lines()
+        .enumerate()
+        .map(|(index, item)| (index / 3, item))
+        .group_by(|(group, item)|*group)
+        .into_iter()
+        .map(|(_, items)| items.map(|(_, item)| item).collect_tuple().unwrap())
+        .map(find_first_common_badge)
+        .map(priority)
+        .sum()
 }
 
 fn priority(c: char) -> usize {
@@ -59,6 +68,34 @@ fn find_first_common(pair: (&str, &str)) -> char {
     panic!("Could not find common item: {pair:?}")
 }
 
+fn find_first_common_badge(triplet: (&str, &str, &str)) -> char {
+    let mut left_sorted = triplet.0.chars().sorted();
+    let mut middle_sorted = triplet.1.chars().sorted();
+    let mut right_sorted = triplet.2.chars().sorted();
+
+    let mut l = left_sorted.next();
+    let mut m = middle_sorted.next();
+    let mut r = right_sorted.next();
+    while let (Some(left_char), Some(middle_char), Some(right_char)) = (l, m, r) {
+        if left_char < middle_char && left_char < right_char {
+            l = left_sorted.next();
+        } else if middle_char < left_char && middle_char < right_char {
+            m = middle_sorted.next();
+        } else if right_char < left_char && right_char < middle_char {
+            r = right_sorted.next();
+        } else if left_char > middle_char && left_char > right_char {
+            m = middle_sorted.next();
+        } else if middle_char > left_char && middle_char > right_char {
+            r = right_sorted.next();
+        } else if right_char > left_char && right_char > middle_char {
+            l = left_sorted.next();
+        } else {
+            return left_char
+        }
+    }
+    panic!("Could not find common item: {triplet:?}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,5 +133,16 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(157, part1("sample.txt"));
+    }
+
+    #[test]
+    fn finding_first_common_badge() {
+        assert_eq!('r', find_first_common_badge(("vJrwpWtwJgWrhcsFMMfFFhFp", "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL", "PmmdzqPrVvPwwTWBwg")));
+        assert_eq!('Z', find_first_common_badge(("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn", "ttgJtRGJQctTZtZT", "CrZsJsPPZsGzwwsLwLmpwMDw")));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(70, part2("sample.txt"));
     }
 }
