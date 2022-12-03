@@ -2,8 +2,8 @@ use anyhow::bail;
 use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-enum RPS {
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum RPS {
     Rock = 1,
     Paper = 2,
     Scissors = 3,
@@ -72,11 +72,11 @@ impl RPS {
     }
 }
 
-fn parse1(row: &str) -> anyhow::Result<(RPS, RPS)> {
+pub fn parse1(row: &str) -> anyhow::Result<(RPS, RPS)> {
     parse(row, RPS::from)
 }
 
-fn parse2(row: &str) -> anyhow::Result<(RPS, RPS)> {
+pub fn parse2(row: &str) -> anyhow::Result<(RPS, RPS)> {
     parse(row, RPS::from2)
 }
 
@@ -95,7 +95,7 @@ where
     read_to_string(input)?.lines().map(parse).collect()
 }
 
-fn play(input: &str, parse: fn(&str) -> anyhow::Result<(RPS, RPS)>) -> anyhow::Result<i32> {
+pub fn play(input: &str, parse: fn(&str) -> anyhow::Result<(RPS, RPS)>) -> anyhow::Result<i32> {
     Ok(read(input, parse)?
         .into_iter()
         .map(|(other, me)| other.score(me))
