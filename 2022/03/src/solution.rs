@@ -20,13 +20,24 @@ pub fn part2(input: &str) -> usize {
         .unwrap()
         .lines()
         .enumerate()
-        .map(|(index, item)| (index / 3, item))
+        .map(|(index, item)| (index / 3, to_bitmask(item)))
         .group_by(|(group, _)| *group)
         .into_iter()
-        .map(|(_, items)| items.map(|(_, item)| item).collect_tuple().unwrap())
-        .map(find_first_common_badge)
-        .map(priority)
+        .map(|(_, items)| items.fold(usize::MAX, |a, (_, b)| a & b))
+        .map(to_priority)
         .sum()
+}
+
+fn to_bitmask(core: &str) -> usize {
+    core.chars()
+        .map(priority)
+        .map(|b| 0b1_usize << (b - 1))
+        .reduce(|a, b| a | b)
+        .unwrap_or(0)
+}
+
+fn to_priority(badge: usize) -> usize {
+    1 + badge.trailing_zeros() as usize
 }
 
 fn priority(c: char) -> usize {
@@ -67,34 +78,6 @@ fn find_first_common(pair: (&str, &str)) -> char {
         }
     }
     panic!("Could not find common item: {pair:?}")
-}
-
-fn find_first_common_badge(triplet: (&str, &str, &str)) -> char {
-    let mut left_sorted = triplet.0.chars().sorted();
-    let mut middle_sorted = triplet.1.chars().sorted();
-    let mut right_sorted = triplet.2.chars().sorted();
-
-    let mut l = left_sorted.next();
-    let mut m = middle_sorted.next();
-    let mut r = right_sorted.next();
-    while let (Some(left_char), Some(middle_char), Some(right_char)) = (l, m, r) {
-        if left_char < middle_char && left_char < right_char {
-            l = left_sorted.next();
-        } else if middle_char < left_char && middle_char < right_char {
-            m = middle_sorted.next();
-        } else if right_char < left_char && right_char < middle_char {
-            r = right_sorted.next();
-        } else if left_char > middle_char && left_char > right_char {
-            m = middle_sorted.next();
-        } else if middle_char > left_char && middle_char > right_char {
-            r = right_sorted.next();
-        } else if right_char > left_char && right_char > middle_char {
-            l = left_sorted.next();
-        } else {
-            return left_char;
-        }
-    }
-    panic!("Could not find common item: {triplet:?}")
 }
 
 #[cfg(test)]
@@ -139,26 +122,6 @@ mod tests {
     }
 
     #[test]
-    fn finding_first_common_badge() {
-        assert_eq!(
-            'r',
-            find_first_common_badge((
-                "vJrwpWtwJgWrhcsFMMfFFhFp",
-                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
-                "PmmdzqPrVvPwwTWBwg"
-            ))
-        );
-        assert_eq!(
-            'Z',
-            find_first_common_badge((
-                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
-                "ttgJtRGJQctTZtZT",
-                "CrZsJsPPZsGzwwsLwLmpwMDw"
-            ))
-        );
-    }
-
-    #[test]
     fn part2_sample() {
         assert_eq!(70, part2("sample.txt"));
     }
@@ -171,5 +134,24 @@ mod tests {
                 part2("input.txt");
             }
         })
+    }
+
+    #[test]
+    fn first_rule_of_optimisation() {
+        const FIRST_5_BITS: usize = 0b11111;
+        let r = "abcde";
+
+        let b = to_bitmask(r);
+
+        assert_eq!(FIRST_5_BITS, b);
+    }
+
+    #[test]
+    fn first_rule_of_optimisation_2() {
+        assert_eq!(priority('a'), to_priority(0b1));
+        assert_eq!(priority('b'), to_priority(0b10));
+        assert_eq!(priority('c'), to_priority(0b100));
+        assert_eq!(priority('d'), to_priority(0b1000));
+        assert_eq!(priority('A'), to_priority(0b100000000000000000000000000));
     }
 }
