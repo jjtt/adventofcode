@@ -2,6 +2,9 @@ use itertools::Itertools;
 use std::cmp::Ordering;
 use std::fs::read_to_string;
 
+#[cfg(feature = "bench")]
+extern crate test;
+
 pub fn part1(input: &str) -> usize {
     read_to_string(input)
         .unwrap()
@@ -97,6 +100,8 @@ fn find_first_common_badge(triplet: (&str, &str, &str)) -> char {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "bench")]
+    use test::Bencher;
 
     #[test]
     fn priorities() {
@@ -156,5 +161,15 @@ mod tests {
     #[test]
     fn part2_sample() {
         assert_eq!(70, part2("sample.txt"));
+    }
+
+    #[cfg(feature = "bench")]
+    #[bench]
+    fn bench(b: &mut Bencher) {
+        b.iter(|| {
+            for _ in 1..100 {
+                part2("input.txt");
+            }
+        })
     }
 }
