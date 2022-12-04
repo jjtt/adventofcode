@@ -43,6 +43,8 @@ mod tests {
         assert!(contains(&(3..=7, 2..=8)));
         assert!(!contains(&(3..=7, 1..=5)));
         assert!(!contains(&(0..=1, 2..=3)));
+        assert!(contains(&(1..=1, 1..=1)));
+        assert!(contains(&(1..=2, 1..=1)));
     }
 
     #[test]
