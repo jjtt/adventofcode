@@ -16,6 +16,17 @@ impl Board {
             }
         }
     }
+
+    pub(crate) fn make_some_modern(&mut self, moves: Moves) {
+        for (count, from, to) in moves.moves {
+            let mut crane = String::new();
+            for _ in 0..count {
+                let what = self.stacks.get_mut(from - 1).unwrap().pop().unwrap();
+                crane.insert(0, what);
+            }
+            self.stacks.get_mut(to - 1).unwrap().push_str(&crane);
+        }
+    }
 }
 
 impl Board {
@@ -135,8 +146,11 @@ pub fn part1(input: &str) -> String {
 }
 
 pub fn part2(input: &str) -> String {
-    //todo!()
-    String::from("")
+    let (mut board, moves) = parse(input);
+
+    board.make_some_modern(moves);
+
+    board.result()
 }
 
 #[cfg(test)]
@@ -180,5 +194,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!("CMZ", part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!("MCD", part2("sample.txt"));
     }
 }
