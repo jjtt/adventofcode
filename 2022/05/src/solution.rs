@@ -1,4 +1,3 @@
-use anyhow::bail;
 use scan_fmt::scan_fmt;
 use std::fmt;
 use std::fmt::Formatter;
@@ -11,7 +10,7 @@ struct Board {
 impl Board {
     pub(crate) fn make_some(&mut self, moves: Moves) {
         for (count, from, to) in moves.moves {
-            for _ in (0..count) {
+            for _ in 0..count {
                 let what = self.stacks.get_mut(from - 1).unwrap().pop().unwrap();
                 self.stacks.get_mut(to - 1).unwrap().push(what);
             }
@@ -38,17 +37,15 @@ impl Board {
         }
 
         let new = self.stacks.is_empty();
-        dbg!(&input_line);
-        for index in 0..input_line.len() / 3 {
+        for index in 0..input_line.len() / 4 + 1 {
             if new {
                 self.stacks.push(String::new());
             };
 
-            dbg!((index, index * 4 + 1));
             let x = input_line.chars().nth(index * 4 + 1).unwrap();
             if x != ' ' {
                 let stack = self.stacks.get_mut(index).unwrap();
-                stack.insert(0, x)
+                stack.insert(0, x);
             }
         }
     }
