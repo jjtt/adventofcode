@@ -16,18 +16,17 @@ pub fn part2(input: &str) -> usize {
 fn find_marker(signal: &str, num: usize) -> usize {
     let mut remaining = signal.chars();
     let mut buffer = VecDeque::new();
-    buffer.push_back(0 as char);
     for _ in 0..num - 1 {
         buffer.push_back(remaining.next().unwrap());
     }
     for (index, c) in remaining.enumerate() {
-        buffer.pop_front();
         buffer.push_back(c);
         let buf = buffer.clone();
         assert_eq!(num, buf.len());
         if !has_duplicates(buf) {
             return index + num;
         }
+        buffer.pop_front();
     }
 
     dbg!(signal);
