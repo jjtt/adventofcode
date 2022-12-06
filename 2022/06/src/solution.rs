@@ -21,9 +21,8 @@ fn find_marker(signal: &str, num: usize) -> usize {
     }
     for (index, c) in remaining.enumerate() {
         buffer.push_back(c);
-        let buf = buffer.clone();
-        assert_eq!(num, buf.len());
-        if !has_duplicates(buf) {
+        assert_eq!(num, buffer.len());
+        if !has_duplicates(&buffer) {
             return index + num;
         }
         buffer.pop_front();
@@ -33,9 +32,9 @@ fn find_marker(signal: &str, num: usize) -> usize {
     panic!("Not found");
 }
 
-fn has_duplicates(buf: VecDeque<char>) -> bool {
+fn has_duplicates(buf: &VecDeque<char>) -> bool {
     let mut counts = [0_usize; 256];
-    for c in buf {
+    for &c in buf {
         let count = counts[c as usize] + 1;
         if count > 1 {
             return true;
@@ -51,11 +50,11 @@ mod tests {
 
     #[test]
     fn duplicates() {
-        assert!(has_duplicates(VecDeque::from(['a', 'a'])));
-        assert!(!has_duplicates(VecDeque::from(['a', 'b'])));
-        assert!(!has_duplicates(VecDeque::from(['b', 'a'])));
-        assert!(!has_duplicates(VecDeque::from(['d', 'c', 'b', 'a'])));
-        assert!(has_duplicates(VecDeque::from(['d', 'c', 'b', 'a', 'd'])));
+        assert!(has_duplicates(&VecDeque::from(['a', 'a'])));
+        assert!(!has_duplicates(&VecDeque::from(['a', 'b'])));
+        assert!(!has_duplicates(&VecDeque::from(['b', 'a'])));
+        assert!(!has_duplicates(&VecDeque::from(['d', 'c', 'b', 'a'])));
+        assert!(has_duplicates(&VecDeque::from(['d', 'c', 'b', 'a', 'd'])));
     }
 
     #[test]
