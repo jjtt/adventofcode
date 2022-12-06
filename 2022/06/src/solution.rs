@@ -13,7 +13,7 @@ pub fn part2(input: &str) -> usize {
     find_marker(signal, 14)
 }
 
-fn find_marker(signal: &str, num: usize) -> usize {
+pub fn find_marker(signal: &str, num: usize) -> usize {
     let mut remaining = signal.chars();
     let mut buffer = VecDeque::new();
     for _ in 0..num - 1 {
