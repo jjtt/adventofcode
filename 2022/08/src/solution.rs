@@ -7,8 +7,15 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let trees = parse(&read_to_string(input).unwrap());
+    let rows = trees.shape()[0];
+    let columns = trees.shape()[1];
+
+    (0..rows)
+        .cartesian_product(0..columns)
+        .map(|(r, c)| scenic_score(&trees, r, c))
+        .max()
+        .unwrap()
 }
 
 fn visible(trees: &Array2<u8>, row: usize, column: usize) -> bool {
@@ -41,7 +48,7 @@ fn count_visible(trees: &Array2<u8>) -> usize {
 
     (0..rows)
         .cartesian_product(0..columns)
-        .filter(|(r, c)| visible(&trees, *r, *c))
+        .filter(|(r, c)| visible(trees, *r, *c))
         .count()
 }
 
@@ -57,10 +64,52 @@ fn parse_row(row: &str) -> Vec<u8> {
     row.chars().map(|c| c.to_digit(10).unwrap() as u8).collect()
 }
 
+fn scenic_score(trees: &Array2<u8>, row: usize, column: usize) -> usize {
+    let rows = trees.shape()[0];
+    let columns = trees.shape()[1];
+
+    let current = trees[(row, column)];
+    let left = trees
+        .row(row)
+        .slice(s![..column])
+        .iter()
+        .rev()
+        .enumerate()
+        .find(|(_, v)| **v >= current)
+        .map(|(index, _)| index + 1)
+        .unwrap_or(column);
+    let right = trees
+        .row(row)
+        .slice(s![(column + 1)..])
+        .iter()
+        .enumerate()
+        .find(|(_, v)| **v >= current)
+        .map(|(index, _)| index + 1)
+        .unwrap_or(columns - column - 1);
+    let up = trees
+        .column(column)
+        .slice(s![..row])
+        .iter()
+        .rev()
+        .enumerate()
+        .find(|(_, v)| **v >= current)
+        .map(|(index, _)| index + 1)
+        .unwrap_or(row);
+    let down = trees
+        .column(column)
+        .slice(s![(row + 1)..])
+        .iter()
+        .enumerate()
+        .find(|(_, v)| **v >= current)
+        .map(|(index, _)| index + 1)
+        .unwrap_or(rows - row - 1);
+    left * right * up * down
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ndarray::{arr1, arr2, s, Array1};
+    use ndarray::{arr1, arr2, s};
 
     #[test]
     fn array_slicing() {
@@ -171,7 +220,19 @@ mod tests {
     }
 
     #[test]
+    fn scenic_scores() {
+        let trees = parse(&read_to_string("sample.txt").unwrap());
+        assert_eq!(4, scenic_score(&trees, 1, 2));
+        assert_eq!(8, scenic_score(&trees, 3, 2));
+    }
+
+    #[test]
     fn part1_sample() {
         assert_eq!(21, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(8, part2("sample.txt"));
     }
 }
