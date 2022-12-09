@@ -1,4 +1,3 @@
-use anyhow::bail;
 use scan_fmt::scan_fmt;
 use std::collections::HashSet;
 use std::fs::read_to_string;
@@ -29,6 +28,7 @@ struct Move {
     count: usize,
 }
 
+#[derive(Copy, Clone)]
 struct End {
     x: i64,
     y: i64,
@@ -46,19 +46,19 @@ impl End {
 
     fn follow(&mut self, head: &End) {
         match (head.x - self.x, head.y - self.y) {
-            (-1, -2) | (-2, -1) => {
+            (-1, -2) | (-2, -1) | (-2, -2) => {
                 self.x -= 1;
                 self.y -= 1;
             }
-            (1, -2) | (2, -1) => {
+            (1, -2) | (2, -1) | (2, -2) => {
                 self.x += 1;
                 self.y -= 1;
             }
-            (1, 2) | (2, 1) => {
+            (1, 2) | (2, 1) | (2, 2) => {
                 self.x += 1;
                 self.y += 1;
             }
-            (-1, 2) | (-2, 1) => {
+            (-1, 2) | (-2, 1) | (-2, 2) => {
                 self.x -= 1;
                 self.y += 1;
             }
@@ -73,24 +73,31 @@ impl End {
 
 struct Rope {
     head: End,
-    tail: End,
+    tail: Vec<End>,
 }
 
 impl Rope {
-    fn new(x: i64, y: i64) -> Rope {
+    fn new(x: i64, y: i64, tail_length: usize) -> Rope {
         Rope {
             head: End { x, y },
-            tail: End { x, y },
+            tail: (0..tail_length).map(|_| End { x, y }).collect(),
         }
     }
 
     fn perform(&mut self, moves: &Vec<Move>) -> usize {
         let mut tail_visited = HashSet::new();
+        let last = self.tail.last().unwrap();
+        tail_visited.insert((last.x, last.y));
         for Move { direction, count } in moves {
             for _ in 0..*count {
                 self.head.move_towards(direction);
-                self.tail.follow(&self.head);
-                tail_visited.insert((self.tail.x, self.tail.y));
+                let mut prev = self.head;
+                for next in self.tail.iter_mut() {
+                    next.follow(&prev);
+                    prev = *next;
+                }
+                let last = self.tail.last().unwrap();
+                tail_visited.insert((last.x, last.y));
             }
         }
         tail_visited.len()
@@ -98,13 +105,13 @@ impl Rope {
 }
 
 pub fn part1(input: &str) -> usize {
-    let mut rope = Rope::new(0, 0);
+    let mut rope = Rope::new(0, 0, 1);
     rope.perform(&parse_moves(&read_to_string(input).unwrap()))
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let mut rope = Rope::new(0, 0, 9);
+    rope.perform(&parse_moves(&read_to_string(input).unwrap()))
 }
 
 fn parse_moves(input: &str) -> Vec<Move> {
@@ -143,6 +150,7 @@ mod tests {
     #[test_case(2, -1, 0, 0 => (1, -1); "knight2")]
     #[test_case(0, 2, 0, 0 => (0, 1); "two above")]
     #[test_case(0, -2, 0, 0 => (0, -1); "two below")]
+    #[test_case(2, -2, 0, 0 => (1, -1); "diagon alley")]
     fn following(x1: i64, y1: i64, x2: i64, y2: i64) -> (i64, i64) {
         let head = End { x: x1, y: y1 };
         let mut tail = End { x: x2, y: y2 };
@@ -153,7 +161,34 @@ mod tests {
     }
 
     #[test]
+    fn longer_rope() {
+        let mut rope = Rope::new(0, 0, 2);
+
+        assert_eq!(1, rope.perform(&parse_moves("R 2")));
+
+        assert_eq!(2, rope.head.x);
+        assert_eq!(1, rope.tail.get(0).unwrap().x);
+        assert_eq!(0, rope.tail.get(1).unwrap().x);
+
+        assert_eq!(3, rope.perform(&parse_moves("R 2")));
+
+        assert_eq!(4, rope.head.x);
+        assert_eq!(3, rope.tail.get(0).unwrap().x);
+        assert_eq!(2, rope.tail.get(1).unwrap().x);
+    }
+
+    #[test]
     fn part1_sample() {
         assert_eq!(13, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(1, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample2() {
+        assert_eq!(36, part2("sample2.txt"));
     }
 }
