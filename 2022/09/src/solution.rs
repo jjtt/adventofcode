@@ -1,6 +1,7 @@
 use scan_fmt::scan_fmt;
 use std::collections::HashSet;
 use std::fs::read_to_string;
+use std::str::FromStr;
 
 #[derive(PartialEq, Debug)]
 enum Direction {
@@ -8,17 +9,20 @@ enum Direction {
     Down,
     Left,
     Right,
+    Null,
 }
 
-impl Direction {
-    fn from(dir: &str) -> Direction {
-        match dir {
+impl FromStr for Direction {
+    type Err = ();
+
+    fn from_str(dir: &str) -> Result<Self, Self::Err> {
+        Ok(match dir {
             "U" => Direction::Up,
             "D" => Direction::Down,
             "L" => Direction::Left,
             "R" => Direction::Right,
-            _ => panic!("Invalid input: {dir}"),
-        }
+            _ => Direction::Null,
+        })
     }
 }
 
@@ -41,6 +45,7 @@ impl End {
             Direction::Down => self.y -= 1,
             Direction::Left => self.x -= 1,
             Direction::Right => self.x += 1,
+            Direction::Null => panic!("This is stupid"),
         }
     }
 
@@ -117,11 +122,8 @@ pub fn part2(input: &str) -> usize {
 fn parse_moves(input: &str) -> Vec<Move> {
     input
         .lines()
-        .map(|l| scan_fmt!(l, "{} {}", String, usize).unwrap())
-        .map(|(d, count)| Move {
-            direction: Direction::from(&d),
-            count,
-        })
+        .map(|l| scan_fmt!(l, "{} {}", Direction, usize).unwrap())
+        .map(|(direction, count)| Move { direction, count })
         .collect()
 }
 
