@@ -32,6 +32,12 @@ struct Move {
     count: usize,
 }
 
+impl Move {
+    fn from((direction, count): (Direction, usize)) -> Move {
+        Move { direction, count }
+    }
+}
+
 #[derive(Copy, Clone)]
 struct End {
     x: i64,
@@ -123,7 +129,7 @@ fn parse_moves(input: &str) -> Vec<Move> {
     input
         .lines()
         .map(|l| scan_fmt!(l, "{} {}", Direction, usize).unwrap())
-        .map(|(direction, count)| Move { direction, count })
+        .map(Move::from)
         .collect()
 }
 
