@@ -10,7 +10,7 @@ enum Part {
 }
 
 fn part2_wrapper(input: &str) -> i64 {
-    println!("{}", part2(input));
+    println!("{}", part2(input).replace('.', " "));
     -1
 }
 
