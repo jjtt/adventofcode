@@ -46,7 +46,7 @@ impl FromStr for Instruction {
 }
 
 #[derive(Debug)]
-struct CPU {
+struct Cpu {
     register: i64,
     cycle: usize,
     instr_cycle: usize,
@@ -54,7 +54,7 @@ struct CPU {
     crt: [bool; 240],
 }
 
-impl Display for CPU {
+impl Display for Cpu {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut s: String = self.crt.map(|p| if p { '#' } else { '.' }).iter().collect();
         s.insert(200, '\n');
@@ -66,9 +66,9 @@ impl Display for CPU {
     }
 }
 
-impl CPU {
-    fn new() -> CPU {
-        CPU {
+impl Cpu {
+    fn new() -> Cpu {
+        Cpu {
             register: 1,
             cycle: 0,
             instr_cycle: 1,
@@ -118,7 +118,7 @@ pub fn part1(input: &str) -> i64 {
         .filter_map(Result::ok)
         .collect();
 
-    let mut cpu = CPU::new();
+    let mut cpu = Cpu::new();
     let mut signal_strength = 0;
     for instr in program {
         cpu.set_instr(instr);
@@ -142,7 +142,7 @@ pub fn part2(input: &str) -> String {
         .filter_map(Result::ok)
         .collect();
 
-    let mut cpu = CPU::new();
+    let mut cpu = Cpu::new();
     for instr in program {
         cpu.set_instr(instr);
         loop {
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn ticking() {
-        let mut cpu = CPU::new();
+        let mut cpu = Cpu::new();
 
         assert_eq!(0, cpu.cycle);
         assert_eq!(1, cpu.register);
