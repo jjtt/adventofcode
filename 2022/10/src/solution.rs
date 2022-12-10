@@ -1,5 +1,5 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::fs::read_to_string;
 use std::str::FromStr;
 
@@ -51,6 +51,19 @@ struct CPU {
     cycle: usize,
     instr_cycle: usize,
     instr: Instruction,
+    crt: [bool; 240],
+}
+
+impl Display for CPU {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut s: String = self.crt.map(|p| if p { '#' } else { '.' }).iter().collect();
+        s.insert(200, '\n');
+        s.insert(160, '\n');
+        s.insert(120, '\n');
+        s.insert(80, '\n');
+        s.insert(40, '\n');
+        write!(f, "{s}")
+    }
 }
 
 impl CPU {
@@ -60,11 +73,15 @@ impl CPU {
             cycle: 0,
             instr_cycle: 1,
             instr: Instruction::noop(),
+            crt: [false; 240],
         }
     }
 
     fn tick(&mut self) -> (bool, i64) {
         self.cycle += 1;
+        let pixel = (self.cycle - 1) % 240;
+        self.crt[pixel] =
+            pixel as i64 % 40 >= self.register - 1 && self.register + 1 >= pixel as i64 % 40;
         self.instr_cycle += 1;
         let signal_strength = self.signal_strength();
         match self.instr.instr_type {
@@ -117,9 +134,26 @@ pub fn part1(input: &str) -> i64 {
     signal_strength
 }
 
-pub fn part2(input: &str) -> i64 {
-    //todo!()
-    0
+pub fn part2(input: &str) -> String {
+    let program: Vec<Instruction> = read_to_string(input)
+        .unwrap()
+        .lines()
+        .map(str::parse)
+        .filter_map(Result::ok)
+        .collect();
+
+    let mut cpu = CPU::new();
+    for instr in program {
+        cpu.set_instr(instr);
+        loop {
+            let (more_ticks, _) = cpu.tick();
+            if !more_ticks {
+                break;
+            }
+        }
+    }
+
+    format!("{cpu}")
 }
 
 #[cfg(test)]
@@ -170,5 +204,17 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(13140, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        let expected = "##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######.....";
+
+        assert_eq!(expected, part2("sample.txt"));
     }
 }

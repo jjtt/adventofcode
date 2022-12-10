@@ -9,10 +9,15 @@ enum Part {
     Two,
 }
 
+fn part2_wrapper(input: &str) -> i64 {
+    println!("{}", part2(input));
+    -1
+}
+
 fn solve_measure_and_print(part: Part, input: &str) {
     let solver = match part {
         Part::One => part1,
-        Part::Two => part2,
+        Part::Two => part2_wrapper,
     };
     let start = Instant::now();
     let result = solver(input);
