@@ -1,4 +1,3 @@
-use anyhow::bail;
 use scan_fmt::scan_fmt;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
@@ -17,6 +16,7 @@ impl Barrel {
                 self.monkeys[target].items.push_back(item);
             }
         }
+        dbg!(self.monkeys.iter().map(|m| m.inspections).collect::<Vec<usize>>());
     }
 
     fn do_monkey(&mut self, m: usize) -> Vec<(usize, i64)> {
@@ -46,6 +46,7 @@ struct Monkey {
     target_true: usize,
     target_false: usize,
     inspections: usize,
+    relaxed: bool,
 }
 
 impl Monkey {
@@ -65,7 +66,7 @@ impl Monkey {
         if let Some(item) = self.items.pop_front() {
             self.inspections += 1;
             let item = (self.operation)(item);
-            let item = item / 3;
+            let item = if self.relaxed { item / 3 } else { item };
             let target = if item % self.divider == 0 {
                 self.target_true
             } else {
@@ -121,6 +122,7 @@ impl FromStr for Monkey {
             target_true,
             target_false,
             inspections: 0,
+            relaxed: true,
         })
     }
 }
@@ -136,7 +138,7 @@ pub fn part1(input: &str) -> usize {
         monkeys: parse(&read_to_string(input).unwrap()),
     };
 
-    for m in (0..20) {
+    for _ in 0..20 {
         barrel.do_throws();
     }
 
@@ -144,8 +146,20 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let mut barrel = Barrel {
+        monkeys: parse(&read_to_string(input).unwrap()),
+    };
+
+    for monkey in &mut barrel.monkeys {
+        monkey.relaxed = false;
+    }
+
+    for r in 0..1000 {
+        dbg!(r+1);
+        barrel.do_throws();
+    }
+
+    barrel.monkey_business()
 }
 
 fn parse(input: &str) -> Vec<Monkey> {
@@ -192,6 +206,7 @@ mod tests {
                     target_true: 0,
                     target_false: 0,
                     inspections: 20,
+                    relaxed: true,
                 },
                 Monkey {
                     items: VecDeque::new(),
@@ -200,6 +215,7 @@ mod tests {
                     target_true: 0,
                     target_false: 0,
                     inspections: 10,
+                    relaxed: true,
                 },
                 Monkey {
                     items: VecDeque::new(),
@@ -208,6 +224,7 @@ mod tests {
                     target_true: 0,
                     target_false: 0,
                     inspections: 30,
+                    relaxed: true,
                 },
             ],
         };
@@ -224,6 +241,7 @@ mod tests {
             target_true: 42,
             target_false: 0,
             inspections: 0,
+            relaxed: true,
         };
 
         let (target, item) = monkey.throw_one().unwrap();
@@ -237,5 +255,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(10605, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(2713310158, part2("sample.txt"));
     }
 }
