@@ -1,8 +1,11 @@
 use anyhow::bail;
 use scan_fmt::scan_fmt;
+use std::collections::VecDeque;
+use std::fmt::{Debug, Formatter};
 use std::fs::read_to_string;
 use std::str::FromStr;
 
+#[derive(Debug)]
 struct Barrel {
     monkeys: Vec<Monkey>,
 }
@@ -11,7 +14,7 @@ impl Barrel {
     fn do_throws(&mut self) {
         for m in 0..self.monkeys.len() {
             for (target, item) in self.do_monkey(m) {
-                self.monkeys[target].items.push(item);
+                self.monkeys[target].items.push_back(item);
             }
         }
     }
@@ -37,7 +40,7 @@ impl Barrel {
 }
 
 struct Monkey {
-    items: Vec<i64>,
+    items: VecDeque<i64>,
     operation: Box<dyn Fn(i64) -> i64>,
     divider: i64,
     target_true: usize,
@@ -59,7 +62,7 @@ impl Monkey {
     }
 
     fn throw_one(&mut self) -> Option<(usize, i64)> {
-        if let Some(item) = self.items.pop() {
+        if let Some(item) = self.items.pop_front() {
             self.inspections += 1;
             let item = (self.operation)(item);
             let item = item / 3;
@@ -122,6 +125,12 @@ impl FromStr for Monkey {
     }
 }
 
+impl Debug for Monkey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.items)
+    }
+}
+
 pub fn part1(input: &str) -> usize {
     let mut barrel = Barrel {
         monkeys: parse(&read_to_string("sample.txt").unwrap()),
@@ -158,14 +167,14 @@ mod tests {
         assert_eq!(4, monkeys.len());
 
         let monkey = monkeys.first().unwrap();
-        assert_eq!(vec![79, 98], monkey.items);
+        assert_eq!(vec![79, 98], monkey.items.clone().make_contiguous());
         assert_eq!(19, (monkey.operation)(1));
         assert_eq!(23, monkey.divider);
         assert_eq!(2, monkey.target_true);
         assert_eq!(3, monkey.target_false);
 
         let monkey = monkeys.last().unwrap();
-        assert_eq!(vec![74], monkey.items);
+        assert_eq!(vec![74], monkey.items.clone().make_contiguous());
         assert_eq!(4, (monkey.operation)(1));
         assert_eq!(17, monkey.divider);
         assert_eq!(0, monkey.target_true);
@@ -177,7 +186,7 @@ mod tests {
         let barrel = Barrel {
             monkeys: vec![
                 Monkey {
-                    items: vec![],
+                    items: VecDeque::new(),
                     operation: Box::new(|x| x),
                     divider: 0,
                     target_true: 0,
@@ -185,7 +194,7 @@ mod tests {
                     inspections: 20,
                 },
                 Monkey {
-                    items: vec![],
+                    items: VecDeque::new(),
                     operation: Box::new(|x| x),
                     divider: 0,
                     target_true: 0,
@@ -193,7 +202,7 @@ mod tests {
                     inspections: 10,
                 },
                 Monkey {
-                    items: vec![],
+                    items: VecDeque::new(),
                     operation: Box::new(|x| x),
                     divider: 0,
                     target_true: 0,
@@ -209,7 +218,7 @@ mod tests {
     #[test]
     fn throw_one() {
         let mut monkey = Monkey {
-            items: vec![1],
+            items: VecDeque::from(vec![1]),
             operation: Box::new(|x| x * 4),
             divider: 1,
             target_true: 42,
