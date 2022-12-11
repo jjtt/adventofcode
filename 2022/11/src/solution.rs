@@ -16,7 +16,6 @@ impl Barrel {
                 self.monkeys[target].items.push_back(item);
             }
         }
-        dbg!(self.monkeys.iter().map(|m| m.inspections).collect::<Vec<usize>>());
     }
 
     fn do_monkey(&mut self, m: usize) -> Vec<(usize, i64)> {
@@ -46,7 +45,7 @@ struct Monkey {
     target_true: usize,
     target_false: usize,
     inspections: usize,
-    relaxed: bool,
+    relaxed: i64,
 }
 
 impl Monkey {
@@ -66,7 +65,11 @@ impl Monkey {
         if let Some(item) = self.items.pop_front() {
             self.inspections += 1;
             let item = (self.operation)(item);
-            let item = if self.relaxed { item / 3 } else { item };
+            let item = if self.relaxed == 3 {
+                item / self.relaxed
+            } else {
+                item % self.relaxed
+            };
             let target = if item % self.divider == 0 {
                 self.target_true
             } else {
@@ -122,7 +125,7 @@ impl FromStr for Monkey {
             target_true,
             target_false,
             inspections: 0,
-            relaxed: true,
+            relaxed: 3,
         })
     }
 }
@@ -150,12 +153,13 @@ pub fn part2(input: &str) -> usize {
         monkeys: parse(&read_to_string(input).unwrap()),
     };
 
+    let product: i64 = barrel.monkeys.iter().map(|m| m.divider).product();
+
     for monkey in &mut barrel.monkeys {
-        monkey.relaxed = false;
+        monkey.relaxed = product;
     }
 
-    for r in 0..1000 {
-        dbg!(r+1);
+    for _ in 0..10000 {
         barrel.do_throws();
     }
 
@@ -206,7 +210,7 @@ mod tests {
                     target_true: 0,
                     target_false: 0,
                     inspections: 20,
-                    relaxed: true,
+                    relaxed: 3,
                 },
                 Monkey {
                     items: VecDeque::new(),
@@ -215,7 +219,7 @@ mod tests {
                     target_true: 0,
                     target_false: 0,
                     inspections: 10,
-                    relaxed: true,
+                    relaxed: 3,
                 },
                 Monkey {
                     items: VecDeque::new(),
@@ -224,7 +228,7 @@ mod tests {
                     target_true: 0,
                     target_false: 0,
                     inspections: 30,
-                    relaxed: true,
+                    relaxed: 3,
                 },
             ],
         };
@@ -241,7 +245,7 @@ mod tests {
             target_true: 42,
             target_false: 0,
             inspections: 0,
-            relaxed: true,
+            relaxed: 3,
         };
 
         let (target, item) = monkey.throw_one().unwrap();
