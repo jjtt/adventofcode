@@ -3,12 +3,46 @@ use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 use std::str::FromStr;
 
+struct Barrel {
+    monkeys: Vec<Monkey>,
+}
+
+impl Barrel {
+    fn do_throws(&mut self) {
+        for m in 0..self.monkeys.len() {
+            for (target, item) in self.do_monkey(m) {
+                self.monkeys[target].items.push(item);
+            }
+        }
+    }
+
+    fn do_monkey(&mut self, m: usize) -> Vec<(usize, i64)> {
+        let mut throws = vec![];
+        let monkey = self.monkeys.get_mut(m).unwrap();
+        while let Some(throw) = monkey.throw_one() {
+            throws.push(throw);
+        }
+        throws
+    }
+
+    fn monkey_business(&self) -> usize {
+        let mut monkeys = self
+            .monkeys
+            .iter()
+            .map(|m| m.inspections)
+            .collect::<Vec<usize>>();
+        monkeys.sort();
+        monkeys[monkeys.len() - 1] * monkeys[monkeys.len() - 2]
+    }
+}
+
 struct Monkey {
     items: Vec<i64>,
     operation: Box<dyn Fn(i64) -> i64>,
     divider: i64,
     target_true: usize,
     target_false: usize,
+    inspections: usize,
 }
 
 impl Monkey {
@@ -21,6 +55,22 @@ impl Monkey {
             Box::new(move |old| old * old)
         } else {
             panic!("Unsupported operation: {input}");
+        }
+    }
+
+    fn throw_one(&mut self) -> Option<(usize, i64)> {
+        if let Some(item) = self.items.pop() {
+            self.inspections += 1;
+            let item = (self.operation)(item);
+            let item = item / 3;
+            let target = if item % self.divider == 0 {
+                self.target_true
+            } else {
+                self.target_false
+            };
+            Some((target, item))
+        } else {
+            None
         }
     }
 }
@@ -67,16 +117,24 @@ impl FromStr for Monkey {
             divider,
             target_true,
             target_false,
+            inspections: 0,
         })
     }
 }
 
-pub fn part1(input: &str) -> i32 {
-    //todo!()
-    0
+pub fn part1(input: &str) -> usize {
+    let mut barrel = Barrel {
+        monkeys: parse(&read_to_string("sample.txt").unwrap()),
+    };
+
+    for m in (0..20) {
+        barrel.do_throws();
+    }
+
+    barrel.monkey_business()
 }
 
-pub fn part2(input: &str) -> i32 {
+pub fn part2(input: &str) -> usize {
     //todo!()
     0
 }
@@ -112,6 +170,59 @@ mod tests {
         assert_eq!(17, monkey.divider);
         assert_eq!(0, monkey.target_true);
         assert_eq!(1, monkey.target_false);
+    }
+
+    #[test]
+    fn monkey_business() {
+        let barrel = Barrel {
+            monkeys: vec![
+                Monkey {
+                    items: vec![],
+                    operation: Box::new(|x| x),
+                    divider: 0,
+                    target_true: 0,
+                    target_false: 0,
+                    inspections: 20,
+                },
+                Monkey {
+                    items: vec![],
+                    operation: Box::new(|x| x),
+                    divider: 0,
+                    target_true: 0,
+                    target_false: 0,
+                    inspections: 10,
+                },
+                Monkey {
+                    items: vec![],
+                    operation: Box::new(|x| x),
+                    divider: 0,
+                    target_true: 0,
+                    target_false: 0,
+                    inspections: 30,
+                },
+            ],
+        };
+
+        assert_eq!(600, barrel.monkey_business());
+    }
+
+    #[test]
+    fn throw_one() {
+        let mut monkey = Monkey {
+            items: vec![1],
+            operation: Box::new(|x| x * 4),
+            divider: 1,
+            target_true: 42,
+            target_false: 0,
+            inspections: 0,
+        };
+
+        let (target, item) = monkey.throw_one().unwrap();
+
+        assert_eq!(42, target);
+        assert_eq!(1, item);
+        assert_eq!(1, monkey.inspections);
+        assert!(monkey.items.is_empty())
     }
 
     #[test]
