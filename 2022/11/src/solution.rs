@@ -133,7 +133,7 @@ impl Debug for Monkey {
 
 pub fn part1(input: &str) -> usize {
     let mut barrel = Barrel {
-        monkeys: parse(&read_to_string("sample.txt").unwrap()),
+        monkeys: parse(&read_to_string(input).unwrap()),
     };
 
     for m in (0..20) {
