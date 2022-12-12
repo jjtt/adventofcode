@@ -1,7 +1,5 @@
-use anyhow::bail;
-use ndarray::{arr2, Array2};
+use ndarray::Array2;
 use pathfinding::prelude::bfs;
-use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
 #[derive(PartialEq, Debug)]
@@ -29,7 +27,6 @@ impl Map {
         if *col < ncols - 1 && cur_plus_one >= self.heights[[*row, *col + 1]] {
             s.push((*row, *col + 1))
         }
-
         s
     }
 
@@ -41,13 +38,12 @@ impl Map {
         let mut map: Vec<char> = map.into_iter().flatten().collect();
         let start = map.iter().position(|c| *c == 'S').unwrap();
         let end = map.iter().position(|c| *c == 'E').unwrap();
-
         map[start] = 'a';
         map[end] = 'z';
 
         Map {
             heights: Array2::from_shape_vec((nrows, ncols), map).unwrap(),
-            start: (start / nrows, start % ncols),
+            start: (start / ncols, start % ncols),
             end: (end / ncols, end % ncols),
         }
     }
@@ -55,7 +51,7 @@ impl Map {
 
 pub fn part1(input: &str) -> usize {
     let map = Map::from(&read_to_string(input).unwrap());
-    dbg!(&map);
+
     let result = bfs(&map.start, |p| map.successors(p), |p| *p == map.end);
 
     result.unwrap().len() - 1
@@ -69,7 +65,7 @@ pub fn part2(input: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pathfinding::prelude::bfs;
+    use ndarray::arr2;
 
     #[test]
     fn pathfinding() {
@@ -92,6 +88,28 @@ mod tests {
             end: (0, 0),
         };
         let map = Map::from("Eb\nSc");
+        assert_eq!(expected, map);
+    }
+
+    #[test]
+    fn parsing2() {
+        let expected = Map {
+            heights: arr2(&[['a', 'a'], ['b', 'z']]),
+            start: (0, 1),
+            end: (1, 1),
+        };
+        let map = Map::from("aS\nbE");
+        assert_eq!(expected, map);
+    }
+
+    #[test]
+    fn parsing3() {
+        let expected = Map {
+            heights: arr2(&[['a', 'a', 'a'], ['b', 'z', 'a']]),
+            start: (1, 2),
+            end: (1, 1),
+        };
+        let map = Map::from("aaa\nbES");
         assert_eq!(expected, map);
     }
 
