@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.66"
 scan_fmt = "0.2.6"
+json = "0.12.4"
+test-case = "2.2.2"
