@@ -1,6 +1,4 @@
-use anyhow::bail;
 use json::{parse, JsonValue};
-use scan_fmt::scan_fmt;
 use std::cmp::Ordering;
 use std::fs::read_to_string;
 
@@ -66,8 +64,27 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let mut packets: Vec<JsonValue> = read_to_string(input)
+        .unwrap()
+        .lines()
+        .filter(|s| !s.is_empty())
+        .map(|s| parse(s).unwrap())
+        .collect();
+
+    packets.sort_by(compare);
+    packets.reverse();
+
+    let first = parse("[[2]]").unwrap();
+    let second = parse("[[6]]").unwrap();
+
+    let first_index = packets
+        .binary_search_by(|i| compare(&first, i))
+        .unwrap_err();
+    let second_index = packets
+        .binary_search_by(|i| compare(&second, i))
+        .unwrap_err();
+
+    (first_index.min(second_index) + 1) * (first_index.max(second_index) + 2)
 }
 
 #[cfg(test)]
@@ -107,5 +124,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(13, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(140, part2("sample.txt"));
     }
 }
