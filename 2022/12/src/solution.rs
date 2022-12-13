@@ -47,6 +47,15 @@ impl Map {
             end: (end / ncols, end % ncols),
         }
     }
+
+    fn with_start(&self, start: usize) -> Map {
+        let shape = self.heights.shape();
+        Map {
+            heights: self.heights.clone(),
+            start: (start / shape[1], start % shape[1]),
+            end: self.end,
+        }
+    }
 }
 
 pub fn part1(input: &str) -> usize {
@@ -58,8 +67,31 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let map = Map::from(&read_to_string(input).unwrap());
+
+    let starts = map
+        .heights
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| **c == 'a')
+        .map(|(index, _)| index);
+
+    let mut best = usize::MAX;
+    for start in starts {
+        let newmap = map.with_start(start);
+        if let Some(result) = bfs(
+            &newmap.start,
+            |p| newmap.successors(p),
+            |p| *p == newmap.end,
+        ) {
+            let len = result.len() - 1;
+            if len < best {
+                best = len;
+            }
+        }
+    }
+
+    best
 }
 
 #[cfg(test)]
@@ -116,5 +148,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(31, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(29, part2("sample.txt"));
     }
 }
