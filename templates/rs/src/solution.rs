@@ -20,4 +20,9 @@ mod tests {
     fn todo() {
         todo!()
     }
+
+    #[test]
+    fn part1_sample() {
+        assert_eq!(0, part1("sample.txt"));
+    }
 }
