@@ -31,23 +31,12 @@ pub fn part2(input: &str) -> i32 {
 pub fn part2_for_grid(input: &str, maxx: i32, maxy: i32) -> i32 {
     let sensors = parse_sensors(input);
 
-    let known_positions = sensors
-        .iter()
-        .flat_map(|(s, b)| vec![*s, *b])
-        .collect::<HashSet<_>>();
+    let covered: HashSet<Pos> = sensors.into_iter().flat_map(covered).collect();
 
-    for y in 0..=maxy {
-        let covered = sensors
-            .iter()
-            .flat_map(|s| covered_on_y(*s, y))
-            .filter(|p| p.0 >= 0 && p.1 >= 0 && p.0 <= maxx && p.1 <= maxy)
-            .collect::<HashSet<_>>();
-
-        if covered.len() <= maxx as usize {
-            for x in 0..maxx {
-                if !covered.contains(&(x, y)) {
-                    return x * 4000000 + y;
-                }
+    for y in (0..=maxy).rev() {
+        for x in (0..=maxx).rev() {
+            if !covered.contains(&(x, y)) {
+                return x * 4000000 + y;
             }
         }
     }
@@ -65,6 +54,22 @@ fn covered_on_y(sensor: (Pos, Pos), y: i32) -> HashSet<Pos> {
     (sensor.0 .0 - dist_on_row..=sensor.0 .0 + dist_on_row)
         .map(|x| (x, y))
         .collect()
+}
+
+fn covered(sensor: (Pos, Pos)) -> HashSet<Pos> {
+    dbg!(&sensor);
+    let dist = manhattan(sensor.0, sensor.1);
+
+    let mut covered = HashSet::new();
+    for y in 0.max(sensor.0 .1 - dist)..=4000000.min(sensor.0 .1 + dist) {
+        let offset = 0.max((sensor.0 .1 - y).abs());
+        let dist_on_row = dist - offset;
+        covered.extend(
+            (0.max(sensor.0 .0 - dist_on_row)..=4000000.min(sensor.0 .0 + dist_on_row))
+                .map(|x| (x, y)),
+        );
+    }
+    covered
 }
 
 fn manhattan(first: Pos, second: Pos) -> i32 {
@@ -112,6 +117,15 @@ mod tests {
             (14, 10),
         ]
         .contains(pos)))
+    }
+
+    #[test]
+    fn covering_all() {
+        let covered = covered(((8, 7), (8, 8)));
+        assert_eq!(5, covered.len());
+        let mut sorted = covered.into_iter().collect::<Vec<_>>();
+        sorted.sort();
+        assert_eq!(vec![(7, 7), (8, 6), (8, 7), (8, 8), (9, 7)], sorted);
     }
 
     #[test]
