@@ -31,17 +31,29 @@ pub fn part2(input: &str) -> i32 {
 pub fn part2_for_grid(input: &str, maxx: i32, maxy: i32) -> i32 {
     let sensors = parse_sensors(input);
 
-    let covered: HashSet<Pos> = sensors.into_iter().flat_map(covered).collect();
+    let known_positions = sensors
+        .iter()
+        .flat_map(|(s, b)| vec![*s, *b])
+        .collect::<HashSet<_>>();
 
-    for y in (0..=maxy).rev() {
-        for x in (0..=maxx).rev() {
-            if !covered.contains(&(x, y)) {
-                return x * 4000000 + y;
-            }
-        }
-    }
+    let candidates = sensors
+        .clone()
+        .into_iter()
+        .flat_map(candidates)
+        .filter(|(x, y)| *x >= 0 && *y >= 0 && *x <= maxx && *y <= maxy)
+        .filter(|p| {
+            sensors
+                .iter()
+                .all(|sensor| manhattan(sensor.0, sensor.1) < manhattan(sensor.0, *p))
+        })
+        .filter(|p| !known_positions.contains(p))
+        .collect::<HashSet<_>>();
 
-    panic!("Not found")
+    assert_eq!(1, candidates.len());
+    let (x, y) = candidates.iter().next().unwrap();
+    dbg!((x, y));
+
+    x * 4000000 + y
 }
 
 fn covered_on_y(sensor: (Pos, Pos), y: i32) -> HashSet<Pos> {
@@ -57,7 +69,6 @@ fn covered_on_y(sensor: (Pos, Pos), y: i32) -> HashSet<Pos> {
 }
 
 fn covered(sensor: (Pos, Pos)) -> HashSet<Pos> {
-    dbg!(&sensor);
     let dist = manhattan(sensor.0, sensor.1);
 
     let mut covered = HashSet::new();
@@ -70,6 +81,19 @@ fn covered(sensor: (Pos, Pos)) -> HashSet<Pos> {
         );
     }
     covered
+}
+
+fn candidates(sensor: (Pos, Pos)) -> HashSet<Pos> {
+    let dist = manhattan(sensor.0, sensor.1) + 1;
+
+    let mut candidates = HashSet::new();
+    for y in sensor.0 .1 - dist..=sensor.0 .1 + dist {
+        let offset = 0.max((sensor.0 .1 - y).abs());
+        let dist_on_row = dist - offset;
+        candidates.insert((sensor.0 .0 - dist_on_row, y));
+        candidates.insert((sensor.0 .0 + dist_on_row, y));
+    }
+    candidates
 }
 
 fn manhattan(first: Pos, second: Pos) -> i32 {
@@ -126,6 +150,27 @@ mod tests {
         let mut sorted = covered.into_iter().collect::<Vec<_>>();
         sorted.sort();
         assert_eq!(vec![(7, 7), (8, 6), (8, 7), (8, 8), (9, 7)], sorted);
+    }
+
+    #[test]
+    fn finding_candidates() {
+        let candidates = candidates(((4, 4), (5, 4)));
+        assert_eq!(8, candidates.len());
+        let mut sorted = candidates.into_iter().collect::<Vec<_>>();
+        sorted.sort();
+        assert_eq!(
+            vec![
+                (2, 4),
+                (3, 3),
+                (3, 5),
+                (4, 2),
+                (4, 6),
+                (5, 3),
+                (5, 5),
+                (6, 4)
+            ],
+            sorted
+        );
     }
 
     #[test]
