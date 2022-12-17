@@ -4,8 +4,8 @@ use std::fs::read_to_string;
 
 type Pos = (i32, i32);
 
-pub fn part1(input: &str) -> i32 {
-    part1_for_y(input, 2000000)
+pub fn part1(input: &str) -> usize {
+    part1_for_y(input, 2000000) as usize
 }
 
 pub fn part1_for_y(input: &str, y: i32) -> i32 {
@@ -24,11 +24,11 @@ pub fn part1_for_y(input: &str, y: i32) -> i32 {
         .len() as i32
 }
 
-pub fn part2(input: &str) -> i32 {
+pub fn part2(input: &str) -> usize {
     part2_for_grid(input, 4000000, 4000000)
 }
 
-pub fn part2_for_grid(input: &str, maxx: i32, maxy: i32) -> i32 {
+pub fn part2_for_grid(input: &str, maxx: i32, maxy: i32) -> usize {
     let sensors = parse_sensors(input);
 
     let known_positions = sensors
@@ -53,7 +53,7 @@ pub fn part2_for_grid(input: &str, maxx: i32, maxy: i32) -> i32 {
     let (x, y) = candidates.iter().next().unwrap();
     dbg!((x, y));
 
-    x * 4000000 + y
+    *x as usize * 4000000 + *y as usize
 }
 
 fn covered_on_y(sensor: (Pos, Pos), y: i32) -> HashSet<Pos> {
