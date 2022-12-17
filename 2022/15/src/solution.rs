@@ -25,8 +25,34 @@ pub fn part1_for_y(input: &str, y: i32) -> i32 {
 }
 
 pub fn part2(input: &str) -> i32 {
-    //todo!()
-    0
+    part2_for_grid(input, 4000000, 4000000)
+}
+
+pub fn part2_for_grid(input: &str, maxx: i32, maxy: i32) -> i32 {
+    let sensors = parse_sensors(input);
+
+    let known_positions = sensors
+        .iter()
+        .flat_map(|(s, b)| vec![*s, *b])
+        .collect::<HashSet<_>>();
+
+    for y in 0..=maxy {
+        let covered = sensors
+            .iter()
+            .flat_map(|s| covered_on_y(*s, y))
+            .filter(|p| p.0 >= 0 && p.1 >= 0 && p.0 <= maxx && p.1 <= maxy)
+            .collect::<HashSet<_>>();
+
+        if covered.len() <= maxx as usize {
+            for x in 0..maxx {
+                if !covered.contains(&(x, y)) {
+                    return x * 4000000 + y;
+                }
+            }
+        }
+    }
+
+    panic!("Not found")
 }
 
 fn covered_on_y(sensor: (Pos, Pos), y: i32) -> HashSet<Pos> {
@@ -99,5 +125,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(26, part1_for_y("sample.txt", 10));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(56000011, part2_for_grid("sample.txt", 20, 20));
     }
 }
