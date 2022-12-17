@@ -122,6 +122,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn overflowing() {
+        let (x, y) = (2749047, 3429555);
+
+        #[allow(arithmetic_overflow)]
+        let foo = x * 4000000 + y;
+
+        dbg!(foo);
+    }
+
+    #[test]
     fn covering() {
         let covered = covered_on_y(((8, 7), (2, 10)), 10);
         assert_eq!(13, covered.len());
