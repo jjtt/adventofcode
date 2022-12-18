@@ -11,8 +11,11 @@ struct Cave {
 
 impl Cave {
     fn successors(&self, current: &SearchState) -> Vec<SearchState> {
-        //dbg!(&current);
         if current.time == 0 {
+            return vec![];
+        }
+
+        if current.open.len() == self.valves.len() {
             return vec![];
         }
 
@@ -23,25 +26,28 @@ impl Cave {
             .expect("Should not escape the cave");
 
         let mut successors = vec![];
-        if let Err(index) = current.open.binary_search(current_name) {
-            let mut open = current.open.clone();
-            open.insert(index, current_name.clone());
+        if current_valve.flow_rate > 0 {
+            if let Err(index) = current.open.binary_search(current_name) {
+                let mut open = current.open.clone();
+                open.insert(index, current_name.clone());
 
-            successors.push(SearchState {
-                pos: current.pos.clone(),
-                open,
-                time: current.time - 1,
-                rate: current.rate + (current.time - 1) * current_valve.flow_rate,
-            })
+                successors.push(SearchState {
+                    pos: current.pos.clone(),
+                    prev: None,
+                    open,
+                    time: current.time - 1,
+                    rate: current.rate + (current.time - 1) * current_valve.flow_rate,
+                })
+            }
         }
         for next_name in current_valve.tunnels.iter() {
-            let next_valve = self
-                .valves
-                .get(next_name)
-                .expect("Should not escape the cave");
+            if current.prev == Some(next_name.clone()) {
+                continue;
+            }
 
             successors.push(SearchState {
                 pos: next_name.clone(),
+                prev: Some(current_name.clone()),
                 open: current.open.clone(),
                 time: current.time - 1,
                 rate: current.rate,
@@ -53,6 +59,7 @@ impl Cave {
         let result = bfs_reach(
             SearchState {
                 pos: "AA".to_string(),
+                prev: None,
                 open: Vec::new(),
                 time: 30,
                 rate: 0,
@@ -72,7 +79,6 @@ struct Valve {
 
 impl Valve {
     fn from(input: &str) -> (String, Valve) {
-        dbg!(input);
         let input = input
             .replace("tunnels", "tunnel")
             .replace("leads", "lead")
@@ -95,6 +101,7 @@ impl Valve {
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 struct SearchState {
     pos: String,
+    prev: Option<String>,
     open: Vec<String>, // remember to keep sorted!
     time: usize,
     rate: usize,
