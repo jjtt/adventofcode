@@ -49,7 +49,12 @@ impl Cave {
         let result = bfs_reach(
             SearchState {
                 pos,
-                open: Vec::new(),
+                open: self
+                    .valves
+                    .iter()
+                    .filter(|(_, v)| v.flow_rate == 0)
+                    .map(|(n, _)| *n)
+                    .collect(),
                 time,
                 rate: 0,
             },
