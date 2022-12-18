@@ -1,47 +1,54 @@
 use itertools::Itertools;
 use pathfinding::prelude::bfs_reach;
 use scan_fmt::scan_fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 struct Cave {
     valves: HashMap<usize, Valve>,
 }
 
 impl Cave {
-    fn successors(&self, current: &SearchState) -> Vec<SearchState> {
-        assert!(current.pos.len() == 1 || current.pos[0] <= current.pos[1]);
-
+    fn successors(&self, current: &SearchState) -> impl IntoIterator<Item = SearchState> {
         if current.time == 0 {
-            return vec![];
+            return HashSet::new();
         }
 
         if current.open.len() == self.valves.len() {
-            return vec![];
+            return HashSet::new();
         }
 
-        let mut successors = vec![current.clone()];
-        for current_index in 0..current.pos.len() {
+        let mut successors = HashSet::new();
+        successors.insert(current.clone());
+        for current_index in current.pos.keys().clone() {
             successors = successors
                 .into_iter()
                 .flat_map(|s| s.successors_for(current_index, &self.valves))
                 .collect();
         }
 
-        for state in successors.iter_mut() {
-            state.spend_time();
-            state.sort_pos();
-        }
-
         successors
+            .into_iter()
+            .map(|mut s| {
+                s.spend_time();
+                s
+            })
+            .collect()
     }
 
     fn find_max_flow(&self, time: usize, count: usize) -> usize {
+        let pos = match count {
+            1 => HashMap::from([(Who::Me, (name_to_int("AA"), None))]),
+            2 => HashMap::from([
+                (Who::Me, (name_to_int("AA"), None)),
+                (Who::Elephant, (name_to_int("AA"), None)),
+            ]),
+            _ => todo!(),
+        };
         let result = bfs_reach(
             SearchState {
-                pos: vec![name_to_int("AA"); count],
-                prev: vec![None; count],
+                pos,
                 open: Vec::new(),
                 time,
                 rate: 0,
@@ -86,28 +93,44 @@ fn name_to_int(name: &str) -> usize {
         .sum()
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
+enum Who {
+    Me,
+    Elephant,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct SearchState {
-    pos: Vec<usize>,
-    prev: Vec<Option<usize>>,
+    pos: HashMap<Who, (usize, Option<usize>)>,
     open: Vec<usize>, // remember to keep sorted!
     time: usize,
     rate: usize,
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
+impl Hash for SearchState {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.rate.hash(state);
+        self.time.hash(state);
+        self.open.hash(state);
+        self.pos.iter().sorted().collect::<Vec<_>>().hash(state);
+    }
+}
+
 impl SearchState {
-    fn open(&mut self, worker_index: usize, open_index: usize, flow_rate: usize) {
-        self.open.insert(open_index, self.pos[worker_index].clone());
-        self.prev[worker_index] = None;
+    fn open(&mut self, worker_index: &Who, open_index: usize, flow_rate: usize) {
+        self.open
+            .insert(open_index, self.pos.get(worker_index).unwrap().0);
+        self.pos.get_mut(worker_index).unwrap().1 = None;
         self.rate += (self.time - 1) * flow_rate;
     }
 
     fn successors_for(
         mut self,
-        worker_index: usize,
+        worker_index: &Who,
         valves: &HashMap<usize, Valve>,
     ) -> Vec<SearchState> {
-        let current_name = &self.pos[worker_index];
+        let current_name = &self.pos.get(worker_index).unwrap().0;
         let current_valve = valves
             .get(current_name)
             .expect("Should not escape the cave");
@@ -115,27 +138,21 @@ impl SearchState {
         let mut successors = vec![];
 
         for next_name in current_valve.tunnels.iter() {
-            if self.prev[worker_index] == Some(next_name.clone()) {
+            if self.pos.get(worker_index).unwrap().1 == Some(*next_name) {
                 continue;
             }
 
-            let (pos, prev) = self
-                .pos
-                .iter()
-                .zip(self.prev.iter())
-                .enumerate()
-                .map(|(index, (pos, prev))| {
-                    if worker_index == index {
-                        (next_name.clone(), Some(current_name.clone()))
-                    } else {
-                        (pos.clone(), prev.clone())
-                    }
-                })
-                .unzip();
+            let mut pos = self.pos.clone();
+            for who in self.pos.keys() {
+                let (pos, prev) = pos.get_mut(who).unwrap();
+                if *who == *worker_index {
+                    *pos = *next_name;
+                    *prev = Some(*current_name);
+                }
+            }
 
             successors.push(SearchState {
                 pos,
-                prev,
                 open: self.open.clone(),
                 time: self.time,
                 rate: self.rate,
@@ -161,17 +178,6 @@ impl SearchState {
 
     fn spend_time(&mut self) {
         self.time -= 1;
-    }
-
-    fn sort_pos(&mut self) {
-        let (pos, prev) = self
-            .pos
-            .iter()
-            .zip(self.prev.iter())
-            .sorted_by_key(|s| s.0)
-            .unzip();
-        self.pos = pos;
-        self.prev = prev;
     }
 }
 
