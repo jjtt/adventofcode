@@ -113,7 +113,7 @@ impl Hash for SearchState {
         self.rate.hash(state);
         self.time.hash(state);
         self.open.hash(state);
-        self.pos.iter().sorted().collect::<Vec<_>>().hash(state);
+        self.pos.values().sorted().collect::<Vec<_>>().hash(state);
     }
 }
 
