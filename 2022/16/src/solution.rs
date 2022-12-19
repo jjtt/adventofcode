@@ -1,16 +1,26 @@
 use itertools::Itertools;
-use pathfinding::prelude::bfs_reach;
+use pathfinding::prelude::{astar, bfs_reach};
 use scan_fmt::scan_fmt;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::hash::{Hash, Hasher};
 
+#[derive(Debug)]
 struct Cave {
     valves: HashMap<usize, Valve>,
+    max_releasable_pressure: usize,
 }
 
 impl Cave {
-    fn successors(&self, current: &SearchState) -> impl IntoIterator<Item = SearchState> {
+    fn new(valves: HashMap<usize, Valve>, time_available: usize) -> Cave {
+        let max_pressure = valves.values().map(|v| v.flow_rate * time_available).sum();
+        Cave {
+            valves,
+            max_releasable_pressure: max_pressure,
+        }
+    }
+
+    fn successors(&self, current: &SearchState) -> impl IntoIterator<Item = (SearchState, usize)> {
         if current.time == 0 {
             return HashSet::new();
         }
@@ -32,7 +42,8 @@ impl Cave {
             .into_iter()
             .map(|mut s| {
                 s.spend_time();
-                s
+                let cost = self.max_releasable_pressure - s.released_pressure;
+                (s, cost)
             })
             .collect()
     }
@@ -46,8 +57,8 @@ impl Cave {
             ]),
             _ => todo!(),
         };
-        let result = bfs_reach(
-            SearchState {
+        let result = astar(
+            &SearchState {
                 pos,
                 open: self
                     .valves
@@ -56,12 +67,16 @@ impl Cave {
                     .map(|(n, _)| *n)
                     .collect(),
                 time,
-                rate: 0,
+                released_pressure: 0,
             },
             |current| self.successors(current),
+            |s| s.remaining(self),
+            |s| s.done(self),
         );
 
-        result.map(|s| s.rate).max().unwrap()
+        dbg!(&result);
+        dbg!(self);
+        result.unwrap().0.last().unwrap().released_pressure
     }
 }
 
@@ -109,13 +124,13 @@ struct SearchState {
     pos: HashMap<Who, (usize, Option<usize>)>,
     open: Vec<usize>, // remember to keep sorted!
     time: usize,
-    rate: usize,
+    released_pressure: usize,
 }
 
 #[allow(clippy::derive_hash_xor_eq)]
 impl Hash for SearchState {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.rate.hash(state);
+        self.released_pressure.hash(state);
         self.time.hash(state);
         self.open.hash(state);
         self.pos.values().sorted().collect::<Vec<_>>().hash(state);
@@ -123,11 +138,28 @@ impl Hash for SearchState {
 }
 
 impl SearchState {
+    fn done(&self, cave: &Cave) -> bool {
+        cave.valves.keys().all(|v| self.open.contains(v)) || self.time == 0
+    }
+
+    fn remaining(&self, cave: &Cave) -> usize {
+        dbg!(cave);
+        dbg!(self);
+        cave.max_releasable_pressure
+            - self.released_pressure
+            - cave
+                .valves
+                .iter()
+                .filter(|(n, _)| !self.open.contains(n))
+                .map(|(_, v)| self.time * v.flow_rate)
+                .sum::<usize>()
+    }
+
     fn open(&mut self, worker_index: &Who, open_index: usize, flow_rate: usize) {
         self.open
             .insert(open_index, self.pos.get(worker_index).unwrap().0);
         self.pos.get_mut(worker_index).unwrap().1 = None;
-        self.rate += (self.time - 1) * flow_rate;
+        self.released_pressure += (self.time - 1) * flow_rate;
     }
 
     fn successors_for(
@@ -160,7 +192,7 @@ impl SearchState {
                 pos,
                 open: self.open.clone(),
                 time: self.time,
-                rate: self.rate,
+                released_pressure: self.released_pressure,
             });
         }
 
@@ -193,9 +225,10 @@ pub fn part1(input: &str) -> usize {
         .map(Valve::from)
         .collect();
 
-    let cave = Cave { valves };
+    let time_available = 30;
+    let cave = Cave::new(valves, time_available);
 
-    cave.find_max_flow(30, 1)
+    cave.find_max_flow(time_available, 1)
 }
 
 pub fn part2(input: &str) -> usize {
@@ -205,9 +238,10 @@ pub fn part2(input: &str) -> usize {
         .map(Valve::from)
         .collect();
 
-    let cave = Cave { valves };
+    let time_available = 26;
+    let cave = Cave::new(valves, time_available);
 
-    cave.find_max_flow(26, 2)
+    cave.find_max_flow(time_available, 2)
 }
 
 #[cfg(test)]
@@ -216,8 +250,9 @@ mod tests {
 
     #[test]
     fn simple() {
-        let cave = Cave {
-            valves: HashMap::from([
+        let time_available = 30;
+        let cave = Cave::new(
+            HashMap::from([
                 (
                     name_to_int("AA"),
                     Valve {
@@ -233,16 +268,18 @@ mod tests {
                     },
                 ),
             ]),
-        };
+            time_available,
+        );
 
-        let max = cave.find_max_flow(30, 1);
+        let max = cave.find_max_flow(time_available, 1);
         assert_eq!(364, max);
     }
 
     #[test]
     fn less_simple() {
-        let cave = Cave {
-            valves: HashMap::from([
+        let time_available = 30;
+        let cave = Cave::new(
+            HashMap::from([
                 (
                     name_to_int("AA"),
                     Valve {
@@ -265,9 +302,10 @@ mod tests {
                     },
                 ),
             ]),
-        };
+            time_available,
+        );
 
-        let max = cave.find_max_flow(30, 1);
+        let max = cave.find_max_flow(time_available, 1);
         assert_eq!(364 + 52, max);
     }
 
