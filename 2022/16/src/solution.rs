@@ -68,6 +68,7 @@ impl Cave {
                     .collect(),
                 time,
                 released_pressure: 0,
+                trail: vec![],
             },
             |current| self.successors(current),
             |s| s.remaining(self),
@@ -125,6 +126,7 @@ struct SearchState {
     open: Vec<usize>, // remember to keep sorted!
     time: usize,
     released_pressure: usize,
+    trail: Vec<(Who, usize, usize)>,
 }
 
 #[allow(clippy::derive_hash_xor_eq)]
@@ -143,15 +145,15 @@ impl SearchState {
     }
 
     fn remaining(&self, cave: &Cave) -> usize {
-        dbg!(cave);
-        dbg!(self);
+        //dbg!(cave);
+        //dbg!(self);
         cave.max_releasable_pressure
             - self.released_pressure
             - cave
                 .valves
                 .iter()
                 .filter(|(n, _)| !self.open.contains(n))
-                .map(|(_, v)| self.time * v.flow_rate)
+                .map(|(_, v)| v.flow_rate)
                 .sum::<usize>()
     }
 
@@ -160,6 +162,11 @@ impl SearchState {
             .insert(open_index, self.pos.get(worker_index).unwrap().0);
         self.pos.get_mut(worker_index).unwrap().1 = None;
         self.released_pressure += (self.time - 1) * flow_rate;
+        self.trail.push((
+            worker_index.clone(),
+            self.pos.get(worker_index).unwrap().0,
+            self.time,
+        ))
     }
 
     fn successors_for(
@@ -193,6 +200,7 @@ impl SearchState {
                 open: self.open.clone(),
                 time: self.time,
                 released_pressure: self.released_pressure,
+                trail: self.trail.clone(),
             });
         }
 
@@ -307,6 +315,74 @@ mod tests {
 
         let max = cave.find_max_flow(time_available, 1);
         assert_eq!(364 + 52, max);
+    }
+
+    #[test]
+    fn even_less_simple() {
+        let time_available = 30;
+        let cave = Cave::new(
+            HashMap::from([
+                (
+                    name_to_int("AA"),
+                    Valve {
+                        flow_rate: 2,
+                        tunnels: vec![name_to_int("BB")],
+                    },
+                ),
+                (
+                    name_to_int("BB"),
+                    Valve {
+                        flow_rate: 13,
+                        tunnels: vec![name_to_int("AA"), name_to_int("CC")],
+                    },
+                ),
+                (
+                    name_to_int("CC"),
+                    Valve {
+                        flow_rate: 100,
+                        tunnels: vec![name_to_int("BB")],
+                    },
+                ),
+            ]),
+            time_available,
+        );
+
+        let max = cave.find_max_flow(time_available, 1);
+        assert_eq!(27 * 100 + 25 * 13 + 23 * 2, max);
+    }
+
+    #[test]
+    fn still_less_simple() {
+        let time_available = 10;
+        let cave = Cave::new(
+            HashMap::from([
+                (
+                    name_to_int("AA"),
+                    Valve {
+                        flow_rate: 2,
+                        tunnels: vec![name_to_int("BB")],
+                    },
+                ),
+                (
+                    name_to_int("BB"),
+                    Valve {
+                        flow_rate: 13,
+                        tunnels: vec![name_to_int("AA"), name_to_int("CC")],
+                    },
+                ),
+                (
+                    name_to_int("CC"),
+                    Valve {
+                        flow_rate: 100,
+                        tunnels: vec![name_to_int("BB")],
+                    },
+                ),
+            ]),
+            time_available,
+        );
+
+        let max = cave.find_max_flow(time_available, 2);
+        assert_eq!(7 * 100 + 8 * 13 + 6 * 2, max);
     }
 
     #[test]
