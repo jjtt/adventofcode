@@ -283,6 +283,24 @@ mod tests {
     }
 
     #[test]
+    fn simplish() {
+        let time_available = 30;
+        let cave = Cave::new(HashMap::from([
+            (
+                name_to_int("AA"),
+                (Valve { flow_rate: 1 }, vec![name_to_int("BB")]),
+            ),
+            (
+                name_to_int("BB"),
+                (Valve { flow_rate: 10 }, vec![name_to_int("AA")]),
+            ),
+        ]));
+
+        let max = cave.find_max_flow(time_available, 1);
+        assert_eq!(28 * 10 + 26 * 1, max);
+    }
+
+    #[test]
     fn less_simple() {
         let time_available = 30;
         let cave = Cave::new(HashMap::from([
