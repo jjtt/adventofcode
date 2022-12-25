@@ -35,7 +35,7 @@ impl Cave {
             return HashSet::new();
         }
 
-        if current.open.len() == self.valves.len() {
+        if current.open.iter().all_equal() {
             return HashSet::new();
         }
 
