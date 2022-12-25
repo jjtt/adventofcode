@@ -1,21 +1,73 @@
-use pathfinding::prelude::astar;
+use itertools::Itertools;
+use pathfinding::prelude::{astar, dijkstra_all, Matrix};
 use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::hash::Hash;
 
-const MAX_VALVES: usize = 25 * 26 + 25;
-
 #[derive(Debug)]
-struct Cave {}
+struct Cave {
+    neighbours: Matrix<bool>,
+    reachable: Matrix<usize>,
+    flow_rates: Vec<usize>,
+}
 
 impl Cave {
-    fn new(mut valve_map: HashMap<usize, (Valve, Vec<usize>)>) -> Cave {
-        todo!()
+    fn new(valve_map: HashMap<String, (Valve, Vec<String>)>) -> Cave {
+        let valve_names = valve_map.keys().sorted().map(String::as_str).collect();
+        let valve_map = valve_map
+            .iter()
+            .map(|(name, (valve, tunnels))| {
+                (
+                    name_to_int(name, &valve_names),
+                    (
+                        valve,
+                        tunnels
+                            .iter()
+                            .map(|name| name_to_int(name, &valve_names))
+                            .collect::<Vec<_>>(),
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let valve_count = valve_map.len();
+        let mut neighbours = Matrix::new(valve_count, valve_count, false);
+        let mut flow_rates = vec![0; valve_count];
+        for (from, (valve, to)) in valve_map.iter() {
+            flow_rates[*from] = valve.flow_rate;
+            for to in to {
+                neighbours[(*from, *to)] = true;
+            }
+        }
+
+        let mut reachable = Matrix::new(valve_count, valve_count, 0);
+        for (from, _) in valve_map {
+            let result = dijkstra_all(&from, |from| {
+                let mut successors = vec![];
+                for to in 0..valve_count {
+                    if neighbours[(*from, to)] {
+                        successors.push((to, 1));
+                    }
+                }
+                successors
+            });
+            for (to, (_, cost)) in result {
+                reachable[(from, to)] = cost;
+            }
+        }
+
+        Cave {
+            neighbours,
+            reachable,
+            flow_rates,
+        }
     }
 
     fn find_max_flow(&self, time: usize, count: usize) -> i64 {
+        dbg!(self);
+
         let result = astar(
             &SearchState::new(),
             |s| s.successors(self),
@@ -33,7 +85,7 @@ struct Valve {
 }
 
 impl Valve {
-    fn from(input: &str) -> (usize, (Valve, Vec<usize>)) {
+    fn from(input: &str) -> (String, (Valve, Vec<String>)) {
         let input = input
             .replace("tunnels", "tunnel")
             .replace("leads", "lead")
@@ -47,24 +99,18 @@ impl Valve {
         )
         .unwrap();
 
-        let tunnels = tunnels.split(", ").map(name_to_int).collect();
+        let tunnels = tunnels.split(", ").map(String::from).collect();
 
-        (name_to_int(&name), (Valve { flow_rate }, tunnels))
+        (name.clone(), (Valve { flow_rate }, tunnels))
     }
 }
 
-fn name_to_int(name: &str) -> usize {
-    let bytes = name.as_bytes();
-    let first = bytes[0] - b'A';
-    let second = bytes[1] - b'A';
-    first as usize * 26 + second as usize
+fn name_to_int(name: &str, names: &Vec<&str>) -> usize {
+    names.iter().position(|n| *n == name).unwrap()
 }
 
-fn int_to_name(name: usize) -> String {
-    let first = char::from((name / 26) as u8 + b'A');
-    let second = char::from((name % 26) as u8 + b'A');
-
-    String::from_iter([first, second])
+fn int_to_name(name: usize, names: &Vec<&str>) -> String {
+    names[name].to_string()
 }
 
 #[derive(Eq, PartialEq, Clone, Hash)]
@@ -185,10 +231,10 @@ mod tests {
     fn parsing() {
         assert_eq!(
             (
-                name_to_int("AA"),
+                "AA".to_string(),
                 (
                     Valve { flow_rate: 0 },
-                    vec![name_to_int("DD"), name_to_int("II"), name_to_int("BB")]
+                    vec!["DD".to_string(), "II".to_string(), "BB".to_string(),]
                 ),
             ),
             Valve::from("Valve AA has flow rate=0; tunnels lead to valves DD, II, BB")
@@ -197,23 +243,27 @@ mod tests {
 
     #[test]
     fn name_to_index() {
-        assert_eq!(0, name_to_int("AA"));
-        assert_eq!(1, name_to_int("AB"));
-        assert_eq!(2, name_to_int("AC"));
-        assert_eq!(3, name_to_int("AD"));
-        assert_eq!(25 * 26 + 23, name_to_int("ZX"));
+        assert_eq!(0, name_to_int("AA", &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!(1, name_to_int("AB", &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!(2, name_to_int("AC", &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!(3, name_to_int("AD", &vec!["AA", "AB", "AC", "AD"]));
     }
 
     #[test]
     fn index_to_name() {
-        assert_eq!("AA", int_to_name(0));
-        assert_eq!("BA", int_to_name(26));
-        assert_eq!("ZZ", int_to_name(25 * 26 + 25));
+        assert_eq!("AA", int_to_name(0, &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!("BA", int_to_name(26, &vec!["AA", "AB", "AC", "AD"]));
     }
 
     #[test]
     fn name_to_index_to_name() {
-        assert_eq!("ZX", int_to_name(name_to_int("ZX")));
+        assert_eq!(
+            "ZX",
+            int_to_name(
+                name_to_int("ZX", &vec!["AA", "AB", "AC", "ZX"]),
+                &vec!["AA", "AB", "AC", "ZX"]
+            )
+        );
     }
 
     #[test]
