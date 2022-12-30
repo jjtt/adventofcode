@@ -2,10 +2,9 @@ use itertools::Itertools;
 use pathfinding::prelude::{astar, dfs_reach, dijkstra_all, Matrix};
 use scan_fmt::scan_fmt;
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::fs::read_to_string;
 use std::hash::Hash;
-use std::iter::successors;
 
 #[derive(Debug)]
 struct Cave {
@@ -69,24 +68,14 @@ impl Cave {
     fn find_max_flow(&self, time: usize, count: usize) -> usize {
         dbg!(self);
 
-        let result = dfs_reach(SearchState::new(count, time, self), |s| {
-            s.successors_without_cost(self)
-        });
+        let result = astar(
+            &SearchState::new(count, time, self),
+            |s| s.successors(self),
+            |s| s.remaining(self),
+            |s| s.done(self),
+        );
 
-        result
-            .map(|s| {
-                //dbg!(&s);
-                s.total_flow()
-            })
-            .max()
-            .unwrap()
-
-        // let result = astar(
-        //     &SearchState::new(count, time),
-        //     |s| s.successors(self),
-        //     |s| s.remaining(self),
-        //     |s| s.done(self),
-        // );
+        result.unwrap().0.last().unwrap().total_flow()
     }
 }
 
@@ -128,12 +117,24 @@ fn int_to_name(name: usize, names: &Vec<&str>) -> String {
 struct Worker {
     pos: usize,
     travel_time_left: usize,
+    opening: bool,
+}
+
+#[derive(Eq, PartialEq, Clone, Hash)]
+struct BitField {
+    bits: usize,
+}
+
+impl Debug for BitField {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#020b}", self.bits)
+    }
 }
 
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
 struct SearchState {
     workers: Vec<Worker>, // keep sorted since all workers are equal
-    open: usize,
+    open: BitField,
     released_pressure: usize,
     flow_rate: usize,
     time: usize,
@@ -145,6 +146,7 @@ impl SearchState {
             .map(|_| Worker {
                 pos: 0,
                 travel_time_left: 0,
+                opening: false,
             })
             .collect();
         let open = cave
@@ -156,7 +158,7 @@ impl SearchState {
             });
         SearchState {
             workers,
-            open,
+            open: BitField { bits: open },
             released_pressure: 0,
             flow_rate: 0,
             time,
@@ -164,12 +166,8 @@ impl SearchState {
     }
 
     fn open_and_all_moves(&self, cave: &Cave, worker_index: usize) -> Vec<SearchState> {
-        if self.time == 0 {
-            return vec![];
-        }
-
         if self.all_open() {
-            return vec![];
+            return vec![self.clone()];
         }
 
         let worker = &self.workers[worker_index];
@@ -188,12 +186,13 @@ impl SearchState {
             let mut opened = self.clone();
             opened.open(from);
             opened.flow_rate += cave.flow_rates[from]; // TODO: can't update the flow rate yet?
+            opened.workers[worker_index].opening = true;
             successors.push(opened);
         }
 
         for to in 0..cave.reachable.rows {
             let time_to_travel = cave.reachable[(from, to)];
-            if time_to_travel > 0 && time_to_travel <= self.time {
+            if !self.is_open(to) && time_to_travel > 0 && time_to_travel <= self.time {
                 let mut target = self.clone();
                 target.workers[worker_index].pos = to;
                 target.workers[worker_index].travel_time_left = time_to_travel - 1;
@@ -205,10 +204,13 @@ impl SearchState {
     }
 
     fn successors(&self, cave: &Cave) -> Vec<(SearchState, i64)> {
-        let old_flow_rate = self.flow_rate as i64;
+        let will_be_released = (self.flow_rate * self.time) as i64;
         let mut current = self.clone();
         current.time -= 1;
         current.released_pressure += current.flow_rate;
+        for worker in &mut current.workers {
+            worker.opening = false;
+        }
         let mut successors = vec![current];
         for worker_index in 0..self.workers.len() {
             successors = successors
@@ -217,10 +219,17 @@ impl SearchState {
                 .collect();
         }
 
-        successors
+        let foo = successors
             .into_iter()
-            .map(|s| (s, -old_flow_rate))
-            .collect()
+            .map(|s| {
+                let gain = (s.flow_rate * (1 + s.time)) as i64;
+                (s, -gain)
+            })
+            .collect();
+
+        //dbg!(&foo);
+
+        foo
     }
 
     fn successors_without_cost(&self, cave: &Cave) -> Vec<SearchState> {
@@ -228,11 +237,33 @@ impl SearchState {
     }
 
     fn remaining(&self, cave: &Cave) -> i64 {
-        todo!()
+        let mut remaining = 0;
+        let mut unused_valves = usize::MAX;
+
+        // take full flow from the valves workers are traveling to currently
+        for worker in &self.workers {
+            let use_valve = 1 << worker.pos;
+            if !self.is_open(worker.pos) && (unused_valves & use_valve) > 0 {
+                unused_valves &= !use_valve;
+                remaining += cave.flow_rates[worker.pos]
+                    * if worker.opening {
+                        assert_eq!(worker.travel_time_left, 0);
+                        1 + self.time - worker.travel_time_left
+                    } else {
+                        self.time - worker.travel_time_left
+                    };
+            }
+        }
+
+        // TODO consider other closed vales potential also?
+
+        //dbg!((self, remaining));
+
+        -(remaining as i64)
     }
 
     fn done(&self, cave: &Cave) -> bool {
-        todo!()
+        self.all_open()
     }
 
     fn total_flow(&self) -> usize {
@@ -240,15 +271,15 @@ impl SearchState {
     }
 
     fn open(&mut self, index: usize) {
-        self.open |= 1_usize << index;
+        self.open.bits |= 1_usize << index;
     }
 
     fn is_open(&self, index: usize) -> bool {
-        self.open & (1_usize << index) > 0
+        self.open.bits & (1_usize << index) > 0
     }
 
     fn all_open(&self) -> bool {
-        self.open == usize::MAX
+        self.open.bits == usize::MAX
     }
 }
 
