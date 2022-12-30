@@ -1,10 +1,11 @@
 use itertools::Itertools;
-use pathfinding::prelude::{astar, dijkstra_all, Matrix};
+use pathfinding::prelude::{astar, dfs_reach, dijkstra_all, Matrix};
 use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::read_to_string;
 use std::hash::Hash;
+use std::iter::successors;
 
 #[derive(Debug)]
 struct Cave {
@@ -65,17 +66,27 @@ impl Cave {
         }
     }
 
-    fn find_max_flow(&self, time: usize, count: usize) -> i64 {
+    fn find_max_flow(&self, time: usize, count: usize) -> usize {
         dbg!(self);
 
-        let result = astar(
-            &SearchState::new(),
-            |s| s.successors(self),
-            |s| s.remaining(self),
-            |s| s.done(self),
-        );
+        let result = dfs_reach(SearchState::new(count, time, self), |s| {
+            s.successors_without_cost(self)
+        });
 
-        todo!()
+        result
+            .map(|s| {
+                //dbg!(&s);
+                s.total_flow()
+            })
+            .max()
+            .unwrap()
+
+        // let result = astar(
+        //     &SearchState::new(count, time),
+        //     |s| s.successors(self),
+        //     |s| s.remaining(self),
+        //     |s| s.done(self),
+        // );
     }
 }
 
@@ -113,16 +124,101 @@ fn int_to_name(name: usize, names: &Vec<&str>) -> String {
     names[name].to_string()
 }
 
-#[derive(Eq, PartialEq, Clone, Hash)]
-struct SearchState {}
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
+struct Worker {
+    pos: usize,
+    travel_time_left: usize,
+}
+
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
+struct SearchState {
+    workers: Vec<Worker>, // keep sorted since all workers are equal
+    open: Vec<bool>,
+    released_pressure: usize,
+    flow_rate: usize,
+    time: usize,
+}
 
 impl SearchState {
-    fn new() -> SearchState {
-        todo!()
+    fn new(num_workers: usize, time: usize, cave: &Cave) -> SearchState {
+        let workers = (0..num_workers)
+            .map(|_| Worker {
+                pos: 0,
+                travel_time_left: 0,
+            })
+            .collect();
+        let open = cave.flow_rates.iter().map(|f| *f == 0).collect();
+        SearchState {
+            workers,
+            open,
+            released_pressure: 0,
+            flow_rate: 0,
+            time,
+        }
+    }
+
+    fn open_and_all_moves(&self, cave: &Cave, worker_index: usize) -> Vec<SearchState> {
+        if self.time == 0 {
+            return vec![];
+        }
+
+        if self.all_open() {
+            return vec![];
+        }
+
+        let worker = &self.workers[worker_index];
+
+        if worker.travel_time_left > 0 {
+            let mut traveling = self.clone();
+            traveling.workers[worker_index].travel_time_left -= 1;
+            return vec![traveling];
+        }
+
+        let mut successors = vec![];
+
+        let from = worker.pos;
+
+        if !self.open[from] {
+            let mut opened = self.clone();
+            opened.open[from] = true;
+            opened.flow_rate += cave.flow_rates[from]; // TODO: can't update the flow rate yet?
+            successors.push(opened);
+        }
+
+        for to in 0..cave.reachable.rows {
+            let time_to_travel = cave.reachable[(from, to)];
+            if time_to_travel > 0 && time_to_travel <= self.time {
+                let mut target = self.clone();
+                target.workers[worker_index].pos = to;
+                target.workers[worker_index].travel_time_left = time_to_travel - 1;
+                successors.push(target);
+            }
+        }
+
+        successors
     }
 
     fn successors(&self, cave: &Cave) -> Vec<(SearchState, i64)> {
-        todo!()
+        let old_flow_rate = self.flow_rate as i64;
+        let mut current = self.clone();
+        current.time -= 1;
+        current.released_pressure += current.flow_rate;
+        let mut successors = vec![current];
+        for worker_index in 0..self.workers.len() {
+            successors = successors
+                .into_iter()
+                .flat_map(|s| s.open_and_all_moves(cave, worker_index))
+                .collect();
+        }
+
+        successors
+            .into_iter()
+            .map(|s| (s, -old_flow_rate))
+            .collect()
+    }
+
+    fn successors_without_cost(&self, cave: &Cave) -> Vec<SearchState> {
+        self.successors(cave).into_iter().map(|(s, _)| s).collect()
     }
 
     fn remaining(&self, cave: &Cave) -> i64 {
@@ -132,9 +228,16 @@ impl SearchState {
     fn done(&self, cave: &Cave) -> bool {
         todo!()
     }
+
+    fn total_flow(&self) -> usize {
+        self.released_pressure + self.time * self.flow_rate
+    }
+    fn all_open(&self) -> bool {
+        self.open.iter().all(|open| *open)
+    }
 }
 
-pub fn part1(input: &str) -> i64 {
+pub fn part1(input: &str) -> usize {
     let valves = read_to_string(input)
         .unwrap()
         .lines()
@@ -147,7 +250,7 @@ pub fn part1(input: &str) -> i64 {
     cave.find_max_flow(time_available, 1)
 }
 
-pub fn part2(input: &str) -> i64 {
+pub fn part2(input: &str) -> usize {
     let valves = read_to_string(input)
         .unwrap()
         .lines()
@@ -252,7 +355,7 @@ mod tests {
     #[test]
     fn index_to_name() {
         assert_eq!("AA", int_to_name(0, &vec!["AA", "AB", "AC", "AD"]));
-        assert_eq!("BA", int_to_name(26, &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!("AD", int_to_name(3, &vec!["AA", "AB", "AC", "AD"]));
     }
 
     #[test]
