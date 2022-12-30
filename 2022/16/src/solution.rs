@@ -133,7 +133,7 @@ struct Worker {
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
 struct SearchState {
     workers: Vec<Worker>, // keep sorted since all workers are equal
-    open: Vec<bool>,
+    open: usize,
     released_pressure: usize,
     flow_rate: usize,
     time: usize,
@@ -147,7 +147,13 @@ impl SearchState {
                 travel_time_left: 0,
             })
             .collect();
-        let open = cave.flow_rates.iter().map(|f| *f == 0).collect();
+        let open = cave
+            .flow_rates
+            .iter()
+            .enumerate()
+            .fold(usize::MAX, |acc, (index, flow_rate)| {
+                acc & !(((*flow_rate > 0) as usize) << index)
+            });
         SearchState {
             workers,
             open,
@@ -178,9 +184,9 @@ impl SearchState {
 
         let from = worker.pos;
 
-        if !self.open[from] {
+        if !self.is_open(from) {
             let mut opened = self.clone();
-            opened.open[from] = true;
+            opened.open(from);
             opened.flow_rate += cave.flow_rates[from]; // TODO: can't update the flow rate yet?
             successors.push(opened);
         }
@@ -232,8 +238,17 @@ impl SearchState {
     fn total_flow(&self) -> usize {
         self.released_pressure + self.time * self.flow_rate
     }
+
+    fn open(&mut self, index: usize) {
+        self.open |= 1_usize << index;
+    }
+
+    fn is_open(&self, index: usize) -> bool {
+        self.open & (1_usize << index) > 0
+    }
+
     fn all_open(&self) -> bool {
-        self.open.iter().all(|open| *open)
+        self.open == usize::MAX
     }
 }
 
