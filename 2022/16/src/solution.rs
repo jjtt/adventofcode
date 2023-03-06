@@ -75,7 +75,11 @@ impl Cave {
             |s| s.done(self),
         );
 
-        result.unwrap().0.last().unwrap().total_flow()
+        if let Some((path, _)) = result {
+            path.last().unwrap().total_flow()
+        } else {
+            0
+        }
     }
 }
 
@@ -204,6 +208,10 @@ impl SearchState {
     }
 
     fn successors(&self, cave: &Cave) -> Vec<(SearchState, i64)> {
+        if self.time == 0 {
+            return vec![];
+        }
+
         let will_be_released = (self.flow_rate * self.time) as i64;
         let mut current = self.clone();
         current.time -= 1;
