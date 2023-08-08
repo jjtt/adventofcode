@@ -5,8 +5,6 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::fs::read_to_string;
 use std::hash::Hash;
-use std::iter::{Enumerate, Filter};
-use std::slice::Iter;
 
 #[derive(Debug)]
 struct Cave {
@@ -89,73 +87,39 @@ impl Cave {
             .expect("pressure left to release")
     }
 
-    fn greedy_heuristics(
-        &self,
-        pos: &usize,
-        time: &usize,
-        open: BitField,
-        who: usize,
-        pos_and_time: Vec<(usize, usize)>,
-    ) -> (usize, usize, usize, usize) {
-        let other_times: usize = pos_and_time
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| *index != who)
-            .map(|(_, (_, time))| *time)
-            .sum();
+    fn find_max_flow(&self, time: usize, count: usize) -> usize {
+        dbg!(self);
 
-        self.flow_rates
-            .iter()
-            .enumerate()
-            .filter(|(to, _)| !open.is_open(*to))
-            .filter(|(to, _)| *time > self.reachable[(*pos, *to)])
-            .map(|(to, rate)| (to, rate, time - self.reachable[(*pos, to)] - 1))
-            .map(|(to, rate, time_left)| {
-                let potential_flow: usize = self
-                    .flow_rates
+        let open = self.init_open();
+        let pos_and_time: Vec<(usize, usize)> = (0..count).map(|_| (0, time)).collect();
+
+        let result = dfs_reach(
+            (0, open, pos_and_time),
+            |(pressure_released, open, pos_and_time)| {
+                pos_and_time
                     .iter()
                     .enumerate()
-                    .filter(|(index, _)| !open.is_open(*index))
-                    .filter(|(index, _)| *index != to)
-                    .map(|(_, flow)| flow)
-                    .sum();
-                (
-                    to,
-                    time_left,
-                    time_left * rate,
-                    time_left * rate + ((time_left + other_times) * potential_flow) / 10,
-                )
-            })
-            .max_by_key(|(_, _, _, heuristic)| *heuristic)
-            .expect("pressure left to release")
-    }
-
-    fn find_max_flow(&self, time: usize, count: usize) -> usize {
-        //dbg!(self);
-        let mut pressure_released = 0;
-        let mut open = self.init_open();
-        let mut pos_and_time: Vec<(usize, usize)> = (0..count).map(|_| (0, time)).collect();
-
-        while !open.all_open() {
-            let (who, (to, time_left, released, _heuristic)) = pos_and_time
-                .iter()
-                .enumerate()
-                .map(|(who, (pos, time))| {
-                    (
-                        who,
-                        self.greedy_heuristics(pos, time, open, who, pos_and_time.clone()),
+                    .cartesian_product(
+                        self.flow_rates
+                            .iter()
+                            .enumerate()
+                            .filter(|(to, _)| !open.is_open(*to)),
                     )
-                })
-                .max_by(|(_, (_, _, _, a)), (_, (_, _, _, b))| {
-                    a.partial_cmp(b).expect("comparable")
-                })
-                .expect("best worker");
+                    .filter(|((_, (pos, time)), (to, _))| *time > self.reachable[(*pos, *to)])
+                    .map(|((who, (pos, time)), (to, rate))| {
+                        let time_left = time - self.reachable[(*pos, to)] - 1;
+                        let new_pressure_released = *pressure_released + time_left * rate;
+                        let mut new_open = *open;
+                        new_open.open(to);
+                        let mut new_pos_and_time = pos_and_time.clone();
+                        new_pos_and_time[who] = (to, time_left);
+                        (new_pressure_released, new_open, new_pos_and_time)
+                    })
+                    .collect::<Vec<_>>()
+            },
+        );
 
-            open.open(to);
-            pos_and_time[who] = (to, time_left);
-            pressure_released += released;
-        }
-        pressure_released
+        result.map(|(released, _, _)| released).max().unwrap()
     }
 }
 
