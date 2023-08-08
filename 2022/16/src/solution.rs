@@ -75,21 +75,7 @@ impl Cave {
         }
     }
 
-    fn greedy(&self, pos: &usize, time: &usize, open: BitField) -> (usize, usize, usize) {
-        self.flow_rates
-            .iter()
-            .enumerate()
-            .filter(|(to, _)| !open.is_open(*to))
-            .filter(|(to, _)| *time > self.reachable[(*pos, *to)])
-            .map(|(to, rate)| (to, rate, time - self.reachable[(*pos, to)] - 1))
-            .map(|(to, rate, time_left)| (to, time_left, time_left * rate))
-            .max_by_key(|(_, _, released)| *released)
-            .expect("pressure left to release")
-    }
-
     fn find_max_flow(&self, time: usize, count: usize) -> usize {
-        dbg!(self);
-
         let open = self.init_open();
         let pos_and_time: Vec<(usize, usize)> = (0..count).map(|_| (0, time)).collect();
 
@@ -153,6 +139,7 @@ fn name_to_int(name: &str, names: &[&str]) -> usize {
     names.iter().position(|n| *n == name).unwrap()
 }
 
+#[allow(dead_code)]
 fn int_to_name(name: usize, names: &[&str]) -> String {
     names[name].to_string()
 }
@@ -182,10 +169,6 @@ impl BitField {
 
     fn is_open(&self, index: usize) -> bool {
         self.bits & (1_usize << index) > 0
-    }
-
-    fn all_open(&self) -> bool {
-        self.bits == usize::MAX
     }
 }
 
@@ -231,6 +214,7 @@ mod tests {
         assert_eq!(364, max);
     }
 
+    #[allow(clippy::identity_op)]
     #[test]
     fn simplish() {
         let time_available = 30;
