@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pathfinding::prelude::{dijkstra_all, Matrix};
+use pathfinding::prelude::{dfs_reach, dijkstra_all, Matrix};
 use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -90,24 +90,36 @@ impl Cave {
     fn find_max_flow(&self, time: usize, count: usize) -> usize {
         dbg!(self);
 
-        let mut pressure_released = 0;
-        let mut open = self.init_open();
-        let mut pos_and_time: Vec<(usize, usize)> = (0..count).map(|_| (0, time)).collect();
+        let open = self.init_open();
+        let pos_and_time: Vec<(usize, usize)> = (0..count).map(|_| (0, time)).collect();
 
-        while !open.all_open() {
-            let (who, (to, time_left, released)) = pos_and_time
-                .iter()
-                .enumerate()
-                .map(|(who, (pos, time))| (who, self.greedy(pos, time, open)))
-                .max_by(|(_, (_, _, a)), (_, (_, _, b))| a.partial_cmp(b).expect("comparable"))
-                .expect("best worker");
+        let result = dfs_reach(
+            (0, open, pos_and_time),
+            |(pressure_released, open, pos_and_time)| {
+                pos_and_time
+                    .iter()
+                    .enumerate()
+                    .cartesian_product(
+                        self.flow_rates
+                            .iter()
+                            .enumerate()
+                            .filter(|(to, _)| !open.is_open(*to)),
+                    )
+                    .filter(|((_, (pos, time)), (to, _))| *time > self.reachable[(*pos, *to)])
+                    .map(|((who, (pos, time)), (to, rate))| {
+                        let time_left = time - self.reachable[(*pos, to)] - 1;
+                        let new_pressure_released = *pressure_released + time_left * rate;
+                        let mut new_open = *open;
+                        new_open.open(to);
+                        let mut new_pos_and_time = pos_and_time.clone();
+                        new_pos_and_time[who] = (to, time_left);
+                        (new_pressure_released, new_open, new_pos_and_time)
+                    })
+                    .collect::<Vec<_>>()
+            },
+        );
 
-            open.open(to);
-            pos_and_time[who] = (to, time_left);
-            pressure_released += released;
-        }
-
-        pressure_released
+        result.map(|(released, _, _)| released).max().unwrap()
     }
 }
 
@@ -242,6 +254,19 @@ mod tests {
 
         let max = cave.find_max_flow(time_available, 1);
         assert_eq!(364 + 52, max);
+    }
+
+    #[test]
+    fn branching() {
+        let time_available = 30;
+        let cave = Cave::new(HashMap::from([
+            Valve::from("Valve AA has flow rate=0; tunnels lead to valves BB, CC"),
+            Valve::from("Valve BB has flow rate=2; tunnels lead to valves AA"),
+            Valve::from("Valve CC has flow rate=13; tunnels lead to valves AA"),
+        ]));
+
+        let max = cave.find_max_flow(time_available, 1);
+        assert_eq!(364 + 50, max);
     }
 
     #[test]
