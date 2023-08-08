@@ -14,7 +14,7 @@ struct Cave {
 
 impl Cave {
     fn new(valve_map: HashMap<String, (Valve, Vec<String>)>) -> Cave {
-        let valve_names = valve_map.keys().sorted().map(String::as_str).collect();
+        let valve_names: Vec<&str> = valve_map.keys().sorted().map(String::as_str).collect();
         let valve_map = valve_map
             .iter()
             .map(|(name, (valve, tunnels))| {
@@ -107,11 +107,11 @@ impl Valve {
     }
 }
 
-fn name_to_int(name: &str, names: &Vec<&str>) -> usize {
+fn name_to_int(name: &str, names: &[&str]) -> usize {
     names.iter().position(|n| *n == name).unwrap()
 }
 
-fn int_to_name(name: usize, names: &Vec<&str>) -> String {
+fn int_to_name(name: usize, names: &[&str]) -> String {
     names[name].to_string()
 }
 
@@ -389,16 +389,16 @@ mod tests {
 
     #[test]
     fn name_to_index() {
-        assert_eq!(0, name_to_int("AA", &vec!["AA", "AB", "AC", "AD"]));
-        assert_eq!(1, name_to_int("AB", &vec!["AA", "AB", "AC", "AD"]));
-        assert_eq!(2, name_to_int("AC", &vec!["AA", "AB", "AC", "AD"]));
-        assert_eq!(3, name_to_int("AD", &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!(0, name_to_int("AA", &["AA", "AB", "AC", "AD"]));
+        assert_eq!(1, name_to_int("AB", &["AA", "AB", "AC", "AD"]));
+        assert_eq!(2, name_to_int("AC", &["AA", "AB", "AC", "AD"]));
+        assert_eq!(3, name_to_int("AD", &["AA", "AB", "AC", "AD"]));
     }
 
     #[test]
     fn index_to_name() {
-        assert_eq!("AA", int_to_name(0, &vec!["AA", "AB", "AC", "AD"]));
-        assert_eq!("AD", int_to_name(3, &vec!["AA", "AB", "AC", "AD"]));
+        assert_eq!("AA", int_to_name(0, &["AA", "AB", "AC", "AD"]));
+        assert_eq!("AD", int_to_name(3, &["AA", "AB", "AC", "AD"]));
     }
 
     #[test]
@@ -406,8 +406,8 @@ mod tests {
         assert_eq!(
             "ZX",
             int_to_name(
-                name_to_int("ZX", &vec!["AA", "AB", "AC", "ZX"]),
-                &vec!["AA", "AB", "AC", "ZX"]
+                name_to_int("ZX", &["AA", "AB", "AC", "ZX"]),
+                &["AA", "AB", "AC", "ZX"]
             )
         );
     }
