@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pathfinding::prelude::{astar, dijkstra_all, Matrix};
+use pathfinding::prelude::{dijkstra_all, Matrix};
 use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -75,21 +75,38 @@ impl Cave {
         }
     }
 
+    fn greedy(&self, pos: &usize, time: &usize, open: BitField) -> (usize, usize, usize) {
+        self.flow_rates
+            .iter()
+            .enumerate()
+            .filter(|(to, _)| !open.is_open(*to))
+            .map(|(to, rate)| (to, rate, time - self.reachable[(*pos, to)] - 1))
+            .map(|(to, rate, time_left)| (to, time_left, time_left * rate))
+            .max_by_key(|(_, _, released)| *released)
+            .expect("pressure left to release")
+    }
+
     fn find_max_flow(&self, time: usize, count: usize) -> usize {
         dbg!(self);
 
-        let result = astar(
-            &SearchState::new(count, time, self),
-            |s| s.successors(self),
-            |s| s.remaining(self),
-            |s| s.done(self),
-        );
+        let mut pressure_released = 0;
+        let mut open = self.init_open();
+        let mut pos_and_time: Vec<(usize, usize)> = (0..count).map(|_| (0, time)).collect();
 
-        if let Some((path, _)) = result {
-            path.last().unwrap().total_flow()
-        } else {
-            0
+        while !open.all_open() {
+            let (who, (to, time_left, released)) = pos_and_time
+                .iter()
+                .enumerate()
+                .map(|(who, (pos, time))| (who, self.greedy(pos, time, open)))
+                .max_by(|(_, (_, _, a)), (_, (_, _, b))| a.partial_cmp(b).expect("comparable"))
+                .expect("best worker");
+
+            open.open(to);
+            pos_and_time[who] = (to, time_left);
+            pressure_released += released;
         }
+
+        pressure_released
     }
 }
 
@@ -134,7 +151,7 @@ struct Worker {
     opening: bool,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone, Hash, Copy)]
 struct BitField {
     bits: usize,
 }
@@ -156,134 +173,6 @@ impl BitField {
 
     fn all_open(&self) -> bool {
         self.bits == usize::MAX
-    }
-}
-
-#[derive(Eq, PartialEq, Clone, Hash, Debug)]
-struct SearchState {
-    workers: Vec<Worker>, // keep sorted since all workers are equal
-    open: BitField,
-    released_pressure: usize,
-    flow_rate: usize,
-    time: usize,
-}
-
-impl SearchState {
-    fn new(num_workers: usize, time: usize, cave: &Cave) -> SearchState {
-        let workers = (0..num_workers)
-            .map(|_| Worker {
-                pos: 0,
-                travel_time_left: 0,
-                opening: false,
-            })
-            .collect();
-        SearchState {
-            workers,
-            open: cave.init_open(),
-            released_pressure: 0,
-            flow_rate: 0,
-            time,
-        }
-    }
-
-    fn open_and_all_moves(&self, cave: &Cave, worker_index: usize) -> Vec<SearchState> {
-        if self.open.all_open() {
-            return vec![self.clone()];
-        }
-
-        let worker = &self.workers[worker_index];
-
-        if worker.travel_time_left > 0 {
-            let mut traveling = self.clone();
-            traveling.workers[worker_index].travel_time_left -= 1;
-            return vec![traveling];
-        }
-
-        let mut successors = vec![];
-
-        let from = worker.pos;
-
-        if !self.open.is_open(from) {
-            let mut opened = self.clone();
-            opened.open.open(from);
-            opened.flow_rate += cave.flow_rates[from]; // TODO: can't update the flow rate yet?
-            opened.workers[worker_index].opening = true;
-            successors.push(opened);
-        }
-
-        for to in 0..cave.reachable.rows {
-            let time_to_travel = cave.reachable[(from, to)];
-            if !self.open.is_open(to) && time_to_travel > 0 && time_to_travel <= self.time {
-                let mut target = self.clone();
-                target.workers[worker_index].pos = to;
-                target.workers[worker_index].travel_time_left = time_to_travel - 1;
-                successors.push(target);
-            }
-        }
-
-        successors
-    }
-
-    fn successors(&self, cave: &Cave) -> Vec<(SearchState, i64)> {
-        if self.time == 0 {
-            return vec![];
-        }
-
-        let mut current = self.clone();
-        current.time -= 1;
-        current.released_pressure += current.flow_rate;
-        for worker in &mut current.workers {
-            worker.opening = false;
-        }
-        let mut successors = vec![current];
-        for worker_index in 0..self.workers.len() {
-            successors = successors
-                .into_iter()
-                .flat_map(|s| s.open_and_all_moves(cave, worker_index))
-                .collect();
-        }
-
-        successors
-            .into_iter()
-            .map(|s| {
-                let gain = (s.flow_rate * (1 + s.time)) as i64;
-                (s, -gain)
-            })
-            .collect()
-    }
-
-    fn remaining(&self, cave: &Cave) -> i64 {
-        let mut remaining = 0;
-        let mut unused_valves = usize::MAX;
-
-        // take full flow from the valves workers are traveling to currently
-        for worker in &self.workers {
-            let use_valve = 1 << worker.pos;
-            if !self.open.is_open(worker.pos) && (unused_valves & use_valve) > 0 {
-                unused_valves &= !use_valve;
-                remaining += cave.flow_rates[worker.pos]
-                    * if worker.opening {
-                        assert_eq!(worker.travel_time_left, 0);
-                        1 + self.time - worker.travel_time_left
-                    } else {
-                        self.time - worker.travel_time_left
-                    };
-            }
-        }
-
-        // TODO consider other closed vales potential also?
-
-        //dbg!((self, remaining));
-
-        -(remaining as i64)
-    }
-
-    fn done(&self, _cave: &Cave) -> bool {
-        self.open.all_open()
-    }
-
-    fn total_flow(&self) -> usize {
-        self.released_pressure + self.time * self.flow_rate
     }
 }
 
