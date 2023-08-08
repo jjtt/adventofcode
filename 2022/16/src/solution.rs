@@ -63,6 +63,18 @@ impl Cave {
         }
     }
 
+    fn init_open(&self) -> BitField {
+        BitField {
+            bits: self
+                .flow_rates
+                .iter()
+                .enumerate()
+                .fold(usize::MAX, |acc, (index, flow_rate)| {
+                    acc & !(((*flow_rate > 0) as usize) << index)
+                }),
+        }
+    }
+
     fn find_max_flow(&self, time: usize, count: usize) -> usize {
         dbg!(self);
 
@@ -165,16 +177,9 @@ impl SearchState {
                 opening: false,
             })
             .collect();
-        let open = cave
-            .flow_rates
-            .iter()
-            .enumerate()
-            .fold(usize::MAX, |acc, (index, flow_rate)| {
-                acc & !(((*flow_rate > 0) as usize) << index)
-            });
         SearchState {
             workers,
-            open: BitField { bits: open },
+            open: cave.init_open(),
             released_pressure: 0,
             flow_rate: 0,
             time,
