@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pathfinding::prelude::{astar, dfs_reach, dijkstra_all, Matrix};
+use pathfinding::prelude::{astar, dijkstra_all, Matrix};
 use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -8,7 +8,6 @@ use std::hash::Hash;
 
 #[derive(Debug)]
 struct Cave {
-    neighbours: Matrix<bool>,
     reachable: Matrix<usize>,
     flow_rates: Vec<usize>,
 }
@@ -59,7 +58,6 @@ impl Cave {
         }
 
         Cave {
-            neighbours,
             reachable,
             flow_rates,
         }
@@ -212,7 +210,6 @@ impl SearchState {
             return vec![];
         }
 
-        let will_be_released = (self.flow_rate * self.time) as i64;
         let mut current = self.clone();
         current.time -= 1;
         current.released_pressure += current.flow_rate;
@@ -227,21 +224,13 @@ impl SearchState {
                 .collect();
         }
 
-        let foo = successors
+        successors
             .into_iter()
             .map(|s| {
                 let gain = (s.flow_rate * (1 + s.time)) as i64;
                 (s, -gain)
             })
-            .collect();
-
-        //dbg!(&foo);
-
-        foo
-    }
-
-    fn successors_without_cost(&self, cave: &Cave) -> Vec<SearchState> {
-        self.successors(cave).into_iter().map(|(s, _)| s).collect()
+            .collect()
     }
 
     fn remaining(&self, cave: &Cave) -> i64 {
@@ -270,7 +259,7 @@ impl SearchState {
         -(remaining as i64)
     }
 
-    fn done(&self, cave: &Cave) -> bool {
+    fn done(&self, _cave: &Cave) -> bool {
         self.all_open()
     }
 
