@@ -80,6 +80,7 @@ impl Cave {
             .iter()
             .enumerate()
             .filter(|(to, _)| !open.is_open(*to))
+            .filter(|(to, _)| *time > self.reachable[(*pos, *to)])
             .map(|(to, rate)| (to, rate, time - self.reachable[(*pos, to)] - 1))
             .map(|(to, rate, time_left)| (to, time_left, time_left * rate))
             .max_by_key(|(_, _, released)| *released)
