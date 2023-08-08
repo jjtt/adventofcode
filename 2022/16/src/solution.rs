@@ -133,6 +133,20 @@ impl Debug for BitField {
     }
 }
 
+impl BitField {
+    fn open(&mut self, index: usize) {
+        self.bits |= 1_usize << index;
+    }
+
+    fn is_open(&self, index: usize) -> bool {
+        self.bits & (1_usize << index) > 0
+    }
+
+    fn all_open(&self) -> bool {
+        self.bits == usize::MAX
+    }
+}
+
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
 struct SearchState {
     workers: Vec<Worker>, // keep sorted since all workers are equal
@@ -168,7 +182,7 @@ impl SearchState {
     }
 
     fn open_and_all_moves(&self, cave: &Cave, worker_index: usize) -> Vec<SearchState> {
-        if self.all_open() {
+        if self.open.all_open() {
             return vec![self.clone()];
         }
 
@@ -184,9 +198,9 @@ impl SearchState {
 
         let from = worker.pos;
 
-        if !self.is_open(from) {
+        if !self.open.is_open(from) {
             let mut opened = self.clone();
-            opened.open(from);
+            opened.open.open(from);
             opened.flow_rate += cave.flow_rates[from]; // TODO: can't update the flow rate yet?
             opened.workers[worker_index].opening = true;
             successors.push(opened);
@@ -194,7 +208,7 @@ impl SearchState {
 
         for to in 0..cave.reachable.rows {
             let time_to_travel = cave.reachable[(from, to)];
-            if !self.is_open(to) && time_to_travel > 0 && time_to_travel <= self.time {
+            if !self.open.is_open(to) && time_to_travel > 0 && time_to_travel <= self.time {
                 let mut target = self.clone();
                 target.workers[worker_index].pos = to;
                 target.workers[worker_index].travel_time_left = time_to_travel - 1;
@@ -240,7 +254,7 @@ impl SearchState {
         // take full flow from the valves workers are traveling to currently
         for worker in &self.workers {
             let use_valve = 1 << worker.pos;
-            if !self.is_open(worker.pos) && (unused_valves & use_valve) > 0 {
+            if !self.open.is_open(worker.pos) && (unused_valves & use_valve) > 0 {
                 unused_valves &= !use_valve;
                 remaining += cave.flow_rates[worker.pos]
                     * if worker.opening {
@@ -260,23 +274,11 @@ impl SearchState {
     }
 
     fn done(&self, _cave: &Cave) -> bool {
-        self.all_open()
+        self.open.all_open()
     }
 
     fn total_flow(&self) -> usize {
         self.released_pressure + self.time * self.flow_rate
-    }
-
-    fn open(&mut self, index: usize) {
-        self.open.bits |= 1_usize << index;
-    }
-
-    fn is_open(&self, index: usize) -> bool {
-        self.open.bits & (1_usize << index) > 0
-    }
-
-    fn all_open(&self) -> bool {
-        self.open.bits == usize::MAX
     }
 }
 
