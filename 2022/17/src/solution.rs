@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fs::read_to_string;
 use std::iter::Cycle;
 use std::str::Chars;
@@ -155,13 +156,58 @@ fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
             let dropped = b.drop();
             if dropped.is_blocked(&pile) {
                 top = top.max(b.top());
+                let last_stopped_on_row = b.row;
                 pile.push(b);
+                pile = prune_the_pile(pile, last_stopped_on_row);
+                //dbg!(&pile);
                 break;
             }
             b = dropped;
         }
     }
     top
+}
+
+fn prune_the_pile(mut pile: Vec<Block>, last_stopped_on_row: usize) -> Vec<Block> {
+    let first_row = pile.first().unwrap().row;
+    //dbg!(first_row);
+    let mut rows = vec![0u8];
+    let mut min_block_for_row = vec![0];
+    for (ndx, b) in pile.iter().enumerate() {
+        if b.row > last_stopped_on_row + 5 {
+            continue;
+        }
+        let shifted = b.t as usize >> b.shifted;
+        for i in 0..b.t.height() {
+            let row_index = i as usize + b.row - first_row;
+            //dbg!((row_index, rows.len()));
+            if row_index >= rows.len() {
+                rows.push(0u8);
+                min_block_for_row.push(ndx);
+            }
+            let this_block_row = (shifted << (7 * (b.t.height() - i - 1)))
+                & 0b_1111111_0000000_0000000_0000000_usize;
+            rows[row_index] |= (this_block_row >> 21) as u8;
+            min_block_for_row[row_index] = min_block_for_row[row_index].min(ndx);
+        }
+    }
+    let mut discard_before = None;
+    let mut prev = 0;
+    let mut prev_min = 0;
+    for (r, min) in rows.iter().zip(min_block_for_row.iter()) {
+        if prev | r == 0b01111111u8 {
+            discard_before = Some(prev_min);
+            break;
+        }
+        prev = *r;
+        prev_min = *min;
+    }
+
+    if let Some(discard_before) = discard_before {
+        pile[discard_before..].to_vec()
+    } else {
+        pile
+    }
 }
 
 pub fn part1(input: &str) -> usize {
@@ -259,6 +305,36 @@ mod tests {
     #[test]
     fn drop_two_different_wind() {
         assert_eq!(3, drop(2, ">>>><<<<<".chars().cycle()));
+    }
+
+    #[test]
+    fn pruning_the_pile() {
+        let mut pile = vec![
+            Block {
+                shifted: 1,
+                row: 1,
+                t: BlockType::Horiz,
+            },
+            Block {
+                shifted: 0,
+                row: 2,
+                t: BlockType::Plus,
+            },
+            Block {
+                shifted: 4,
+                row: 2,
+                t: BlockType::Plus,
+            },
+            Block {
+                shifted: 2,
+                row: 3,
+                t: BlockType::Jey,
+            },
+        ];
+
+        let pile = prune_the_pile(pile, 3);
+
+        assert_eq!(3, pile.len());
     }
 
     #[test]
