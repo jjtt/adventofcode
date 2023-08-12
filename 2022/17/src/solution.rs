@@ -84,21 +84,22 @@ impl Block {
             return true;
         }
 
-        if let Some(other) = pile.last() {
-            dbg!((self, other));
+        for other in pile.iter().rev() {
             let self_top = self.row + self.t.height() as usize - 1;
             let other_top = other.row + other.t.height() as usize - 1;
-            dbg!(self_top > other_top);
-            if self_top > other_top {
-                let diff = self_top - other_top;
-                self.is_blocked_by(other, diff.try_into().expect("small number"))
-            } else {
-                let diff = other_top - self_top;
-                other.is_blocked_by(self, diff.try_into().expect("small number"))
+            if self_top.abs_diff(other_top) < 5
+                && if self_top > other_top {
+                    let diff = self_top - other_top;
+                    self.is_blocked_by(other, diff.try_into().expect("small number"))
+                } else {
+                    let diff = other_top - self_top;
+                    other.is_blocked_by(self, diff.try_into().expect("small number"))
+                }
+            {
+                return true;
             }
-        } else {
-            false
         }
+        false
     }
 
     fn top(&self) -> usize {
@@ -150,14 +151,11 @@ fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
     while source.counter < count {
         let mut b = source.next(top);
         loop {
-            dbg!(&b);
             b = b.try_move(&pile, jets.next().expect("Endless jets"));
             let dropped = b.drop();
-            dbg!(&dropped);
             if dropped.is_blocked(&pile) {
                 top = b.top();
                 pile.push(b);
-                dbg!(&pile);
                 break;
             }
             b = dropped;
