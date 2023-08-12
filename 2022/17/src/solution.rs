@@ -169,8 +169,10 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    drop(
+        1000000000000,
+        read_to_string(input).unwrap().trim().chars().cycle(),
+    )
 }
 
 #[cfg(test)]
@@ -262,5 +264,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(3068, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(1514285714288, part2("sample.txt"));
     }
 }
