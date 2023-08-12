@@ -154,7 +154,7 @@ fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
             b = b.try_move(&pile, jets.next().expect("Endless jets"));
             let dropped = b.drop();
             if dropped.is_blocked(&pile) {
-                top = b.top();
+                top = top.max(b.top());
                 pile.push(b);
                 break;
             }
@@ -165,7 +165,7 @@ fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
 }
 
 pub fn part1(input: &str) -> usize {
-    drop(2022, read_to_string(input).unwrap().chars().cycle())
+    drop(2022, read_to_string(input).unwrap().trim().chars().cycle())
 }
 
 pub fn part2(input: &str) -> usize {
