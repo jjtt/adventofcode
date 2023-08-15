@@ -1,4 +1,6 @@
+use core::fmt;
 use std::collections::VecDeque;
+use std::fmt::Formatter;
 use std::fs::read_to_string;
 use std::iter::Cycle;
 use std::str::Chars;
@@ -139,10 +141,19 @@ impl Block {
     }
 }
 
-#[derive(Debug)]
 struct Pile {
     top: usize,
     pile: VecDeque<u8>,
+}
+
+impl fmt::Debug for Pile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Pile {{\ntop: {},", self.top)?;
+        for r in self.pile.iter().rev() {
+            writeln!(f, "{:07b}", r)?;
+        }
+        Ok(())
+    }
 }
 
 impl Pile {
