@@ -70,33 +70,16 @@ impl BlockSource {
 }
 
 impl Block {
-    fn is_blocked_by(&self, other: &Block, height_diff: u8) -> bool {
-        if height_diff >= self.t.height() {
-            false
-        } else {
-            let this_shifted = self.t as isize >> self.shifted;
-            let other_shifted = other.t as isize >> other.shifted;
-            let other_dropped = other_shifted >> (height_diff * 7);
-            (this_shifted & other_dropped) > 0
-        }
-    }
-    fn is_blocked(&self, pile: &VecDeque<Block>) -> bool {
+    fn is_blocked(&self, pile: &Pile) -> bool {
         if self.shifted < 0 || self.shifted as u8 > (7 - self.t.width()) || self.row == 0 {
             return true;
         }
 
-        for other in pile.iter().rev() {
-            let self_top = self.row + self.t.height() as usize - 1;
-            let other_top = other.row + other.t.height() as usize - 1;
-            if self_top.abs_diff(other_top) < 5
-                && if self_top > other_top {
-                    let diff = self_top - other_top;
-                    self.is_blocked_by(other, diff.try_into().expect("small number"))
-                } else {
-                    let diff = other_top - self_top;
-                    other.is_blocked_by(self, diff.try_into().expect("small number"))
-                }
-            {
+        let block = self.as_pile();
+        let self_top = self.row + self.t.height() as usize - 1;
+        let top = self_top.min(pile.top);
+        for (i, row) in (self.row..=top).rev().enumerate() {
+            if block[i] & pile.row(row) > 0 {
                 return true;
             }
         }
@@ -131,7 +114,7 @@ impl Block {
         }
     }
 
-    fn try_move(self, pile: &VecDeque<Block>, jet: char) -> Block {
+    fn try_move(self, pile: &Pile, jet: char) -> Block {
         let moved = match jet {
             '>' => self.right(),
             '<' => self.left(),
@@ -143,26 +126,64 @@ impl Block {
             moved
         }
     }
+
+    #[allow(clippy::unusual_byte_groupings)]
+    fn as_pile(&self) -> [u8; 4] {
+        let shifted = self.t as u32 >> self.shifted;
+        [
+            ((shifted & 0b_0000_1111111_0000000_0000000_0000000u32) >> 21) as u8,
+            ((shifted & 0b_0000_0000000_1111111_0000000_0000000u32) >> 14) as u8,
+            ((shifted & 0b_0000_0000000_0000000_1111111_0000000u32) >> 7) as u8,
+            (shifted & 0b_0000_0000000_0000000_0000000_1111111u32) as u8,
+        ]
+    }
+}
+
+#[derive(Debug)]
+struct Pile {
+    top: usize,
+    pile: VecDeque<u8>,
+}
+
+impl Pile {
+    fn new(top: usize) -> Pile {
+        let bottom = (0..=top).map(|_| u8::MAX);
+        Pile {
+            top,
+            pile: VecDeque::from_iter(bottom),
+        }
+    }
+
+    fn add(&mut self, block: Block) -> &Self {
+        let as_pile = block.as_pile();
+        for i in (0..block.t.height()).rev() {
+            self.pile.push_back(as_pile[i as usize]);
+        }
+        self.top = self.top.max(block.top());
+        self
+    }
+
+    pub(crate) fn row(&self, row: usize) -> u8 {
+        self.pile[row]
+    }
 }
 
 fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
     let mut source = BlockSource { counter: 0 };
-    let mut top = 0;
-    let mut pile = VecDeque::new();
+    let mut pile = Pile::new(0);
     while source.counter < count {
-        let mut b = source.next(top);
+        let mut b = source.next(pile.top);
         loop {
             b = b.try_move(&pile, jets.next().expect("Endless jets"));
             let dropped = b.drop();
             if dropped.is_blocked(&pile) {
-                top = top.max(b.top());
-                pile.push_front(b);
+                pile.add(b);
                 break;
             }
             b = dropped;
         }
     }
-    top
+    pile.top
 }
 
 pub fn part1(input: &str) -> usize {
@@ -185,7 +206,7 @@ mod tests {
         let mut source = BlockSource { counter: 0 };
         for _ in 0..5 {
             let b = source.next(0);
-            assert!(b.is_blocked(&VecDeque::from([b.clone()])))
+            assert!(b.is_blocked(Pile::new(3).add(b.clone())))
         }
     }
 
@@ -194,20 +215,15 @@ mod tests {
         let mut source = BlockSource { counter: 0 };
         let vert = source.next(0);
         let plus = source.next(vert.top());
-        assert!(!plus.is_blocked(&VecDeque::from([vert.clone()])));
-        assert!(!vert.is_blocked(&VecDeque::from([plus.clone()])));
+        assert!(!plus.is_blocked(Pile::new(3).add(vert.clone())));
     }
 
     #[test]
     fn new_is_never_blocked() {
         let mut source = BlockSource { counter: 0 };
-        let mut top = 0;
-        let mut pile = VecDeque::new();
-        let mut b = source.next(top);
+        let pile = Pile::new(0);
         for _ in 0..5 {
-            top = b.top();
-            pile.push_back(b);
-            b = source.next(top);
+            let b = source.next(0);
             assert!(!b.is_blocked(&pile));
         }
     }
@@ -219,7 +235,7 @@ mod tests {
             row: 0,
             t: BlockType::Horiz,
         };
-        assert!(b.left().is_blocked(&VecDeque::new()));
+        assert!(b.left().is_blocked(&Pile::new(0)));
         assert!(b
             .right()
             .right()
@@ -228,7 +244,7 @@ mod tests {
             .right()
             .right()
             .right()
-            .is_blocked(&VecDeque::new()));
+            .is_blocked(&Pile::new(0)));
     }
 
     #[test]
@@ -243,8 +259,8 @@ mod tests {
             row: 1,
             t: BlockType::Plus,
         };
-        assert!(!horiz.is_blocked(&VecDeque::from([plus.clone()])));
-        assert!(!plus.is_blocked(&VecDeque::from([horiz.clone()])));
+        assert!(!horiz.is_blocked(Pile::new(0).add(plus.clone())));
+        assert!(!plus.is_blocked(Pile::new(0).add(horiz.clone())));
     }
 
     #[test]
@@ -260,6 +276,43 @@ mod tests {
     #[test]
     fn drop_two_different_wind() {
         assert_eq!(3, drop(2, ">>>><<<<<".chars().cycle()));
+    }
+
+    #[test]
+    fn add_horiz_to_pile() {
+        let mut pile = Pile::new(0);
+        let pile = pile.add(Block {
+            shifted: 0,
+            row: 1,
+            t: BlockType::Horiz,
+        });
+
+        assert_eq!(pile.top, 1);
+        assert_eq!(pile.row(1), 0b01111000);
+    }
+
+    #[test]
+    fn horiz_as_pile() {
+        let block = Block {
+            shifted: 0,
+            row: 0,
+            t: BlockType::Horiz,
+        };
+
+        assert_eq!(block.as_pile(), [0b01111000, 0, 0, 0]);
+    }
+    #[test]
+    fn vert_as_pile() {
+        let block = Block {
+            shifted: 6,
+            row: 0,
+            t: BlockType::Vert,
+        };
+
+        assert_eq!(
+            block.as_pile(),
+            [0b00000001, 0b00000001, 0b00000001, 0b00000001]
+        );
     }
 
     #[test]
