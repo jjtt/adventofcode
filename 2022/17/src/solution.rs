@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fs::read_to_string;
 use std::iter::Cycle;
 use std::str::Chars;
@@ -79,7 +80,7 @@ impl Block {
             (this_shifted & other_dropped) > 0
         }
     }
-    fn is_blocked(&self, pile: &[Block]) -> bool {
+    fn is_blocked(&self, pile: &VecDeque<Block>) -> bool {
         if self.shifted < 0 || self.shifted as u8 > (7 - self.t.width()) || self.row == 0 {
             return true;
         }
@@ -130,7 +131,7 @@ impl Block {
         }
     }
 
-    fn try_move(self, pile: &[Block], jet: char) -> Block {
+    fn try_move(self, pile: &VecDeque<Block>, jet: char) -> Block {
         let moved = match jet {
             '>' => self.right(),
             '<' => self.left(),
@@ -147,7 +148,7 @@ impl Block {
 fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
     let mut source = BlockSource { counter: 0 };
     let mut top = 0;
-    let mut pile = vec![];
+    let mut pile = VecDeque::new();
     while source.counter < count {
         let mut b = source.next(top);
         loop {
@@ -155,7 +156,7 @@ fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
             let dropped = b.drop();
             if dropped.is_blocked(&pile) {
                 top = top.max(b.top());
-                pile.push(b);
+                pile.push_front(b);
                 break;
             }
             b = dropped;
@@ -184,7 +185,7 @@ mod tests {
         let mut source = BlockSource { counter: 0 };
         for _ in 0..5 {
             let b = source.next(0);
-            assert!(b.is_blocked(&vec![b.clone()]))
+            assert!(b.is_blocked(&VecDeque::from([b.clone()])))
         }
     }
 
@@ -193,19 +194,19 @@ mod tests {
         let mut source = BlockSource { counter: 0 };
         let vert = source.next(0);
         let plus = source.next(vert.top());
-        assert!(!plus.is_blocked(&vec![vert.clone()]));
-        assert!(!vert.is_blocked(&vec![plus.clone()]));
+        assert!(!plus.is_blocked(&VecDeque::from([vert.clone()])));
+        assert!(!vert.is_blocked(&VecDeque::from([plus.clone()])));
     }
 
     #[test]
     fn new_is_never_blocked() {
         let mut source = BlockSource { counter: 0 };
         let mut top = 0;
-        let mut pile = vec![];
+        let mut pile = VecDeque::new();
         let mut b = source.next(top);
         for _ in 0..5 {
             top = b.top();
-            pile.push(b);
+            pile.push_back(b);
             b = source.next(top);
             assert!(!b.is_blocked(&pile));
         }
@@ -218,7 +219,7 @@ mod tests {
             row: 0,
             t: BlockType::Horiz,
         };
-        assert!(b.left().is_blocked(&vec![]));
+        assert!(b.left().is_blocked(&VecDeque::new()));
         assert!(b
             .right()
             .right()
@@ -227,7 +228,7 @@ mod tests {
             .right()
             .right()
             .right()
-            .is_blocked(&vec![]));
+            .is_blocked(&VecDeque::new()));
     }
 
     #[test]
@@ -242,8 +243,8 @@ mod tests {
             row: 1,
             t: BlockType::Plus,
         };
-        assert!(!horiz.is_blocked(&[plus.clone()]));
-        assert!(!plus.is_blocked(&[horiz.clone()]));
+        assert!(!horiz.is_blocked(&VecDeque::from([plus.clone()])));
+        assert!(!plus.is_blocked(&VecDeque::from([horiz.clone()])));
     }
 
     #[test]
