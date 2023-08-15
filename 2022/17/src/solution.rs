@@ -285,6 +285,26 @@ mod tests {
     }
 
     #[test]
+    fn drop_two_interleaved() {
+        assert_eq!(3, drop(2, ">>>><<<<".chars().cycle()));
+    }
+
+    #[test]
+    fn drop_three_interleaved() {
+        assert_eq!(4, drop(3, ">>>><<<<>>>>".chars().cycle()));
+    }
+
+    #[test]
+    fn drop_three_interleaved_differently() {
+        assert_eq!(4, drop(3, ">>>>>>>>><<<<<<<<".chars().cycle()));
+    }
+
+    #[test]
+    fn drop_four_interleaved() {
+        assert_eq!(8, drop(4, ">>>><<<<<<<<<<<<<<<<<".chars().cycle()));
+    }
+
+    #[test]
     fn drop_two_different_wind() {
         assert_eq!(3, drop(2, ">>>><<<<<".chars().cycle()));
     }
