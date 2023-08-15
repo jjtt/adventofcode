@@ -339,6 +339,42 @@ mod tests {
     }
 
     #[test]
+    fn add_jey_to_pile() {
+        let mut pile = Pile::new(0);
+        let pile = pile.add(Block {
+            shifted: 0,
+            row: 1,
+            t: BlockType::Jey,
+        });
+
+        assert_eq!(pile.top, 3);
+        assert_eq!(pile.row(1), 0b01110000);
+        assert_eq!(pile.row(2), 0b00010000);
+        assert_eq!(pile.row(3), 0b00010000);
+    }
+
+    #[test]
+    fn jay_on_1_is_blocked_by_horiz_on_1() {
+        let mut pile = Pile::new(0);
+        let pile = pile.add(Block {
+            shifted: 0,
+            row: 1,
+            t: BlockType::Horiz,
+        });
+
+        let mut jey = Block {
+            shifted: 2,
+            row: 1,
+            t: BlockType::Jey,
+        };
+
+        assert!(jey.is_blocked(pile));
+
+        jey.shifted = 4;
+        assert!(!jey.is_blocked(pile));
+    }
+
+    #[test]
     fn horiz_as_pile() {
         let block = Block {
             shifted: 0,
@@ -359,6 +395,20 @@ mod tests {
         assert_eq!(
             block.as_pile(),
             [0b00000001, 0b00000001, 0b00000001, 0b00000001]
+        );
+    }
+
+    #[test]
+    fn jay_as_pile() {
+        let block = Block {
+            shifted: 4,
+            row: 0,
+            t: BlockType::Jey,
+        };
+
+        assert_eq!(
+            block.as_pile(),
+            [0b00000001, 0b00000001, 0b00000111, 0b00000000]
         );
     }
 
