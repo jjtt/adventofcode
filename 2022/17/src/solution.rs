@@ -167,8 +167,21 @@ impl Pile {
 
     fn add(&mut self, block: Block) -> &Self {
         let as_pile = block.as_pile();
-        for i in (0..block.t.height()).rev() {
-            self.pile.push_back(as_pile[i as usize]);
+
+        let block_top = block.row + block.t.height() as usize - 1;
+        let top = block_top.min(self.top);
+
+        for (i, row) in as_pile
+            .iter()
+            .take(block.t.height() as usize)
+            .rev()
+            .enumerate()
+        {
+            if block.row + i <= top {
+                self.update_row(block.row + i, *row);
+            } else {
+                self.pile.push_back(*row);
+            }
         }
         self.top = self.top.max(block.top());
         self
@@ -176,6 +189,9 @@ impl Pile {
 
     pub(crate) fn row(&self, row: usize) -> u8 {
         self.pile[row]
+    }
+    fn update_row(&mut self, row: usize, update: u8) {
+        self.pile[row] |= update;
     }
 }
 
