@@ -206,10 +206,6 @@ impl Pile {
         self.pile[row] |= update;
     }
 
-    fn is_flat(&self) -> bool {
-        self.row(self.top) & 0b01111111 == 0b01111111
-    }
-
     fn fingerprint(&self, block: u8, jet: u8) -> Option<([u8; 20], u8, u8)> {
         if self.top > 20 {
             Some((
@@ -472,42 +468,6 @@ mod tests {
             block.as_pile(),
             [0b00000001, 0b00000001, 0b00000111, 0b00000000]
         );
-    }
-
-    #[test]
-    fn flat_piles() {
-        let pile = Pile::new(0);
-        assert!(pile.is_flat());
-
-        let mut pile = Pile::new(10);
-        assert!(pile.is_flat());
-
-        pile.add(Block {
-            shifted: 0,
-            row: 11,
-            t: BlockType::Horiz,
-        });
-        pile.add(Block {
-            shifted: 0,
-            row: 12,
-            t: BlockType::Horiz,
-        });
-        pile.add(Block {
-            shifted: 0,
-            row: 13,
-            t: BlockType::Horiz,
-        });
-        pile.add(Block {
-            shifted: 4,
-            row: 11,
-            t: BlockType::Jay,
-        });
-        pile.add(Block {
-            shifted: 4,
-            row: 12,
-            t: BlockType::Square,
-        });
-        assert!(pile.is_flat());
     }
 
     #[test]
