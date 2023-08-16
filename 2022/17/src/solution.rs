@@ -2,8 +2,6 @@ use core::fmt;
 use std::collections::VecDeque;
 use std::fmt::Formatter;
 use std::fs::read_to_string;
-use std::iter::Cycle;
-use std::str::Chars;
 
 #[derive(Clone, Debug)]
 struct Block {
@@ -204,7 +202,8 @@ impl Pile {
     }
 }
 
-fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
+fn drop(count: usize, jets: &str) -> usize {
+    let mut jets = jets.chars().cycle();
     let mut source = BlockSource { counter: 0 };
     let mut pile = Pile::new(0);
     while source.counter < count {
@@ -223,14 +222,11 @@ fn drop(count: usize, mut jets: Cycle<Chars>) -> usize {
 }
 
 pub fn part1(input: &str) -> usize {
-    drop(2022, read_to_string(input).unwrap().trim().chars().cycle())
+    drop(2022, read_to_string(input).unwrap().trim())
 }
 
 pub fn part2(input: &str) -> usize {
-    drop(
-        1000000000000,
-        read_to_string(input).unwrap().trim().chars().cycle(),
-    )
+    drop(1000000000000, read_to_string(input).unwrap().trim())
 }
 
 #[cfg(test)]
@@ -301,37 +297,37 @@ mod tests {
 
     #[test]
     fn drop_one() {
-        assert_eq!(1, drop(1, ">>>>>>>>".chars().cycle()));
+        assert_eq!(1, drop(1, ">>>>>>>>"));
     }
 
     #[test]
     fn drop_two() {
-        assert_eq!(4, drop(2, ">".chars().cycle()));
+        assert_eq!(4, drop(2, ">"));
     }
 
     #[test]
     fn drop_two_interleaved() {
-        assert_eq!(3, drop(2, ">>>><<<<".chars().cycle()));
+        assert_eq!(3, drop(2, ">>>><<<<"));
     }
 
     #[test]
     fn drop_three_interleaved() {
-        assert_eq!(4, drop(3, ">>>><<<<>>>>".chars().cycle()));
+        assert_eq!(4, drop(3, ">>>><<<<>>>>"));
     }
 
     #[test]
     fn drop_three_interleaved_differently() {
-        assert_eq!(4, drop(3, ">>>>>>>>><<<<<<<<".chars().cycle()));
+        assert_eq!(4, drop(3, ">>>>>>>>><<<<<<<<"));
     }
 
     #[test]
     fn drop_four_interleaved() {
-        assert_eq!(8, drop(4, ">>>><<<<<<<<<<<<<<<<<".chars().cycle()));
+        assert_eq!(8, drop(4, ">>>><<<<<<<<<<<<<<<<<"));
     }
 
     #[test]
     fn drop_two_different_wind() {
-        assert_eq!(3, drop(2, ">>>><<<<<".chars().cycle()));
+        assert_eq!(3, drop(2, ">>>><<<<<"));
     }
 
     #[test]
