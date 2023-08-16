@@ -1,7 +1,8 @@
 use core::fmt;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Formatter;
 use std::fs::read_to_string;
+use std::ops::Div;
 
 #[derive(Clone, Debug)]
 struct Block {
@@ -55,7 +56,7 @@ impl BlockSource {
         Block {
             shifted: 2,
             row: 4 + top,
-            t: match (self.counter - 1) % 5 {
+            t: match self.index() {
                 0 => BlockType::Horiz,
                 1 => BlockType::Plus,
                 2 => BlockType::Jay,
@@ -66,6 +67,10 @@ impl BlockSource {
                 }
             },
         }
+    }
+
+    fn index(&self) -> usize {
+        (self.counter - 1) % 5
     }
 }
 
@@ -194,35 +199,73 @@ impl Pile {
         self
     }
 
-    pub(crate) fn row(&self, row: usize) -> u8 {
+    fn row(&self, row: usize) -> u8 {
         self.pile[row]
     }
     fn update_row(&mut self, row: usize, update: u8) {
         self.pile[row] |= update;
     }
 
-    pub(crate) fn is_flat(&self) -> bool {
+    fn is_flat(&self) -> bool {
         self.row(self.top) & 0b01111111 == 0b01111111
+    }
+
+    fn fingerprint(&self, block: u8, jet: u8) -> Option<([u8; 10], u8, u8)> {
+        if self.top > 10 {
+            Some((
+                [
+                    self.row(self.top),
+                    self.row(self.top - 1),
+                    self.row(self.top - 2),
+                    self.row(self.top - 3),
+                    self.row(self.top - 4),
+                    self.row(self.top - 5),
+                    self.row(self.top - 6),
+                    self.row(self.top - 7),
+                    self.row(self.top - 8),
+                    self.row(self.top - 9),
+                ],
+                block,
+                jet,
+            ))
+        } else {
+            None
+        }
     }
 }
 
 fn drop(count: usize, jets: &str) -> usize {
-    let mut jets = jets.chars().cycle();
+    let mut cache = HashMap::new();
+    let mut looped = 0;
+
+    let mut jets = jets.chars().enumerate().cycle();
     let mut source = BlockSource { counter: 0 };
     let mut pile = Pile::new(0);
     while source.counter < count {
         let mut b = source.next(pile.top);
         loop {
-            b = b.try_move(&pile, jets.next().expect("Endless jets"));
+            let (jet_index, jet) = jets.next().expect("Endless jets");
+            b = b.try_move(&pile, jet);
             let dropped = b.drop();
             if dropped.is_blocked(&pile) {
                 pile.add(b);
+                if looped == 0 {
+                    if let Some(fp) = pile.fingerprint(source.index() as u8, jet_index as u8) {
+                        if let Some((counter, top)) = cache.get(&fp) {
+                            let loop_length = source.counter - counter;
+                            let loops = (count - source.counter).div(loop_length);
+                            looped = loops * (pile.top - top);
+                            source.counter += loops * loop_length;
+                        }
+                        cache.insert(fp, (source.counter, pile.top));
+                    }
+                }
                 break;
             }
             b = dropped;
         }
     }
-    pile.top
+    pile.top + looped
 }
 
 pub fn part1(input: &str) -> usize {
