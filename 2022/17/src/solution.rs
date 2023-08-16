@@ -200,6 +200,10 @@ impl Pile {
     fn update_row(&mut self, row: usize, update: u8) {
         self.pile[row] |= update;
     }
+
+    pub(crate) fn is_flat(&self) -> bool {
+        self.row(self.top) & 0b01111111 == 0b01111111
+    }
 }
 
 fn drop(count: usize, jets: &str) -> usize {
@@ -415,6 +419,42 @@ mod tests {
             block.as_pile(),
             [0b00000001, 0b00000001, 0b00000111, 0b00000000]
         );
+    }
+
+    #[test]
+    fn flat_piles() {
+        let pile = Pile::new(0);
+        assert!(pile.is_flat());
+
+        let mut pile = Pile::new(10);
+        assert!(pile.is_flat());
+
+        pile.add(Block {
+            shifted: 0,
+            row: 11,
+            t: BlockType::Horiz,
+        });
+        pile.add(Block {
+            shifted: 0,
+            row: 12,
+            t: BlockType::Horiz,
+        });
+        pile.add(Block {
+            shifted: 0,
+            row: 13,
+            t: BlockType::Horiz,
+        });
+        pile.add(Block {
+            shifted: 4,
+            row: 11,
+            t: BlockType::Jay,
+        });
+        pile.add(Block {
+            shifted: 4,
+            row: 12,
+            t: BlockType::Square,
+        });
+        assert!(pile.is_flat());
     }
 
     #[test]
