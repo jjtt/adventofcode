@@ -19,7 +19,7 @@ enum BlockType {
     #[rustfmt::skip]
     Plus   = 0b_0100000_1110000_0100000_0000000_isize,
     #[rustfmt::skip]
-    Jey    = 0b_0010000_0010000_1110000_0000000_isize,
+    Jay    = 0b_0010000_0010000_1110000_0000000_isize,
     #[rustfmt::skip]
     Vert   = 0b_1000000_1000000_1000000_1000000_isize,
     #[rustfmt::skip]
@@ -31,7 +31,7 @@ impl BlockType {
         match self {
             BlockType::Horiz => 1,
             BlockType::Plus => 3,
-            BlockType::Jey => 3,
+            BlockType::Jay => 3,
             BlockType::Vert => 4,
             BlockType::Square => 2,
         }
@@ -40,7 +40,7 @@ impl BlockType {
         match self {
             BlockType::Horiz => 4,
             BlockType::Plus => 3,
-            BlockType::Jey => 3,
+            BlockType::Jay => 3,
             BlockType::Vert => 1,
             BlockType::Square => 2,
         }
@@ -60,7 +60,7 @@ impl BlockSource {
             t: match (self.counter - 1) % 5 {
                 0 => BlockType::Horiz,
                 1 => BlockType::Plus,
-                2 => BlockType::Jey,
+                2 => BlockType::Jay,
                 3 => BlockType::Vert,
                 4 => BlockType::Square,
                 _ => {
@@ -348,12 +348,12 @@ mod tests {
     }
 
     #[test]
-    fn add_jey_to_pile() {
+    fn add_jay_to_pile() {
         let mut pile = Pile::new(0);
         let pile = pile.add(Block {
             shifted: 0,
             row: 1,
-            t: BlockType::Jey,
+            t: BlockType::Jay,
         });
 
         assert_eq!(pile.top, 3);
@@ -371,16 +371,16 @@ mod tests {
             t: BlockType::Horiz,
         });
 
-        let mut jey = Block {
+        let mut jay = Block {
             shifted: 2,
             row: 1,
-            t: BlockType::Jey,
+            t: BlockType::Jay,
         };
 
-        assert!(jey.is_blocked(pile));
+        assert!(jay.is_blocked(pile));
 
-        jey.shifted = 4;
-        assert!(!jey.is_blocked(pile));
+        jay.shifted = 4;
+        assert!(!jay.is_blocked(pile));
     }
 
     #[test]
@@ -412,7 +412,7 @@ mod tests {
         let block = Block {
             shifted: 4,
             row: 0,
-            t: BlockType::Jey,
+            t: BlockType::Jay,
         };
 
         assert_eq!(
