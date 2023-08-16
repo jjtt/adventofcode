@@ -78,10 +78,19 @@ impl Block {
         }
 
         let block = self.as_pile();
-        let self_top = self.row + self.t.height() as usize - 1;
-        let top = self_top.min(pile.top);
-        for (i, row) in (self.row..=top).rev().enumerate() {
-            if block[i] & pile.row(row) > 0 {
+        let overlap = if self.row > pile.top {
+            0
+        } else {
+            pile.top - self.row + 1
+        };
+        for (i, row) in block
+            .iter()
+            .take(self.t.height() as usize)
+            .rev()
+            .take(overlap)
+            .enumerate()
+        {
+            if row & pile.row(self.row + i) > 0 {
                 return true;
             }
         }
