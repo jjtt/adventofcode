@@ -210,8 +210,8 @@ impl Pile {
         self.row(self.top) & 0b01111111 == 0b01111111
     }
 
-    fn fingerprint(&self, block: u8, jet: u8) -> Option<([u8; 10], u8, u8)> {
-        if self.top > 10 {
+    fn fingerprint(&self, block: u8, jet: u8) -> Option<([u8; 20], u8, u8)> {
+        if self.top > 20 {
             Some((
                 [
                     self.row(self.top),
@@ -224,6 +224,16 @@ impl Pile {
                     self.row(self.top - 7),
                     self.row(self.top - 8),
                     self.row(self.top - 9),
+                    self.row(self.top - 10),
+                    self.row(self.top - 11),
+                    self.row(self.top - 12),
+                    self.row(self.top - 13),
+                    self.row(self.top - 14),
+                    self.row(self.top - 15),
+                    self.row(self.top - 16),
+                    self.row(self.top - 17),
+                    self.row(self.top - 18),
+                    self.row(self.top - 19),
                 ],
                 block,
                 jet,
