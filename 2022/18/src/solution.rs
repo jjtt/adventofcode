@@ -101,4 +101,9 @@ mod tests {
     fn part1_sample() {
         assert_eq!(64, part1("sample.txt"));
     }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(58, part2("sample.txt"));
+    }
 }
