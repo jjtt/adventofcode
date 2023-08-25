@@ -1,7 +1,5 @@
 use crate::solution::Resource::Ore;
-use anyhow::bail;
 use pathfinding::prelude::dfs_reach;
-use pathfinding::utils::uint_sqrt;
 use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 use std::str::FromStr;
@@ -32,7 +30,7 @@ impl FromStr for Resource {
 #[derive(Debug)]
 struct Blueprint {
     id: usize,
-    costs: [[usize; 4]; 4],
+    costs: [[u8; 4]; 4],
 }
 
 impl FromStr for Blueprint {
@@ -53,7 +51,7 @@ impl FromStr for Blueprint {
 }
 
 impl Blueprint {
-    fn split_costs(costs: &str) -> [usize; 4] {
+    fn split_costs(costs: &str) -> [u8; 4] {
         let costs = costs.trim();
         assert!(costs.ends_with('.'));
         let costs = &costs[0..costs.len() - 1];
@@ -61,7 +59,7 @@ impl Blueprint {
 
         for t in costs.split(" and ") {
             let (count, resource_type) =
-                scan_fmt!(t, "{d} {}", usize, String).expect("count and type");
+                scan_fmt!(t, "{d} {}", u8, String).expect("count and type");
             c[Resource::from_str(&resource_type).expect("valid type") as usize] = count;
         }
 
@@ -78,14 +76,14 @@ impl Blueprint {
         let result = dfs_reach(
             (time_left, robots, resources),
             |(time_left, robots, resources)| {
-                dbg!(robots);
+                //dbg!(robots);
                 let mut successors = vec![];
                 if *time_left == 0 {
                     return successors;
                 }
 
-                let try_to_build = |which| -> Option<(usize, [usize; 4], [usize; 4])> {
-                    let costs: [usize; 4] = self.costs[which];
+                let try_to_build = |which| -> Option<(usize, [u8; 4], [u8; 4])> {
+                    let costs: &[u8; 4] = &self.costs[which];
                     if resources[Ore as usize] >= costs[Ore as usize]
                         && resources[Clay as usize] >= costs[Clay as usize]
                         && resources[Obsidian as usize] >= costs[Obsidian as usize]
@@ -148,7 +146,7 @@ impl Blueprint {
         result
             .map(|(_time_left, _robots, resources)| resources[Geode as usize])
             .max()
-            .expect("at least one result")
+            .expect("at least one result") as usize
     }
 }
 
