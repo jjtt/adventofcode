@@ -31,6 +31,7 @@ impl FromStr for Resource {
 struct Blueprint {
     id: usize,
     costs: [[u8; 4]; 4],
+    max_costs: [u8; 4],
 }
 
 impl FromStr for Blueprint {
@@ -40,13 +41,26 @@ impl FromStr for Blueprint {
         let (id, robots) = s.split_once(": Each ").expect("a blueprint");
         let id = scan_fmt!(id, "Blueprint {d}", usize).expect("usize blueprint id");
         let mut costs = [[0; 4]; 4];
+        let mut max_costs = [0, 0, 0, u8::MAX];
         let robots = robots.split("Each ");
         for r in robots {
             let (robot_type, robot_costs) = r.split_once(" robot costs ").expect("a robot");
             let robot_type = Resource::from_str(robot_type).expect("a valid resource");
-            costs[robot_type as usize] = Blueprint::split_costs(robot_costs);
+            let c = Blueprint::split_costs(robot_costs);
+            costs[robot_type as usize] = c;
+            max_costs[Ore as usize] = max_costs[Ore as usize].max(c[Ore as usize]);
+            max_costs[Clay as usize] = max_costs[Clay as usize].max(c[Clay as usize]);
+            max_costs[Obsidian as usize] = max_costs[Obsidian as usize].max(c[Obsidian as usize]);
+            max_costs[Geode as usize] = max_costs[Geode as usize].max(c[Geode as usize]);
         }
-        Ok(Blueprint { id, costs })
+
+        assert_eq!(0, costs[Geode as usize][Clay as usize]);
+
+        Ok(Blueprint {
+            id,
+            costs,
+            max_costs,
+        })
     }
 }
 
@@ -84,6 +98,9 @@ impl Blueprint {
 
                 let try_to_build = |which| -> Option<(usize, [u8; 4], [u8; 4])> {
                     let costs: &[u8; 4] = &self.costs[which];
+                    if robots[which] >= self.max_costs[which] {
+                        return None;
+                    }
                     if resources[Ore as usize] >= costs[Ore as usize]
                         && resources[Clay as usize] >= costs[Clay as usize]
                         && resources[Obsidian as usize] >= costs[Obsidian as usize]
@@ -161,8 +178,14 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    read_to_string(input)
+        .unwrap()
+        .lines()
+        .take(3)
+        .map(Blueprint::from_str)
+        .filter_map(Result::ok)
+        .map(|bp| bp.max_geodes(32))
+        .product()
 }
 
 #[cfg(test)]
@@ -228,5 +251,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(33, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(56 * 62, part2("sample.txt"));
     }
 }
