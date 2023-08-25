@@ -1,24 +1,24 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 use std::str::FromStr;
 
 #[derive(Debug)]
 struct Coords {
+    key: isize,
     values: Vec<i16>,
+    keyed: Vec<i16>,
     predecessors: Vec<usize>,
     successors: Vec<usize>,
 }
 
 impl Coords {
     fn mix(&mut self, index: usize) {
-        if self.values[index] == 0 {
+        if self.keyed[index] == 0 {
             return;
         }
 
         self.successors[self.predecessors[index]] = self.successors[index];
         self.predecessors[self.successors[index]] = self.predecessors[index];
-        let steps = self.values[index].rem_euclid(self.values.len() as i16 - 1);
+        let steps = self.keyed[index].rem_euclid(self.keyed.len() as i16 - 1);
         let mut s = self.successors[index];
         for _ in 0..(steps - 1) {
             s = self.successors[s];
@@ -52,12 +52,24 @@ impl Coords {
         self.values[i]
     }
 
-    fn grove(&self) -> i32 {
+    fn grove(&self) -> isize {
         let zero = self.zero();
 
-        self.nth(zero, 1000) as i32 + self.nth(zero, 2000) as i32 + self.nth(zero, 3000) as i32
+        self.nth(zero, 1000) as isize * self.key
+            + self.nth(zero, 2000) as isize * self.key
+            + self.nth(zero, 3000) as isize * self.key
     }
 
+    fn apply_key(&mut self, key: isize) {
+        self.key = key;
+        self.keyed = self
+            .values
+            .iter()
+            .map(|v| (*v as isize * key).rem_euclid(self.values.len() as isize - 1) as i16)
+            .collect();
+    }
+
+    #[allow(dead_code)]
     fn as_vec(&self) -> Vec<i16> {
         let mut v = Vec::with_capacity(self.values.capacity());
 
@@ -84,26 +96,40 @@ impl FromStr for Coords {
         let predecessors = (0..count).map(|v| (v + count - 1) % count).collect();
         let successors = (0..count).map(|v| (v + 1) % count).collect();
 
+        let keyed = values.clone();
+
         Ok(Coords {
+            key: 1,
             values,
+            keyed,
             predecessors,
             successors,
         })
     }
 }
 
-pub fn part1(input: &str) -> i32 {
+pub fn part1(input: &str) -> isize {
     let mut coords =
         Coords::from_str(&read_to_string(input).expect("coordinates")).expect("valid coords");
+
+    coords.apply_key(1);
 
     coords.mix_completely();
 
     coords.grove()
 }
 
-pub fn part2(input: &str) -> i32 {
-    //todo!()
-    0
+pub fn part2(input: &str) -> isize {
+    let mut coords =
+        Coords::from_str(&read_to_string(input).expect("coordinates")).expect("valid coords");
+
+    coords.apply_key(811589153);
+
+    for _ in 0..10 {
+        coords.mix_completely();
+    }
+
+    coords.grove()
 }
 
 #[cfg(test)]
@@ -159,5 +185,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(3, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(1623178306, part2("sample.txt"));
     }
 }
