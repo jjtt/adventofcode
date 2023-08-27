@@ -189,24 +189,15 @@ pub fn part2(input: &str) -> isize {
 
     if let Op::Add(a, b) = expressions.remove("root").expect("a root") {
         expressions.insert("root".to_string(), Op::Sub(a, b));
-        //expressions.insert("ROOT".to_string(), Op::Num(Literal(0)));
+        expressions.insert("ROOT".to_string(), Op::Num(Literal(0)));
     } else {
         panic!("Root should be an addition of two variables");
     }
 
-    cache.remove("humn");
-    for i in 0..9_993_963_640_759 {
-        expressions.insert("humn".to_string(), Op::Num(Literal(i)));
-        let value = expressions.get("root").expect("a root").eval(
-            &expressions,
-            &mut cache.clone(),
-            &mut HashSet::new(),
-        );
-        if value == 0 {
-            return i;
-        }
-    }
-    panic!("Not found :(")
+    expressions.remove("humn").expect("a human");
+    cache.remove("humn").expect("a cached human");
+
+    Op::Num(Variable("humn".to_string())).eval(&expressions, &mut cache, &mut HashSet::new())
 }
 
 #[cfg(test)]
