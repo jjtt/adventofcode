@@ -53,7 +53,7 @@ impl Value {
                     });
                     let (old_key, old_op) = filtered
                         .next()
-                        .expect(&format!("One and only monkey listening for {}", v));
+                        .unwrap_or_else(|| panic!("One and only monkey listening for {}", v));
                     assert!(filtered.next().is_none());
 
                     let inv = old_op.invert(v, old_key);
