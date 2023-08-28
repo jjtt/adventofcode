@@ -1,14 +1,16 @@
 use crate::solution::Value::{Literal, Variable};
+use num::rational::Ratio;
+use num::Rational64;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::str::FromStr;
 
 type Expressions = HashMap<String, Op>;
-type Cache = HashMap<String, isize>;
+type Cache = HashMap<String, Rational64>;
 
 #[derive(Debug, PartialEq)]
 enum Value {
-    Literal(isize),
+    Literal(Rational64),
     Variable(String),
 }
 
@@ -16,8 +18,8 @@ impl FromStr for Value {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(if let Ok(literal) = isize::from_str(s) {
-            Literal(literal)
+        Ok(if let Ok(literal) = i64::from_str(s) {
+            Literal(Ratio::from_integer(literal))
         } else {
             Variable(s.to_string())
         })
@@ -30,12 +32,12 @@ impl Value {
         expressions: &Expressions,
         cache: &mut Cache,
         inverted: &mut HashSet<String>,
-    ) -> isize {
+    ) -> Rational64 {
         match self {
             Literal(v) => *v,
             Variable(v) => {
                 if v.eq("root") && expressions.contains_key("ROOT") {
-                    0
+                    Rational64::from_integer(0)
                 } else if let Some(cached) = cache.get(v) {
                     *cached
                 } else if !inverted.contains(v) && expressions.contains_key(v) {
@@ -104,7 +106,7 @@ impl Op {
         expressions: &Expressions,
         cache: &mut Cache,
         inverted: &mut HashSet<String>,
-    ) -> isize {
+    ) -> Rational64 {
         match self {
             Op::Num(v) => v.eval(expressions, cache, inverted),
             Op::Add(a, b) => {
@@ -120,8 +122,8 @@ impl Op {
                 let a = a.eval(expressions, cache, inverted);
                 let b = b.eval(expressions, cache, inverted);
                 let v = a / b;
-                dbg!((a, b, v));
-                assert_eq!(0, a % b);
+                //dbg!((a, b, v));
+                //assert_eq!(0, a % b);
                 v
             }
         }
@@ -180,21 +182,25 @@ fn parse_expressions(input: &str) -> (Expressions, Cache) {
     (expressions, cache)
 }
 
-pub fn part1(input: &str) -> isize {
+pub fn part1(input: &str) -> i64 {
     let (expressions, mut cache) = parse_expressions(input);
 
     expressions
         .get("root")
         .expect("a root")
         .eval(&expressions, &mut cache, &mut HashSet::new())
+        .to_integer()
 }
 
-pub fn part2(input: &str) -> isize {
+pub fn part2(input: &str) -> i64 {
     let (mut expressions, mut cache) = parse_expressions(input);
 
     if let Op::Add(a, b) = expressions.remove("root").expect("a root") {
         expressions.insert("root".to_string(), Op::Sub(a, b));
-        expressions.insert("ROOT".to_string(), Op::Num(Literal(0)));
+        expressions.insert(
+            "ROOT".to_string(),
+            Op::Num(Literal(Rational64::from_integer(0))),
+        );
     } else {
         panic!("Root should be an addition of two variables");
     }
@@ -202,7 +208,9 @@ pub fn part2(input: &str) -> isize {
     expressions.remove("humn").expect("a human");
     cache.remove("humn").expect("a cached human");
 
-    Op::Num(Variable("humn".to_string())).eval(&expressions, &mut cache, &mut HashSet::new())
+    Op::Num(Variable("humn".to_string()))
+        .eval(&expressions, &mut cache, &mut HashSet::new())
+        .to_integer()
 }
 
 #[cfg(test)]
@@ -211,17 +219,29 @@ mod tests {
 
     #[test]
     fn parsing_shouts() {
-        assert_eq!(Op::Num(Literal(0)), Op::from_str("0").unwrap());
         assert_eq!(
-            Op::Add(Literal(0), Variable("a".to_string())),
+            Op::Num(Literal(Rational64::from_integer(0))),
+            Op::from_str("0").unwrap()
+        );
+        assert_eq!(
+            Op::Add(
+                Literal(Rational64::from_integer(0)),
+                Variable("a".to_string())
+            ),
             Op::from_str("0 + a").unwrap()
         );
         assert_eq!(
-            Op::Sub(Variable("a".to_string()), Literal(1)),
+            Op::Sub(
+                Variable("a".to_string()),
+                Literal(Rational64::from_integer(1))
+            ),
             Op::from_str("a - 1").unwrap()
         );
         assert_eq!(
-            Op::Mul(Literal(-1), Literal(1)),
+            Op::Mul(
+                Literal(Rational64::from_integer(-1)),
+                Literal(Rational64::from_integer(1))
+            ),
             Op::from_str("-1 * 1").unwrap()
         );
         assert_eq!(
@@ -237,13 +257,17 @@ mod tests {
             "a".to_string(),
             Op::Add(Variable("b".to_string()), Variable("b".to_string())),
         );
-        expressions.insert("b".to_string(), Op::Num(Literal(1)));
+        expressions.insert(
+            "b".to_string(),
+            Op::Num(Literal(Rational64::from_integer(1))),
+        );
         assert_eq!(
             2,
             expressions
                 .get("a")
                 .unwrap()
                 .eval(&expressions, &mut cache, &mut HashSet::new())
+                .to_integer()
         );
         assert_eq!(1, cache.len());
         assert!(cache.contains_key("b"));
