@@ -56,7 +56,7 @@ impl Value {
                         .unwrap_or_else(|| panic!("One and only monkey listening for {}", v));
                     assert!(filtered.next().is_none());
 
-                    let inv = old_op.invert(v, old_key);
+                    let inv = old_op.solve(v, old_key);
                     inverted.insert(old_key.clone());
                     let value = inv.eval(expressions, cache, inverted);
                     cache.insert(v.clone(), value);
@@ -132,18 +132,12 @@ impl Op {
                 a.eval(expressions, cache, inverted) * b.eval(expressions, cache, inverted)
             }
             Op::Div(a, b) => {
-                let a = a.eval(expressions, cache, inverted);
-                let b = b.eval(expressions, cache, inverted);
-                let v = a / b;
-                dbg!((a, b, v));
-                assert_eq!(0, a % b);
-                v
+                a.eval(expressions, cache, inverted) / b.eval(expressions, cache, inverted)
             }
         }
     }
 
-    // TODO: rename. Not an inversion, but solving a var from the op/equation
-    pub(crate) fn invert(&self, new_key: &str, old_key: &str) -> Op {
+    pub(crate) fn solve(&self, new_key: &str, old_key: &str) -> Op {
         match self {
             Op::Add(Variable(a), Variable(b)) if b.eq(new_key) => {
                 Op::Sub(Variable(old_key.to_string()), Variable(a.clone()))
@@ -276,19 +270,19 @@ mod tests {
         let b = "b".to_string();
         let c = "c".to_string();
         assert_eq!(
-            Op::Add(Variable(a.clone()), Variable(b.clone())).invert(&a, &c),
+            Op::Add(Variable(a.clone()), Variable(b.clone())).solve(&a, &c),
             Op::Sub(Variable(c.clone()), Variable(b.clone()))
         );
         assert_eq!(
-            Op::Add(Variable(a.clone()), Variable(b.clone())).invert(&b, &c),
+            Op::Add(Variable(a.clone()), Variable(b.clone())).solve(&b, &c),
             Op::Sub(Variable(c.clone()), Variable(a.clone()))
         );
         assert_eq!(
-            Op::Sub(Variable(a.clone()), Variable(b.clone())).invert(&a, &c),
+            Op::Sub(Variable(a.clone()), Variable(b.clone())).solve(&a, &c),
             Op::Add(Variable(b.clone()), Variable(c.clone()))
         );
         assert_eq!(
-            Op::Sub(Variable(a.clone()), Variable(b.clone())).invert(&b, &c),
+            Op::Sub(Variable(a.clone()), Variable(b.clone())).solve(&b, &c),
             Op::Sub(Variable(a.clone()), Variable(c.clone()))
         );
 
@@ -300,9 +294,8 @@ mod tests {
                     Op::Num(_) => panic!("No nums left"),
                     Op::Add(a, b) | Op::Sub(a, b) | Op::Mul(a, b) | Op::Div(a, b) => (a, b),
                 } {
-                    dbg!((key, a, b));
-                    assert_eq!(*op, op.invert(a, key).invert(key, a));
-                    assert_eq!(*op, op.invert(b, key).invert(key, b));
+                    assert_eq!(*op, op.solve(a, key).solve(key, a));
+                    assert_eq!(*op, op.solve(b, key).solve(key, b));
                 } else {
                     panic!("No literals");
                 };
