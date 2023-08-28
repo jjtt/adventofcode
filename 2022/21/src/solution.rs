@@ -117,7 +117,12 @@ impl Op {
                 a.eval(expressions, cache, inverted) * b.eval(expressions, cache, inverted)
             }
             Op::Div(a, b) => {
-                a.eval(expressions, cache, inverted) / b.eval(expressions, cache, inverted)
+                let a = a.eval(expressions, cache, inverted);
+                let b = b.eval(expressions, cache, inverted);
+                let v = a / b;
+                dbg!((a, b, v));
+                assert_eq!(0, a % b);
+                v
             }
         }
     }
