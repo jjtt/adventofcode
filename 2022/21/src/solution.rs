@@ -8,7 +8,7 @@ use std::str::FromStr;
 type Expressions = HashMap<String, Op>;
 type Cache = HashMap<String, Rational64>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Value {
     Literal(Rational64),
     Variable(String),
@@ -69,13 +69,28 @@ impl Value {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone)]
 enum Op {
     Num(Value),
     Add(Value, Value),
     Sub(Value, Value),
     Mul(Value, Value),
     Div(Value, Value),
+}
+
+impl PartialEq for Op {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Op::Num(a1), Op::Num(a2)) => a1 == a2,
+            (Op::Div(a1, b1), Op::Div(a2, b2)) | (Op::Sub(a1, b1), Op::Sub(a2, b2)) => {
+                a1 == a2 && b1 == b2
+            }
+            (Op::Add(a1, b1), Op::Add(a2, b2)) | (Op::Mul(a1, b1), Op::Mul(a2, b2)) => {
+                (a1 == a2 && b1 == b2) || (a1 == b2 && b1 == a2)
+            }
+            _ => false,
+        }
+    }
 }
 
 impl FromStr for Op {
@@ -129,6 +144,7 @@ impl Op {
         }
     }
 
+    // TODO: rename. Not an inversion, but solving a var from the op/equation
     pub(crate) fn invert(&self, new_key: &str, old_key: &str) -> Op {
         match self {
             Op::Add(Variable(a), Variable(b)) if b.eq(new_key) => {
@@ -138,10 +154,10 @@ impl Op {
                 Op::Sub(Variable(old_key.to_string()), Variable(b.clone()))
             }
             Op::Sub(Variable(a), Variable(b)) if a.eq(new_key) => {
-                Op::Add(Variable(old_key.to_string()), Variable(b.clone()))
+                Op::Add(Variable(b.clone()), Variable(old_key.to_string()))
             }
             Op::Sub(Variable(a), Variable(b)) if b.eq(new_key) => {
-                Op::Add(Variable(old_key.to_string()), Variable(a.clone()))
+                Op::Sub(Variable(a.clone()), Variable(old_key.to_string()))
             }
             Op::Mul(Variable(a), Variable(b)) if b.eq(new_key) => {
                 Op::Div(Variable(old_key.to_string()), Variable(a.clone()))
@@ -151,6 +167,9 @@ impl Op {
             }
             Op::Div(Variable(a), Variable(b)) if a.eq(new_key) => {
                 Op::Mul(Variable(old_key.to_string()), Variable(b.clone()))
+            }
+            Op::Div(Variable(a), Variable(b)) if b.eq(new_key) => {
+                Op::Div(Variable(a.clone()), Variable(old_key.to_string()))
             }
             _ => todo!("{}: {:?}", new_key, self),
         }
@@ -271,6 +290,47 @@ mod tests {
         );
         assert_eq!(1, cache.len());
         assert!(cache.contains_key("b"));
+    }
+
+    #[test]
+    fn inversions() {
+        let (expressions, _) = parse_expressions("input.txt");
+
+        let a = "a".to_string();
+        let b = "b".to_string();
+        let c = "c".to_string();
+        assert_eq!(
+            Op::Add(Variable(a.clone()), Variable(b.clone())).invert(&a, &c),
+            Op::Sub(Variable(c.clone()), Variable(b.clone()))
+        );
+        assert_eq!(
+            Op::Add(Variable(a.clone()), Variable(b.clone())).invert(&b, &c),
+            Op::Sub(Variable(c.clone()), Variable(a.clone()))
+        );
+        assert_eq!(
+            Op::Sub(Variable(a.clone()), Variable(b.clone())).invert(&a, &c),
+            Op::Add(Variable(b.clone()), Variable(c.clone()))
+        );
+        assert_eq!(
+            Op::Sub(Variable(a.clone()), Variable(b.clone())).invert(&b, &c),
+            Op::Sub(Variable(a.clone()), Variable(c.clone()))
+        );
+
+        expressions
+            .iter()
+            .filter(|(_, op)| !matches!(op, Op::Num(_)))
+            .for_each(|(key, op)| {
+                if let (Variable(a), Variable(b)) = match op {
+                    Op::Num(_) => panic!("No nums left"),
+                    Op::Add(a, b) | Op::Sub(a, b) | Op::Mul(a, b) | Op::Div(a, b) => (a, b),
+                } {
+                    dbg!((key, a, b));
+                    assert_eq!(*op, op.invert(a, key).invert(key, a));
+                    assert_eq!(*op, op.invert(b, key).invert(key, b));
+                } else {
+                    panic!("No literals");
+                };
+            });
     }
 
     #[test]
