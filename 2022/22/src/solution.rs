@@ -1,8 +1,5 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::str::FromStr;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 enum Facing {
@@ -49,7 +46,7 @@ impl Action {
     pub(crate) fn parse_actions(input: &str) -> Vec<Action> {
         let mut actions = vec![];
         let mut num = 0;
-        for (ndx, c) in input.chars().enumerate() {
+        for c in input.chars() {
             match c {
                 'R' => {
                     actions.push(Action::Move(num));
@@ -142,7 +139,6 @@ impl Map {
                 );
             }
         }
-        panic!("Could not find a valid step?")
     }
 }
 
