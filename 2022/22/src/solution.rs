@@ -128,8 +128,8 @@ impl Map {
             (row, col) = match pos.facing {
                 Facing::Right => (row, (col % self.cols) + 1),
                 Facing::Down => ((row % self.rows) + 1, col),
-                Facing::Left => (row, (col % self.cols) - 1),
-                Facing::Up => ((row % self.rows) - 1, col),
+                Facing::Left => (row, ((col + self.cols - 2) % self.cols) + 1),
+                Facing::Up => (((row + self.rows - 2) % self.rows) + 1, col),
             };
             if let Some(&tile) = self.tiles.get(&(row, col)) {
                 return (
