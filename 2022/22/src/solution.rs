@@ -9,7 +9,7 @@ enum Facing {
     Up = 3,
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 struct Pos {
     row: usize,
     col: usize,
@@ -121,35 +121,27 @@ impl Map {
 
     fn step(&self, pos: &Pos, cube: bool) -> (Pos, bool) {
         if cube {
-            self.step_cube(pos)
+            self.step_cube(pos.clone())
         } else {
-            self.step_map(pos)
+            self.step_map(pos.clone())
         }
     }
 
-    fn step_map(&self, pos: &Pos) -> (Pos, bool) {
-        let (mut row, mut col) = (pos.row, pos.col);
+    fn step_map(&self, mut pos: Pos) -> (Pos, bool) {
         loop {
-            (row, col) = match pos.facing {
-                Facing::Right => (row, (col % self.cols) + 1),
-                Facing::Down => ((row % self.rows) + 1, col),
-                Facing::Left => (row, ((col + self.cols - 2) % self.cols) + 1),
-                Facing::Up => (((row + self.rows - 2) % self.rows) + 1, col),
+            match pos.facing {
+                Facing::Right => pos.col = (pos.col % self.cols) + 1,
+                Facing::Down => pos.row = (pos.row % self.rows) + 1,
+                Facing::Left => pos.col = ((pos.col + self.cols - 2) % self.cols) + 1,
+                Facing::Up => pos.row = ((pos.row + self.rows - 2) % self.rows) + 1,
             };
-            if let Some(&tile) = self.tiles.get(&(row, col)) {
-                return (
-                    Pos {
-                        row,
-                        col,
-                        facing: pos.facing,
-                    },
-                    tile,
-                );
+            if let Some(&tile) = self.tiles.get(&(pos.row, pos.col)) {
+                return (pos, tile);
             }
         }
     }
 
-    fn step_cube(&self, pos: &Pos) -> (Pos, bool) {
+    fn step_cube(&self, mut pos: Pos) -> (Pos, bool) {
         todo!()
     }
 }
@@ -260,7 +252,7 @@ mod tests {
                 },
                 true
             ),
-            map.step_map(&Pos {
+            map.step_map(Pos {
                 row: 2,
                 col: 3,
                 facing: Facing::Right
