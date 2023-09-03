@@ -119,7 +119,15 @@ impl Map {
         )
     }
 
-    fn step(&self, pos: &Pos) -> (Pos, bool) {
+    fn step(&self, pos: &Pos, cube: bool) -> (Pos, bool) {
+        if cube {
+            self.step_cube(pos)
+        } else {
+            self.step_map(pos)
+        }
+    }
+
+    fn step_map(&self, pos: &Pos) -> (Pos, bool) {
         let (mut row, mut col) = (pos.row, pos.col);
         loop {
             (row, col) = match pos.facing {
@@ -140,9 +148,13 @@ impl Map {
             }
         }
     }
+
+    fn step_cube(&self, pos: &Pos) -> (Pos, bool) {
+        todo!()
+    }
 }
 
-pub fn part1(input: &str) -> usize {
+fn walk(input: &str, cube: bool) -> usize {
     let input = read_to_string(input).expect("a file");
     let (map, actions) = Map::parse_map(&input);
 
@@ -152,7 +164,7 @@ pub fn part1(input: &str) -> usize {
         match a {
             Action::Move(count) => {
                 for _ in 0..count {
-                    if let (new_pos, true) = map.step(&pos) {
+                    if let (new_pos, true) = map.step(&pos, cube) {
                         pos = new_pos;
                     } else {
                         break;
@@ -167,9 +179,12 @@ pub fn part1(input: &str) -> usize {
     1000 * pos.row + 4 * pos.col + pos.facing as usize
 }
 
+pub fn part1(input: &str) -> usize {
+    walk(input, false)
+}
+
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    walk(input, true)
 }
 
 #[cfg(test)]
@@ -245,7 +260,7 @@ mod tests {
                 },
                 true
             ),
-            map.step(&Pos {
+            map.step_map(&Pos {
                 row: 2,
                 col: 3,
                 facing: Facing::Right
@@ -303,5 +318,10 @@ mod tests {
     #[test]
     fn part1_sample() {
         assert_eq!(6032, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(5031, part2("sample.txt"));
     }
 }
