@@ -119,6 +119,19 @@ impl Map {
         )
     }
 
+    fn cube_face_size(&self) -> usize {
+        let bigger = self.rows.max(self.cols);
+        let smaller = self.rows.min(self.cols);
+
+        if bigger % 5 == 0 && smaller % 2 == 0 && bigger / 5 == smaller / 2 {
+            bigger / 5
+        } else if bigger % 4 == 0 && smaller % 3 == 0 && bigger / 4 == smaller / 3 {
+            bigger / 4
+        } else {
+            panic!("Not a cube net?")
+        }
+    }
+
     fn step(&self, pos: &Pos, cube: bool) -> (Pos, bool) {
         if cube {
             self.step_cube(pos.clone())
@@ -280,6 +293,26 @@ mod tests {
             },
             map.find_start()
         );
+    }
+
+    #[test]
+    fn cube_faces() {
+        let input = indoc! {"
+              . 
+            ... 
+              .#
+
+            L1R
+        "};
+
+        let (map, _) = Map::parse_map(input);
+        assert_eq!(1, map.cube_face_size());
+
+        let (map, _) = Map::parse_map(&read_to_string("sample.txt").expect("sample"));
+        assert_eq!(4, map.cube_face_size());
+
+        let (map, _) = Map::parse_map(&read_to_string("input.txt").expect("sample"));
+        assert_eq!(50, map.cube_face_size());
     }
 
     #[test]
