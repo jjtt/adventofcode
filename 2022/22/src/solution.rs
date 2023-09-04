@@ -1,5 +1,29 @@
-use std::collections::HashMap;
+use phf::phf_map;
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
+
+static NETS: [phf::Map<u8, (u8, Facing)>; 2] = [
+    // sample cube
+    phf_map! {
+        13u8 => (1,Facing::Up),
+        21u8 => (2,Facing::Up),
+        22u8 => (3,Facing::Up),
+        23u8 => (4,Facing::Up),
+        33u8 => (5,Facing::Up),
+        34u8 => (6,Facing::Up),
+    },
+    // input cube
+    phf_map! {
+        12u8 => (1,Facing::Up),
+        13u8 => (6,Facing::Down),
+        22u8 => (4,Facing::Up),
+        31u8 => (3,Facing::Left),
+        32u8 => (5,Facing::Up),
+        41u8 => (2,Facing::Left),
+    },
+    // add new nets here
+    // ...
+];
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 enum Facing {
@@ -76,6 +100,28 @@ struct Map {
 }
 
 impl Map {
+    pub(crate) fn identify(&self) -> &phf::Map<u8, (u8, Facing)> {
+        let face_size = self.cube_face_size();
+        let mut net_points = HashSet::new();
+        for row in 0..4 {
+            for col in 0..4 {
+                if self
+                    .tiles
+                    .contains_key(&(1 + row * face_size, 1 + col * face_size))
+                {
+                    net_points.insert(((row + 1) * 10 + col + 1) as u8);
+                }
+            }
+        }
+
+        for net in &NETS {
+            if net_points.iter().all(|point| net.contains_key(point)) {
+                return net;
+            }
+        }
+        todo!("Net not found in NETS")
+    }
+
     pub(crate) fn find_start(&self) -> Pos {
         for col in 1..=self.cols {
             if let Some(true) = self.tiles.get(&(1, col)) {
@@ -88,9 +134,7 @@ impl Map {
         }
         panic!("unable to find a start")
     }
-}
 
-impl Map {
     fn parse_map(input: &str) -> (Map, Vec<Action>) {
         let (map, actions) = input
             .split_once("\n\n")
@@ -338,6 +382,15 @@ mod tests {
         assert_eq!(Facing::Down, pos.facing);
         pos.turn_left();
         assert_eq!(Facing::Right, pos.facing);
+    }
+
+    #[test]
+    fn identifying_the_net() {
+        let (map, _) = Map::parse_map(&read_to_string("sample.txt").expect("sample"));
+        assert_eq!(format!("{:?}", NETS[0]), format!("{:?}", map.identify()));
+
+        let (map, _) = Map::parse_map(&read_to_string("input.txt").expect("sample"));
+        assert_eq!(format!("{:?}", NETS[1]), format!("{:?}", map.identify()));
     }
 
     #[test]
