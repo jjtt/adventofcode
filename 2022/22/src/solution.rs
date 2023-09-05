@@ -97,18 +97,44 @@ struct Map {
     tiles: HashMap<(usize, usize), bool>,
     rows: usize,
     cols: usize,
+    net: &'static phf::Map<u8, (u8, Facing)>,
+    cube_face_size: usize,
+    tile_faces: HashMap<(usize, usize), (u8, Facing)>,
 }
 
 impl Map {
+    fn tiles_to_faces(
+        tiles: &HashMap<(usize, usize), bool>,
+        cube_face_size: usize,
+        net: &'static phf::Map<u8, (u8, Facing)>,
+    ) -> HashMap<(usize, usize), (u8, Facing)> {
+        tiles
+            .iter()
+            .map(|((row, col), _)| {
+                (
+                    (*row, *col),
+                    *net.get(
+                        &((((row - 1) / cube_face_size + 1) * 10 + ((col - 1) / cube_face_size + 1))
+                            as u8),
+                    )
+                    .expect("Tile must map to the net"),
+                )
+            })
+            .collect()
+    }
+
     pub(crate) fn identify(&self) -> &phf::Map<u8, (u8, Facing)> {
-        let face_size = self.cube_face_size();
+        self.net
+    }
+
+    pub(crate) fn identify_tiles(
+        tiles: &HashMap<(usize, usize), bool>,
+        face_size: usize,
+    ) -> &'static phf::Map<u8, (u8, Facing)> {
         let mut net_points = HashSet::new();
         for row in 0..4 {
             for col in 0..4 {
-                if self
-                    .tiles
-                    .contains_key(&(1 + row * face_size, 1 + col * face_size))
-                {
+                if tiles.contains_key(&(1 + row * face_size, 1 + col * face_size)) {
                     net_points.insert(((row + 1) * 10 + col + 1) as u8);
                 }
             }
@@ -157,15 +183,26 @@ impl Map {
             .collect();
         let rows = *tiles.keys().map(|(row, _)| row).max().expect("a number");
         let cols = *tiles.keys().map(|(_, col)| col).max().expect("a number");
+        let cube_face_size = Map::cube_face_size(rows, cols);
+        let net = Map::identify_tiles(&tiles, cube_face_size);
+        let tile_faces: HashMap<(usize, usize), (u8, Facing)> =
+            Map::tiles_to_faces(&tiles, cube_face_size, net);
         (
-            Map { tiles, rows, cols },
+            Map {
+                tiles,
+                rows,
+                cols,
+                net,
+                cube_face_size,
+                tile_faces,
+            },
             Action::parse_actions(actions.trim()),
         )
     }
 
-    fn cube_face_size(&self) -> usize {
-        let bigger = self.rows.max(self.cols);
-        let smaller = self.rows.min(self.cols);
+    fn cube_face_size(rows: usize, cols: usize) -> usize {
+        let bigger = rows.max(cols);
+        let smaller = rows.min(cols);
 
         if bigger % 5 == 0 && smaller % 2 == 0 && bigger / 5 == smaller / 2 {
             bigger / 5
@@ -350,13 +387,13 @@ mod tests {
         "};
 
         let (map, _) = Map::parse_map(input);
-        assert_eq!(1, map.cube_face_size());
+        assert_eq!(1, map.cube_face_size);
 
         let (map, _) = Map::parse_map(&read_to_string("sample.txt").expect("sample"));
-        assert_eq!(4, map.cube_face_size());
+        assert_eq!(4, map.cube_face_size);
 
         let (map, _) = Map::parse_map(&read_to_string("input.txt").expect("sample"));
-        assert_eq!(50, map.cube_face_size());
+        assert_eq!(50, map.cube_face_size);
     }
 
     #[test]
@@ -391,6 +428,57 @@ mod tests {
 
         let (map, _) = Map::parse_map(&read_to_string("input.txt").expect("sample"));
         assert_eq!(format!("{:?}", NETS[1]), format!("{:?}", map.identify()));
+    }
+
+    #[test]
+    fn facing_tiles_sample_net() {
+        let input = indoc! {"
+              . 
+            ... 
+              ..
+
+            L1R
+        "};
+
+        let (map, _) = Map::parse_map(input);
+
+        assert!(matches!(map.tile_faces.get(&(1, 3)), Some((1, Facing::Up))))
+    }
+
+    #[test]
+    fn facing_tiles_input_net() {
+        let input = indoc! {"
+             ..
+             . 
+            .. 
+            .  
+
+            R
+        "};
+
+        let (map, _) = Map::parse_map(input);
+
+        assert!(matches!(
+            map.tile_faces.get(&(4, 1)),
+            Some((2, Facing::Left))
+        ))
+    }
+
+    #[test]
+    fn facing_tiles_sample() {
+        let (map, _) = Map::parse_map(&read_to_string("sample.txt").expect("sample"));
+        assert!(matches!(
+            map.tile_faces.get(&(12, 16)),
+            Some((6, Facing::Up))
+        ));
+        assert!(matches!(
+            map.tile_faces.get(&(12, 13)),
+            Some((6, Facing::Up))
+        ));
+        assert!(matches!(
+            map.tile_faces.get(&(12, 12)),
+            Some((5, Facing::Up))
+        ));
     }
 
     #[test]
