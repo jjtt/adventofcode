@@ -106,6 +106,9 @@ impl Action {
                 }
             }
         }
+        if num > 0 {
+            actions.push(Action::Move(num))
+        }
         actions
     }
 }
