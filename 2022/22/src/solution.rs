@@ -420,7 +420,7 @@ impl Map {
 }
 
 fn walk(input: &str, cube: bool) -> usize {
-    let input = read_to_string(input).expect("a file");
+    let input = input;
     let (map, actions) = Map::parse_map(&input);
 
     let mut pos = map.find_start();
@@ -445,11 +445,11 @@ fn walk(input: &str, cube: bool) -> usize {
 }
 
 pub fn part1(input: &str) -> usize {
-    walk(input, false)
+    walk(&read_to_string(input).expect("a file"), false)
 }
 
 pub fn part2(input: &str) -> usize {
-    walk(input, true)
+    walk(&read_to_string(input).expect("a file"), true)
 }
 
 #[cfg(test)]
@@ -740,6 +740,24 @@ mod tests {
     ) -> (usize, usize) {
         let (map, _) = Map::parse_map(&read_to_string(input).expect("valid input"));
         map.row_col_from_face_coords(face, row, col)
+    }
+
+    #[test_case("1" => 1 * 1000 + 3 * 4 + 2)]
+    #[test_case("2" => 3 * 1000 + 2 * 4 + 2)]
+    #[test_case("3" => 3 * 1000 + 1 * 4 + 3)]
+    #[test_case("4" => 1 * 1000 + 2 * 4 + 0)]
+    fn walk_a_really_simple_input_net(actions: &str) -> usize {
+        let input = indoc! {"
+             ..
+             . 
+            .. 
+            .  
+
+        "};
+
+        let input = input.to_string() + actions;
+
+        walk(&input, true)
     }
 
     #[test]
