@@ -287,37 +287,7 @@ impl Map {
             }
             _ => {
                 // stepped on a new face
-                let (new_face_num, new_facing) = match (face_num, pos.facing) {
-                    (1, Facing::Right) => (6, Facing::Left),
-                    (1, Facing::Down) => (4, Facing::Down),
-                    (1, Facing::Left) => (3, Facing::Down),
-                    (1, Facing::Up) => (2, Facing::Down),
-                    (2, Facing::Right) => (3, Facing::Right),
-                    (2, Facing::Down) => (5, Facing::Up),
-                    (2, Facing::Left) => (6, Facing::Up),
-                    (2, Facing::Up) => (1, Facing::Down),
-                    (3, Facing::Right) => (4, Facing::Right),
-                    (3, Facing::Down) => (5, Facing::Right),
-                    (3, Facing::Left) => (2, Facing::Left),
-                    (3, Facing::Up) => (1, Facing::Right),
-                    (4, Facing::Right) => (6, Facing::Down),
-                    (4, Facing::Down) => (5, Facing::Down),
-                    (4, Facing::Left) => (3, Facing::Left),
-                    (4, Facing::Up) => (1, Facing::Up),
-                    (5, Facing::Right) => (6, Facing::Right),
-                    (5, Facing::Down) => (2, Facing::Up),
-                    (5, Facing::Left) => (3, Facing::Up),
-                    (5, Facing::Up) => (4, Facing::Up),
-                    (6, Facing::Right) => (1, Facing::Left),
-                    (6, Facing::Down) => (2, Facing::Right),
-                    (6, Facing::Left) => (5, Facing::Left),
-                    (6, Facing::Up) => (4, Facing::Left),
-                    (num, _) => panic!("hyper cube face? {num}"),
-                };
-
-                dbg!((new_face_num, new_facing));
-
-                todo!()
+                self.next_face_pos(pos, face_num)
             }
         };
 
@@ -326,6 +296,56 @@ impl Map {
             .get(&(step.row, step.col))
             .expect("must still be on the map");
         (step, tile)
+    }
+
+    fn next_face_pos(&self, pos: &Pos, face_num: &u8) -> Pos {
+        let (tile_row, tile_col) = self.face_coords(pos);
+        match (face_num, pos.facing) {
+            (1, Facing::Right) => (6, Facing::Left),
+            (1, Facing::Down) => (4, Facing::Down),
+            (1, Facing::Left) => (3, Facing::Down),
+            (1, Facing::Up) => (2, Facing::Down),
+            (2, Facing::Right) => (3, Facing::Right),
+            (2, Facing::Down) => (5, Facing::Up),
+            (2, Facing::Left) => (6, Facing::Up),
+            (2, Facing::Up) => (1, Facing::Down),
+            (3, Facing::Right) => (4, Facing::Right),
+            (3, Facing::Down) => (5, Facing::Right),
+            (3, Facing::Left) => (2, Facing::Left),
+            (3, Facing::Up) => (1, Facing::Right),
+            (4, Facing::Right) => (6, Facing::Down),
+            (4, Facing::Down) => (5, Facing::Down),
+            (4, Facing::Left) => (3, Facing::Left),
+            (4, Facing::Up) => (1, Facing::Up),
+            (5, Facing::Right) => (6, Facing::Right),
+            (5, Facing::Down) => (2, Facing::Up),
+            (5, Facing::Left) => (3, Facing::Up),
+            (5, Facing::Up) => (4, Facing::Up),
+            (6, Facing::Right) => (1, Facing::Left),
+            (6, Facing::Down) => (2, Facing::Right),
+            (6, Facing::Left) => (5, Facing::Left),
+            (6, Facing::Up) => (4, Facing::Left),
+            (num, _) => panic!("hyper cube face? {num}"),
+        };
+
+        todo!()
+    }
+
+    pub fn face_coords(&self, pos: &Pos) -> (usize, usize) {
+        let row = (pos.row - 1) % self.cube_face_size + 1;
+        let col = (pos.col - 1) % self.cube_face_size + 1;
+
+        let (_, face_dir) = self
+            .tile_faces
+            .get(&(pos.row, pos.col))
+            .expect("must be on the cube");
+
+        match face_dir {
+            Facing::Right => (self.cube_face_size - col + 1, row), // TODO: check this
+            Facing::Down => (self.cube_face_size - row + 1, self.cube_face_size - col + 1),
+            Facing::Left => (col, self.cube_face_size - row + 1),
+            Facing::Up => (row, col),
+        }
     }
 }
 
@@ -587,9 +607,25 @@ mod tests {
         input: &str,
     ) -> (usize, usize, Facing, bool) {
         let pos = Pos { row, col, facing };
-        let (map, _) = Map::parse_map(&read_to_string(input).expect("sample"));
+        let (map, _) = Map::parse_map(&read_to_string(input).expect("valid input"));
         let (p, tile) = map.step(&pos, true);
         (p.row, p.col, p.facing, tile)
+    }
+
+    #[test_case(1, 9, "sample.txt" => (1, 1))]
+    #[test_case(4, 9, "sample.txt" => (4, 1))]
+    #[test_case(1, 12, "sample.txt" => (1, 4))]
+    #[test_case(4, 12, "sample.txt" => (4, 4))]
+    #[test_case(200, 1, "input.txt" => (1, 1))]
+    #[test_case(1, 150, "input.txt" => (50, 1))]
+    fn finding_row_col_on_face(row: usize, col: usize, input: &str) -> (usize, usize) {
+        let (map, _) = Map::parse_map(&read_to_string(input).expect("valid input"));
+        let pos = Pos {
+            row,
+            col,
+            facing: Facing::Up,
+        };
+        map.face_coords(&pos)
     }
 
     #[test]
