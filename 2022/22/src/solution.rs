@@ -503,6 +503,34 @@ mod tests {
     }
 
     #[test]
+    fn parsing_sample() {
+        let (map, actions) = Map::parse_map(&read_to_string("sample.txt").expect("sample"));
+
+        assert_eq!(6 * 16, map.tiles.len());
+        assert_eq!(12, map.rows);
+        assert_eq!(16, map.cols);
+
+        assert_eq!(
+            vec![
+                Action::Move(10),
+                Action::Right,
+                Action::Move(5),
+                Action::Left,
+                Action::Move(5),
+                Action::Right,
+                Action::Move(10),
+                Action::Left,
+                Action::Move(4),
+                Action::Right,
+                Action::Move(5),
+                Action::Left,
+                Action::Move(5),
+            ],
+            actions
+        )
+    }
+
+    #[test]
     fn stepping() {
         let input = indoc! {"
               . 
