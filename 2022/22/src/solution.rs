@@ -287,7 +287,7 @@ impl Map {
             }
             _ => {
                 // stepped on a new face
-                self.next_face_pos(pos, face_num)
+                self.next_face_pos(pos, face_num, face_dir)
             }
         };
 
@@ -298,37 +298,74 @@ impl Map {
         (step, tile)
     }
 
-    fn next_face_pos(&self, pos: &Pos, face_num: &u8) -> Pos {
+    fn next_face_pos(&self, pos: &Pos, face_num: &u8, face_dir: &Facing) -> Pos {
         let (tile_row, tile_col) = self.face_coords(pos);
-        match (face_num, pos.facing) {
-            (1, Facing::Right) => (6, Facing::Left),
-            (1, Facing::Down) => (4, Facing::Down),
-            (1, Facing::Left) => (3, Facing::Down),
-            (1, Facing::Up) => (2, Facing::Down),
-            (2, Facing::Right) => (3, Facing::Right),
-            (2, Facing::Down) => (5, Facing::Up),
-            (2, Facing::Left) => (6, Facing::Up),
-            (2, Facing::Up) => (1, Facing::Down),
-            (3, Facing::Right) => (4, Facing::Right),
-            (3, Facing::Down) => (5, Facing::Right),
-            (3, Facing::Left) => (2, Facing::Left),
-            (3, Facing::Up) => (1, Facing::Right),
-            (4, Facing::Right) => (6, Facing::Down),
-            (4, Facing::Down) => (5, Facing::Down),
-            (4, Facing::Left) => (3, Facing::Left),
-            (4, Facing::Up) => (1, Facing::Up),
-            (5, Facing::Right) => (6, Facing::Right),
-            (5, Facing::Down) => (2, Facing::Up),
-            (5, Facing::Left) => (3, Facing::Up),
-            (5, Facing::Up) => (4, Facing::Up),
-            (6, Facing::Right) => (1, Facing::Left),
-            (6, Facing::Down) => (2, Facing::Right),
-            (6, Facing::Left) => (5, Facing::Left),
-            (6, Facing::Up) => (4, Facing::Left),
+        let (face, facing, next_tile_row, next_tile_col) = match (face_num, pos.facing) {
+            (1, Facing::Right) => (
+                6,
+                Facing::Left,
+                self.cube_face_size - tile_row + 1,
+                self.cube_face_size,
+            ),
+            (1, Facing::Down) => (4, Facing::Down, 1, tile_col),
+            (1, Facing::Left) => (3, Facing::Down, 1, tile_row),
+            (1, Facing::Up) => (2, Facing::Down, 1, self.cube_face_size - tile_col + 1),
+            (2, Facing::Right) => (3, Facing::Right, tile_row, 1),
+            (2, Facing::Down) => (
+                5,
+                Facing::Up,
+                self.cube_face_size,
+                self.cube_face_size - tile_col + 1,
+            ),
+            (2, Facing::Left) => (
+                6,
+                Facing::Up,
+                self.cube_face_size,
+                self.cube_face_size - tile_row + 1,
+            ),
+            (2, Facing::Up) => (1, Facing::Down, 1, self.cube_face_size - tile_col + 1),
+            (3, Facing::Right) => (4, Facing::Right, tile_row, 1),
+            (3, Facing::Down) => (5, Facing::Right, tile_col, 1),
+            (3, Facing::Left) => (2, Facing::Left, tile_row, self.cube_face_size),
+            (3, Facing::Up) => (1, Facing::Right, tile_col, 1),
+            (4, Facing::Right) => (6, Facing::Down, 1, self.cube_face_size - tile_row + 1),
+            (4, Facing::Down) => (5, Facing::Down, 1, tile_col),
+            (4, Facing::Left) => (3, Facing::Left, tile_row, self.cube_face_size),
+            (4, Facing::Up) => (1, Facing::Up, self.cube_face_size, tile_col),
+            (5, Facing::Right) => (6, Facing::Right, tile_row, 1),
+            (5, Facing::Down) => (
+                2,
+                Facing::Up,
+                self.cube_face_size,
+                self.cube_face_size - tile_col + 1,
+            ),
+            (5, Facing::Left) => (
+                3,
+                Facing::Up,
+                self.cube_face_size,
+                self.cube_face_size - tile_row + 1,
+            ),
+            (5, Facing::Up) => (4, Facing::Up, self.cube_face_size, tile_col),
+            (6, Facing::Right) => (
+                1,
+                Facing::Left,
+                self.cube_face_size - tile_row + 1,
+                self.cube_face_size,
+            ),
+            (6, Facing::Down) => (2, Facing::Right, self.cube_face_size - tile_col + 1, 1),
+            (6, Facing::Left) => (5, Facing::Left, tile_row, self.cube_face_size),
+            (6, Facing::Up) => (
+                4,
+                Facing::Left,
+                self.cube_face_size - tile_col + 1,
+                self.cube_face_size,
+            ),
             (num, _) => panic!("hyper cube face? {num}"),
         };
 
-        todo!()
+        let (row, col) = self.row_col_from_face_coords(face, next_tile_row, next_tile_col);
+
+        Pos { row, col, facing }
     }
 
     pub fn face_coords(&self, pos: &Pos) -> (usize, usize) {
@@ -345,6 +382,36 @@ impl Map {
             Facing::Down => (self.cube_face_size - row + 1, self.cube_face_size - col + 1),
             Facing::Left => (col, self.cube_face_size - row + 1),
             Facing::Up => (row, col),
+        }
+    }
+
+    pub(crate) fn row_col_from_face_coords(
+        &self,
+        face: u8,
+        row: usize,
+        col: usize,
+    ) -> (usize, usize) {
+        let (c, (_, face_dir)) = self
+            .net
+            .entries()
+            .find(|(_, (f, _))| *f == face)
+            .expect("face must exist");
+
+        let face_row = (c / 10 - 1) as usize;
+        let face_col = (c % 10 - 1) as usize;
+        let face_top = face_row * self.cube_face_size;
+        let face_left = face_col * self.cube_face_size;
+        match face_dir {
+            Facing::Right => {
+                todo!();
+                (face_top + col, face_left + self.cube_face_size - row + 1)
+            }
+            Facing::Down => (
+                face_top + self.cube_face_size - row + 1,
+                face_left + self.cube_face_size - col + 1,
+            ),
+            Facing::Left => (face_top + self.cube_face_size - col + 1, face_left + row),
+            Facing::Up => (face_top + row, face_left + col),
         }
     }
 }
@@ -626,6 +693,22 @@ mod tests {
             facing: Facing::Up,
         };
         map.face_coords(&pos)
+    }
+
+    #[test_case(1, 1, 1, "sample.txt" => (1, 9))]
+    #[test_case(1, 4, 1, "sample.txt" => (4, 9))]
+    #[test_case(1, 1, 4, "sample.txt" => (1, 12))]
+    #[test_case(1, 4, 4, "sample.txt" => (4, 12))]
+    #[test_case(2, 1, 1, "input.txt" => (200, 1))]
+    #[test_case(6, 50, 1, "input.txt" => (1, 150))]
+    fn finding_row_col_from_face_coords(
+        face: u8,
+        row: usize,
+        col: usize,
+        input: &str,
+    ) -> (usize, usize) {
+        let (map, _) = Map::parse_map(&read_to_string(input).expect("valid input"));
+        map.row_col_from_face_coords(face, row, col)
     }
 
     #[test]
