@@ -33,6 +33,25 @@ enum Facing {
     Up = 3,
 }
 
+impl Facing {
+    pub fn right(&self) -> Facing {
+        match self {
+            Facing::Right => Facing::Down,
+            Facing::Down => Facing::Left,
+            Facing::Left => Facing::Up,
+            Facing::Up => Facing::Right,
+        }
+    }
+    pub fn left(&self) -> Facing {
+        match self {
+            Facing::Right => Facing::Up,
+            Facing::Down => Facing::Right,
+            Facing::Left => Facing::Down,
+            Facing::Up => Facing::Left,
+        }
+    }
+}
+
 #[derive(Eq, PartialEq, Debug, Clone)]
 struct Pos {
     row: usize,
@@ -41,21 +60,20 @@ struct Pos {
 }
 
 impl Pos {
-    pub(crate) fn turn_right(&mut self) {
-        match self.facing {
-            Facing::Right => self.facing = Facing::Down,
-            Facing::Down => self.facing = Facing::Left,
-            Facing::Left => self.facing = Facing::Up,
-            Facing::Up => self.facing = Facing::Right,
+    pub(crate) fn facing(&self, face_dir: &Facing) -> Facing {
+        match face_dir {
+            Facing::Right => self.facing.right(),
+            Facing::Down => self.facing.left().left(),
+            Facing::Left => self.facing.left(),
+            Facing::Up => self.facing,
         }
     }
+
+    pub(crate) fn turn_right(&mut self) {
+        self.facing = self.facing.right();
+    }
     pub(crate) fn turn_left(&mut self) {
-        match self.facing {
-            Facing::Right => self.facing = Facing::Up,
-            Facing::Down => self.facing = Facing::Right,
-            Facing::Left => self.facing = Facing::Down,
-            Facing::Up => self.facing = Facing::Left,
-        }
+        self.facing = self.facing.left();
     }
 }
 
@@ -215,28 +233,99 @@ impl Map {
 
     fn step(&self, pos: &Pos, cube: bool) -> (Pos, bool) {
         if cube {
-            self.step_cube(pos.clone())
+            self.step_cube(pos)
         } else {
-            self.step_map(pos.clone())
+            self.step_map(pos)
         }
     }
 
-    fn step_map(&self, mut pos: Pos) -> (Pos, bool) {
+    fn step_one(&self, pos: &Pos, face_dir: &Facing) -> Pos {
+        match pos.facing(face_dir) {
+            Facing::Right => Pos {
+                row: pos.row,
+                col: (pos.col % self.cols) + 1,
+                facing: pos.facing,
+            },
+            Facing::Down => Pos {
+                row: (pos.row % self.rows) + 1,
+                col: pos.col,
+                facing: pos.facing,
+            },
+            Facing::Left => Pos {
+                row: pos.row,
+                col: ((pos.col + self.cols - 2) % self.cols) + 1,
+                facing: pos.facing,
+            },
+            Facing::Up => Pos {
+                row: ((pos.row + self.rows - 2) % self.rows) + 1,
+                col: pos.col,
+                facing: pos.facing,
+            },
+        }
+    }
+
+    fn step_map(&self, pos: &Pos) -> (Pos, bool) {
+        let mut pos = pos.clone();
         loop {
-            match pos.facing {
-                Facing::Right => pos.col = (pos.col % self.cols) + 1,
-                Facing::Down => pos.row = (pos.row % self.rows) + 1,
-                Facing::Left => pos.col = ((pos.col + self.cols - 2) % self.cols) + 1,
-                Facing::Up => pos.row = ((pos.row + self.rows - 2) % self.rows) + 1,
-            };
+            pos = self.step_one(&pos, &Facing::Up);
             if let Some(&tile) = self.tiles.get(&(pos.row, pos.col)) {
                 return (pos, tile);
             }
         }
     }
 
-    fn step_cube(&self, mut pos: Pos) -> (Pos, bool) {
-        todo!()
+    fn step_cube(&self, pos: &Pos) -> (Pos, bool) {
+        let (face_num, face_dir) = self
+            .tile_faces
+            .get(&(pos.row, pos.col))
+            .expect("all positions are on some face");
+        let step = self.step_one(&pos, face_dir);
+        let step = match self.tile_faces.get(&(step.row, step.col)) {
+            Some((step_face_num, _)) if step_face_num == face_num => {
+                // still on the same face going in the same direction
+                step
+            }
+            _ => {
+                // stepped on a new face
+                let (new_face_num, new_facing) = match (face_num, pos.facing) {
+                    (1, Facing::Right) => (6, Facing::Left),
+                    (1, Facing::Down) => (4, Facing::Down),
+                    (1, Facing::Left) => (3, Facing::Down),
+                    (1, Facing::Up) => (2, Facing::Down),
+                    (2, Facing::Right) => (3, Facing::Right),
+                    (2, Facing::Down) => (5, Facing::Up),
+                    (2, Facing::Left) => (6, Facing::Up),
+                    (2, Facing::Up) => (1, Facing::Down),
+                    (3, Facing::Right) => (4, Facing::Right),
+                    (3, Facing::Down) => (5, Facing::Right),
+                    (3, Facing::Left) => (2, Facing::Left),
+                    (3, Facing::Up) => (1, Facing::Right),
+                    (4, Facing::Right) => (6, Facing::Down),
+                    (4, Facing::Down) => (5, Facing::Down),
+                    (4, Facing::Left) => (3, Facing::Left),
+                    (4, Facing::Up) => (1, Facing::Up),
+                    (5, Facing::Right) => (6, Facing::Right),
+                    (5, Facing::Down) => (2, Facing::Up),
+                    (5, Facing::Left) => (3, Facing::Up),
+                    (5, Facing::Up) => (4, Facing::Up),
+                    (6, Facing::Right) => (1, Facing::Left),
+                    (6, Facing::Down) => (2, Facing::Right),
+                    (6, Facing::Left) => (5, Facing::Left),
+                    (6, Facing::Up) => (4, Facing::Left),
+                    (num, _) => panic!("hyper cube face? {num}"),
+                };
+
+                dbg!((new_face_num, new_facing));
+
+                todo!()
+            }
+        };
+
+        let tile = *self
+            .tiles
+            .get(&(step.row, step.col))
+            .expect("must still be on the map");
+        (step, tile)
     }
 }
 
@@ -277,6 +366,7 @@ pub fn part2(input: &str) -> usize {
 mod tests {
     use super::*;
     use indoc::indoc;
+    use test_case::test_case;
 
     #[test]
     fn parsing_actions() {
@@ -346,7 +436,7 @@ mod tests {
                 },
                 true
             ),
-            map.step_map(Pos {
+            map.step_map(&Pos {
                 row: 2,
                 col: 3,
                 facing: Facing::Right
@@ -479,6 +569,27 @@ mod tests {
             map.tile_faces.get(&(12, 12)),
             Some((5, Facing::Up))
         ));
+    }
+
+    #[test_case(6, 12, Facing::Right, "sample.txt" => (9, 15, Facing::Down, true); "A->B")]
+    #[test_case(12, 11, Facing::Down, "sample.txt" => (8, 2, Facing::Up, true); "C->D")]
+    #[test_case(5, 7, Facing::Up, "sample.txt" => (3, 9, Facing::Right, false); "E->wall")]
+    #[test_case(1, 51, Facing::Up, "input.txt" => (151, 1, Facing::Down, true); "input: start, moving up")]
+    #[test_case(1, 51, Facing::Left, "input.txt" => (150, 1, Facing::Down, true); "input: start, moving left")]
+    #[test_case(1, 51, Facing::Right, "input.txt" => (1, 52, Facing::Right, true); "input: start, moving right")]
+    #[test_case(1, 51, Facing::Down, "input.txt" => (2, 51, Facing::Down, false); "input: start, moving down")]
+    #[test_case(5, 1, Facing::Down, "sample.txt" => (6, 1, Facing::Down, true); "sample, face2 top left down")]
+    #[test_case(200, 1, Facing::Down, "input.txt" => (200, 2, Facing::Down, true); "input: face2 top left down")]
+    fn stepping_in_the_cube(
+        row: usize,
+        col: usize,
+        facing: Facing,
+        input: &str,
+    ) -> (usize, usize, Facing, bool) {
+        let pos = Pos { row, col, facing };
+        let (map, _) = Map::parse_map(&read_to_string(input).expect("sample"));
+        let (p, tile) = map.step(&pos, true);
+        (p.row, p.col, p.facing, tile)
     }
 
     #[test]
