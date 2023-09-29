@@ -441,7 +441,21 @@ fn walk(input: &str, cube: bool) -> usize {
         }
     }
 
-    1000 * pos.row + 4 * pos.col + pos.facing as usize
+    let map_facing_value = if cube {
+        dbg!(&pos);
+        let (face, facing) = map.tile_faces.get(&(pos.row, pos.col)).expect("some face");
+        dbg!(face);
+        dbg!(facing);
+        let map_facing_value = pos.facing as usize + *facing as usize + 1;
+        dbg!(map_facing_value);
+        let map_facing_value = map_facing_value % 4;
+        dbg!(map_facing_value);
+        map_facing_value
+    } else {
+        pos.facing as usize
+    };
+
+    1000 * pos.row + 4 * pos.col + map_facing_value
 }
 
 pub fn part1(input: &str) -> usize {
@@ -742,10 +756,14 @@ mod tests {
         map.row_col_from_face_coords(face, row, col)
     }
 
-    #[test_case("1" => 1 * 1000 + 3 * 4 + 2)]
+    #[test_case("1" => 1 * 1000 + 3 * 4 + 0)]
     #[test_case("2" => 3 * 1000 + 2 * 4 + 2)]
-    #[test_case("3" => 3 * 1000 + 1 * 4 + 3)]
+    #[test_case("3" => 3 * 1000 + 1 * 4 + 2)]
     #[test_case("4" => 1 * 1000 + 2 * 4 + 0)]
+    #[test_case("R1R1" => 3 * 1000 + 1 * 4 + 1)]
+    #[test_case("R2" => 3 * 1000 + 2 * 4 + 1)]
+    #[test_case("R2R1" => 3 * 1000 + 1 * 4 + 2)]
+    #[test_case("R1L1" => 1 * 1000 + 3 * 4 + 3)]
     fn walk_a_really_simple_input_net(actions: &str) -> usize {
         let input = indoc! {"
              ..
