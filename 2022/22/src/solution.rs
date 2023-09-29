@@ -766,6 +766,11 @@ mod tests {
     }
 
     #[test]
+    fn part1_input() {
+        assert_eq!(13566, part1("input.txt"));
+    }
+
+    #[test]
     fn part2_sample() {
         assert_eq!(5031, part2("sample.txt"));
     }
