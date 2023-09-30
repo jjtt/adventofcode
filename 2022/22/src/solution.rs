@@ -144,10 +144,6 @@ impl Map {
             .collect()
     }
 
-    pub(crate) fn identify(&self) -> &phf::Map<u8, (u8, Facing)> {
-        self.net
-    }
-
     pub(crate) fn identify_tiles(
         tiles: &HashMap<(usize, usize), bool>,
         face_size: usize,
@@ -290,7 +286,7 @@ impl Map {
             }
             _ => {
                 // stepped on a new face
-                self.next_face_pos(pos, face_num, face_dir)
+                self.next_face_pos(pos, face_num)
             }
         };
 
@@ -301,7 +297,7 @@ impl Map {
         (step, tile)
     }
 
-    fn next_face_pos(&self, pos: &Pos, face_num: &u8, face_dir: &Facing) -> Pos {
+    fn next_face_pos(&self, pos: &Pos, face_num: &u8) -> Pos {
         let (tile_row, tile_col) = self.face_coords(pos);
         let (face, facing, next_tile_row, next_tile_col) = match (face_num, pos.facing) {
             (1, Facing::Right) => (
@@ -406,8 +402,7 @@ impl Map {
         let face_left = face_col * self.cube_face_size;
         match face_dir {
             Facing::Right => {
-                todo!();
-                (face_top + col, face_left + self.cube_face_size - row + 1)
+                todo!("Maybe: (face_top + col, face_left + self.cube_face_size - row + 1)");
             }
             Facing::Down => (
                 face_top + self.cube_face_size - row + 1,
@@ -442,14 +437,9 @@ fn walk(input: &str, cube: bool) -> usize {
     }
 
     let map_facing_value = if cube {
-        dbg!(&pos);
-        let (face, facing) = map.tile_faces.get(&(pos.row, pos.col)).expect("some face");
-        dbg!(face);
-        dbg!(facing);
+        let (_face, facing) = map.tile_faces.get(&(pos.row, pos.col)).expect("some face");
         let map_facing_value = pos.facing as usize + *facing as usize + 1;
-        dbg!(map_facing_value);
         let map_facing_value = map_facing_value % 4;
-        dbg!(map_facing_value);
         map_facing_value
     } else {
         pos.facing as usize
@@ -646,10 +636,10 @@ mod tests {
     #[test]
     fn identifying_the_net() {
         let (map, _) = Map::parse_map(&read_to_string("sample.txt").expect("sample"));
-        assert_eq!(format!("{:?}", NETS[0]), format!("{:?}", map.identify()));
+        assert_eq!(format!("{:?}", NETS[0]), format!("{:?}", map.net));
 
         let (map, _) = Map::parse_map(&read_to_string("input.txt").expect("sample"));
-        assert_eq!(format!("{:?}", NETS[1]), format!("{:?}", map.identify()));
+        assert_eq!(format!("{:?}", NETS[1]), format!("{:?}", map.net));
     }
 
     #[test]
