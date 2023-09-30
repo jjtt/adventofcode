@@ -792,4 +792,9 @@ mod tests {
     fn part2_sample() {
         assert_eq!(5031, part2("sample.txt"));
     }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(11451, part2("input.txt"));
+    }
 }
