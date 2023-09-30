@@ -278,7 +278,7 @@ impl Map {
             .tile_faces
             .get(&(pos.row, pos.col))
             .expect("all positions are on some face");
-        let step = self.step_one(&pos, face_dir);
+        let step = self.step_one(pos, face_dir);
         let step = match self.tile_faces.get(&(step.row, step.col)) {
             Some((step_face_num, _)) if step_face_num == face_num => {
                 // still on the same face going in the same direction
@@ -416,7 +416,7 @@ impl Map {
 
 fn walk(input: &str, cube: bool) -> usize {
     let input = input;
-    let (map, actions) = Map::parse_map(&input);
+    let (map, actions) = Map::parse_map(input);
 
     let mut pos = map.find_start();
 
@@ -439,8 +439,8 @@ fn walk(input: &str, cube: bool) -> usize {
     let map_facing_value = if cube {
         let (_face, facing) = map.tile_faces.get(&(pos.row, pos.col)).expect("some face");
         let map_facing_value = pos.facing as usize + *facing as usize + 1;
-        let map_facing_value = map_facing_value % 4;
-        map_facing_value
+
+        map_facing_value % 4
     } else {
         pos.facing as usize
     };
