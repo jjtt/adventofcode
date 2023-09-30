@@ -328,7 +328,7 @@ impl Map {
             ),
             (2, Facing::Up) => (1, Facing::Down, 1, self.cube_face_size - tile_col + 1),
             (3, Facing::Right) => (4, Facing::Right, tile_row, 1),
-            (3, Facing::Down) => (5, Facing::Right, tile_col, 1),
+            (3, Facing::Down) => (5, Facing::Right, self.cube_face_size - tile_col + 1, 1),
             (3, Facing::Left) => (2, Facing::Left, tile_row, self.cube_face_size),
             (3, Facing::Up) => (1, Facing::Right, tile_col, 1),
             (4, Facing::Right) => (6, Facing::Down, 1, self.cube_face_size - tile_row + 1),
