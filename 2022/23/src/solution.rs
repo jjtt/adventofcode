@@ -57,11 +57,11 @@ fn parse_input(input: &str) -> HashSet<Pos> {
         .collect()
 }
 
-fn move_elves(input: &str, rounds: i32) -> i32 {
+fn move_elves(input: &str, rounds: i32) -> (HashSet<Pos>, i32) {
     let mut elves = parse_input(input);
 
     for round in 0..rounds {
-        let proposed = propose(&elves, round % 4);
+        let (proposed, no_need_to_move) = propose(&elves, round % 4);
         let proposed_positions = proposed
             .values()
             .sorted()
@@ -82,7 +82,15 @@ fn move_elves(input: &str, rounds: i32) -> i32 {
             })
             .collect();
         //print_elves(&elves, round + 1, -3, -2, 10, 9);
+        if no_need_to_move {
+            return (elves, round + 1);
+        }
     }
+    (elves, -1)
+}
+
+fn count_empty_tiles(input: &str, rounds: i32) -> i32 {
+    let (elves, _) = move_elves(input, rounds);
 
     let minx = elves.iter().map(|(x, _)| x).min().unwrap();
     let maxx = elves.iter().map(|(x, _)| x).max().unwrap();
@@ -107,11 +115,14 @@ fn print_elves(elves: &HashSet<Pos>, round: i32, minx: i32, miny: i32, maxx: i32
     println!();
 }
 
-fn propose(elves: &HashSet<Pos>, round: i32) -> HashMap<Pos, Pos> {
+fn propose(elves: &HashSet<Pos>, round: i32) -> (HashMap<Pos, Pos>, bool) {
+    let mut no_need_to_move = true;
     let mut proposed = HashMap::new();
 
     for pos in elves.iter() {
-        let new_pos = if no_neighbours(elves, pos) {
+        let has_no_neighbours = no_neighbours(elves, pos);
+        no_need_to_move &= has_no_neighbours;
+        let new_pos = if has_no_neighbours {
             *pos
         } else if let Some(new_pos) = try_move(elves, pos, North + round) {
             new_pos
@@ -127,7 +138,7 @@ fn propose(elves: &HashSet<Pos>, round: i32) -> HashMap<Pos, Pos> {
         proposed.insert(*pos, new_pos);
     }
 
-    proposed
+    (proposed, no_need_to_move)
 }
 
 fn no_neighbours(elves: &HashSet<Pos>, pos: &Pos) -> bool {
@@ -174,12 +185,12 @@ fn try_move(elves: &HashSet<Pos>, pos: &Pos, direction: Direction) -> Option<Pos
 }
 
 pub fn part1(input: &str) -> i32 {
-    move_elves(input, 10)
+    count_empty_tiles(input, 10)
 }
 
 pub fn part2(input: &str) -> i32 {
-    //todo!()
-    0
+    let (_, rounds_done) = move_elves(input, 1000);
+    rounds_done
 }
 
 #[cfg(test)]
@@ -188,23 +199,23 @@ mod tests {
 
     #[test]
     fn small_with_0_rounds() {
-        assert_eq!(3, move_elves("small.txt", 0));
+        assert_eq!(3, count_empty_tiles("small.txt", 0));
     }
 
     #[test]
     fn small_with_3_rounds() {
-        assert_eq!(25, move_elves("small.txt", 3));
+        assert_eq!(25, count_empty_tiles("small.txt", 3));
     }
 
     #[test]
     fn small_with_10_rounds() {
-        assert_eq!(25, move_elves("small.txt", 10));
+        assert_eq!(25, count_empty_tiles("small.txt", 10));
     }
 
     #[test]
     fn propose_small_first_round() {
         let elves = parse_input("small.txt");
-        let proposed = propose(&elves, 0);
+        let (proposed, _) = propose(&elves, 0);
         let mut proposed_positions = proposed.into_iter().map(|(_, pos)| pos).collect::<Vec<_>>();
         proposed_positions.sort();
         assert_eq!(
@@ -216,7 +227,7 @@ mod tests {
     #[test]
     fn propose_nothing_for_lone_elf() {
         let elves = vec![(0, 0)].into_iter().collect();
-        let proposed = propose(&elves, 0);
+        let (proposed, _) = propose(&elves, 0);
         assert_eq!(1, proposed.len());
         assert!(proposed.contains_key(&(0, 0)));
         assert_eq!(Some(&(0, 0)), proposed.get(&(0, 0)));
@@ -225,7 +236,7 @@ mod tests {
     #[test]
     fn propose_north_for_two_elves_side_by_side() {
         let elves = vec![(0, 0), (1, 0)].into_iter().collect();
-        let proposed = propose(&elves, 0);
+        let (proposed, _) = propose(&elves, 0);
         assert_eq!(2, proposed.len());
         let proposed = proposed.into_values().sorted().collect::<Vec<_>>();
         assert!(proposed.contains(&(1, -1)));
@@ -235,7 +246,7 @@ mod tests {
     #[test]
     fn propose_south_and_west_for_two_elves_diagonally_side_by_side() {
         let elves = vec![(0, 0), (1, 1)].into_iter().collect();
-        let proposed = propose(&elves, South as i32);
+        let (proposed, _) = propose(&elves, South as i32);
         dbg!(&proposed);
         assert_eq!(2, proposed.len());
         let proposed = proposed.into_values().sorted().collect::<Vec<_>>();
@@ -269,5 +280,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(4045, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(20, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(963, part2("input.txt"));
     }
 }
