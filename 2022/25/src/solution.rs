@@ -112,9 +112,8 @@ pub fn part1(input: &str) -> String {
         .fold("0".to_string(), |acc, line| sum(acc.as_str(), line))
 }
 
-pub fn part2(input: &str) -> String {
-    //todo!()
-    "0".to_string()
+pub fn part2(_: &str) -> String {
+    "Merry X-mas!".to_string()
 }
 
 #[cfg(test)]
