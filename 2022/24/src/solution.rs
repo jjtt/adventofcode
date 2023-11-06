@@ -17,6 +17,50 @@ struct Valley {
     expedition: (usize, usize),
 }
 
+fn usize_abs_diff(a: usize, b: usize) -> usize {
+    if a > b {
+        a - b
+    } else {
+        b - a
+    }
+}
+
+impl FromStr for Valley {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut width = 0;
+        let mut height = 0;
+        let mut blizzards = Vec::new();
+        for (y, line) in s.lines().enumerate() {
+            height += 1;
+            width = 0;
+            for (x, c) in line.chars().enumerate() {
+                width += 1;
+                let direction = match c {
+                    '>' => Some(Direction::Right),
+                    '<' => Some(Direction::Left),
+                    '^' => Some(Direction::Up),
+                    'v' => Some(Direction::Down),
+                    _ => None,
+                };
+
+                if let Some(direction) = direction {
+                    blizzards.push((x - 1, y - 1, direction));
+                }
+            }
+        }
+        height -= 2;
+        width -= 2;
+        Ok(Valley {
+            width,
+            height,
+            blizzards,
+            expedition: (usize::MAX, usize::MAX),
+        })
+    }
+}
+
 impl Valley {
     pub(crate) fn find_shortest_path(
         &mut self,
@@ -89,17 +133,7 @@ impl Valley {
 
         result.1
     }
-}
 
-fn usize_abs_diff(a: usize, b: usize) -> usize {
-    if a > b {
-        a - b
-    } else {
-        b - a
-    }
-}
-
-impl Valley {
     pub(crate) fn is_free(&self, x: usize, y: usize) -> bool {
         for (bx, by, _) in &self.blizzards {
             if *bx == x && *by == y {
@@ -108,45 +142,7 @@ impl Valley {
         }
         true
     }
-}
 
-impl FromStr for Valley {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut width = 0;
-        let mut height = 0;
-        let mut blizzards = Vec::new();
-        for (y, line) in s.lines().enumerate() {
-            height += 1;
-            width = 0;
-            for (x, c) in line.chars().enumerate() {
-                width += 1;
-                let direction = match c {
-                    '>' => Some(Direction::Right),
-                    '<' => Some(Direction::Left),
-                    '^' => Some(Direction::Up),
-                    'v' => Some(Direction::Down),
-                    _ => None,
-                };
-
-                if let Some(direction) = direction {
-                    blizzards.push((x - 1, y - 1, direction));
-                }
-            }
-        }
-        height -= 2;
-        width -= 2;
-        Ok(Valley {
-            width,
-            height,
-            blizzards,
-            expedition: (usize::MAX, usize::MAX),
-        })
-    }
-}
-
-impl Valley {
     fn move_blizzards(&self) -> Self {
         let mut new_blizzards = Vec::new();
         for (x, y, direction) in &self.blizzards {
