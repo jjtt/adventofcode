@@ -18,7 +18,11 @@ struct Valley {
 }
 
 impl Valley {
-    pub(crate) fn find_shortest_path(&self) -> usize {
+    pub(crate) fn find_shortest_path(
+        &mut self,
+        (fromx, fromy): (usize, usize),
+        (tox, toy): (usize, usize),
+    ) -> usize {
         let result = pathfinding::prelude::astar(
             self,
             |valley| {
@@ -26,46 +30,72 @@ impl Valley {
 
                 let (x, y) = valley.expedition;
                 let next = valley.move_blizzards();
-                if next.is_free(x, y) {
-                    let mut next = next.clone();
-                    next.expedition = (x, y);
+                if (x, y) == (usize::MAX, usize::MAX) {
+                    if next.is_free(fromx, fromy) {
+                        let mut next = next.clone();
+                        next.expedition = (fromx, fromy);
+                        successors.push((next, 1));
+                    }
                     successors.push((next, 1));
-                }
-                if x > 0 && next.is_free(x - 1, y) {
-                    let mut next = next.clone();
-                    next.expedition = (x - 1, y);
-                    successors.push((next, 1));
-                }
-                if x < valley.width - 1 && next.is_free(x + 1, y) {
-                    let mut next = next.clone();
-                    next.expedition = (x + 1, y);
-                    successors.push((next, 1));
-                }
-                if y > 0 && next.is_free(x, y - 1) {
-                    let mut next = next.clone();
-                    next.expedition = (x, y - 1);
-                    successors.push((next, 1));
-                }
-                if y < valley.height - 1 && next.is_free(x, y + 1) {
-                    let mut next = next.clone();
-                    next.expedition = (x, y + 1);
-                    successors.push((next, 1));
+                } else {
+                    if x > 0 && next.is_free(x - 1, y) {
+                        let mut next = next.clone();
+                        next.expedition = (x - 1, y);
+                        successors.push((next, 1));
+                    }
+                    if x < valley.width - 1 && next.is_free(x + 1, y) {
+                        let mut next = next.clone();
+                        next.expedition = (x + 1, y);
+                        successors.push((next, 1));
+                    }
+                    if y > 0 && next.is_free(x, y - 1) {
+                        let mut next = next.clone();
+                        next.expedition = (x, y - 1);
+                        successors.push((next, 1));
+                    }
+                    if y < valley.height - 1 && next.is_free(x, y + 1) {
+                        let mut next = next.clone();
+                        next.expedition = (x, y + 1);
+                        successors.push((next, 1));
+                    }
+                    if next.is_free(x, y) {
+                        successors.push((next, 1));
+                    }
                 }
 
                 successors
             },
             |valley| {
                 let (x, y) = valley.expedition;
-                (valley.width - x) + (valley.height - y)
+                if (x, y) == (usize::MAX, usize::MAX) {
+                    valley.width + valley.height + 42 // should be more than any path
+                } else {
+                    usize_abs_diff(tox, x) + usize_abs_diff(toy, y)
+                }
             },
-            |valley| valley.expedition == (valley.width - 1, valley.height - 1),
+            |valley| valley.expedition == (tox, toy),
         );
 
-        let result = result.expect("a path");
+        let mut result = result.expect("a path");
 
         assert_eq!(result.1, result.0.len() - 1);
 
+        let goal = result.0.pop().expect("a goal");
+
+        // move expedition to safety
+        self.expedition = (usize::MAX, usize::MAX);
+        goal.move_blizzards();
+        self.blizzards = goal.blizzards;
+
         result.1
+    }
+}
+
+fn usize_abs_diff(a: usize, b: usize) -> usize {
+    if a > b {
+        a - b
+    } else {
+        b - a
     }
 }
 
@@ -77,19 +107,6 @@ impl Valley {
             }
         }
         true
-    }
-}
-
-impl Valley {
-    pub(crate) fn move_to_start(&mut self) -> usize {
-        assert_eq!((usize::MAX, usize::MAX), self.expedition);
-        let mut minutes = 0;
-        while !self.is_free(0, 0) {
-            minutes += 1;
-            self.blizzards = self.move_blizzards().blizzards;
-        }
-        self.expedition = (0, 0);
-        minutes
     }
 }
 
@@ -151,16 +168,19 @@ impl Valley {
 pub fn part1(input: &str) -> usize {
     let mut valley = read_to_string(input).unwrap().parse::<Valley>().unwrap();
 
-    let start = valley.move_to_start();
-
-    let rest = valley.find_shortest_path();
-
-    start + rest + 1
+    1 + valley.find_shortest_path((0, 0), (valley.width - 1, valley.height - 1))
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let mut valley = read_to_string(input).unwrap().parse::<Valley>().unwrap();
+
+    let there = valley.find_shortest_path((0, 0), (valley.width - 1, valley.height - 1));
+
+    let and_back = valley.find_shortest_path((valley.width - 1, valley.height - 1), (0, 0));
+
+    let and_there_again = valley.find_shortest_path((0, 0), (valley.width - 1, valley.height - 1));
+
+    1 + there + and_back + and_there_again
 }
 
 #[cfg(test)]
@@ -173,15 +193,6 @@ mod tests {
     fn parsing(input: &str) -> (usize, usize, usize) {
         let valley = read_to_string(input).unwrap().parse::<Valley>().unwrap();
         (valley.width, valley.height, valley.blizzards.len())
-    }
-
-    #[test_case("simple.txt" => 2)]
-    #[test_case("sample.txt" => 1)]
-    fn moving_to_start(input: &str) -> usize {
-        let mut valley = read_to_string(input).unwrap().parse::<Valley>().unwrap();
-        let minutes = valley.move_to_start();
-        assert_eq!((0, 0), valley.expedition);
-        minutes
     }
 
     #[test]
@@ -222,5 +233,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(266, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(54, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(853, part2("input.txt"));
     }
 }
