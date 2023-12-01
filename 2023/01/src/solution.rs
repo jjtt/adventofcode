@@ -1,5 +1,3 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
 pub fn part1(input: &str) -> u32 {
@@ -36,7 +34,7 @@ fn find_last(line: &str) -> char {
     let mut i = 0;
     while i < line.len() {
         let c = line.chars().nth(i).unwrap();
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             return c;
         } else if line[i..].starts_with("eno") {
             return '1';
@@ -66,7 +64,7 @@ fn find_first(line: &str) -> char {
     let mut i = 0;
     while i < line.len() {
         let c = line.chars().nth(i).unwrap();
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             return c;
         } else if line[i..].starts_with("one") {
             return '1';
