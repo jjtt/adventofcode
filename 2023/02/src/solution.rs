@@ -1,29 +1,31 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 
-fn parse_games(input: &str) -> Vec<(i32, Vec<Vec<(i32, String)>>)> {
+use scan_fmt::scan_fmt;
+
+type Game = Vec<Vec<(i32, String)>>;
+
+fn parse_games(input: &str) -> Vec<(i32, Game)> {
     let input = read_to_string(input).unwrap();
-    let mut lines = input.lines();
-    let games = lines
+    let lines = input.lines();
+
+    lines
         .map(|line| {
             let (id, game) = line.split_once(": ").unwrap();
             let id = scan_fmt!(id, "Game {d}", i32).unwrap();
             (
                 id,
-                game.split(";")
+                game.split(';')
                     .map(|round| {
                         round
-                            .split(",")
+                            .split(',')
                             .map(|colour| scan_fmt!(colour.trim(), "{d} {}", i32, String).unwrap())
                             .collect::<Vec<_>>()
                     })
                     .collect::<Vec<_>>(),
             )
         })
-        .collect::<Vec<_>>();
-    games
+        .collect::<Vec<_>>()
 }
 
 pub fn part1(input: &str) -> i32 {
@@ -51,16 +53,12 @@ pub fn part2(input: &str) -> i32 {
     games.into_iter().map(|(_, game)| solve_game(game)).sum()
 }
 
-fn solve_game(game: Vec<Vec<(i32, String)>>) -> i32 {
+fn solve_game(game: Game) -> i32 {
     game.into_iter()
         .flatten()
         .fold(HashMap::new(), |mut acc, (count, colour)| {
             acc.entry(colour)
-                .and_modify(|c: &mut i32| {
-                    let foo = *c;
-                    let bar = foo.max(count);
-                    *c = bar;
-                })
+                .and_modify(|c: &mut i32| *c = (*c).max(count))
                 .or_insert(count);
             acc
         })
