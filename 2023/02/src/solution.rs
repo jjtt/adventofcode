@@ -1,8 +1,9 @@
 use anyhow::bail;
 use scan_fmt::scan_fmt;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
-pub fn part1(input: &str) -> i32 {
+fn parse_games(input: &str) -> Vec<(i32, Vec<Vec<(i32, String)>>)> {
     let input = read_to_string(input).unwrap();
     let mut lines = input.lines();
     let games = lines
@@ -22,6 +23,11 @@ pub fn part1(input: &str) -> i32 {
             )
         })
         .collect::<Vec<_>>();
+    games
+}
+
+pub fn part1(input: &str) -> i32 {
+    let games = parse_games(input);
 
     games
         .into_iter()
@@ -40,13 +46,55 @@ pub fn part1(input: &str) -> i32 {
 }
 
 pub fn part2(input: &str) -> i32 {
-    //todo!()
-    0
+    let games = parse_games(input);
+
+    games.into_iter().map(|(_, game)| solve_game(game)).sum()
+}
+
+fn solve_game(game: Vec<Vec<(i32, String)>>) -> i32 {
+    game.into_iter()
+        .flatten()
+        .fold(HashMap::new(), |mut acc, (count, colour)| {
+            acc.entry(colour)
+                .and_modify(|c: &mut i32| {
+                    let foo = *c;
+                    let bar = foo.max(count);
+                    *c = bar;
+                })
+                .or_insert(count);
+            acc
+        })
+        .values()
+        .product()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn solving_sample_first_game() {
+        let game = vec![
+            vec![(3, "blue".to_string()), (4, "red".to_string())],
+            vec![(1, "red".to_string()), (2, "green".to_string())],
+            vec![(6, "blue".to_string()), (2, "green".to_string())],
+        ];
+        assert_eq!(48, solve_game(game));
+    }
+
+    #[test]
+    fn solving_sample_second_game() {
+        let game = vec![
+            vec![(1, "blue".to_string()), (2, "green".to_string())],
+            vec![
+                (3, "green".to_string()),
+                (4, "blue".to_string()),
+                (1, "red".to_string()),
+            ],
+            vec![(1, "green".to_string()), (1, "blue".to_string())],
+        ];
+        assert_eq!(12, solve_game(game));
+    }
 
     #[test]
     fn part1_sample() {
@@ -56,5 +104,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(2285, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(2286, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(77021, part2("input.txt"));
     }
 }
