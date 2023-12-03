@@ -1,7 +1,7 @@
-use crate::Part;
-use anyhow::bail;
-use scan_fmt::scan_fmt;
-use std::collections::HashMap;
+
+
+
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::str::FromStr;
 
@@ -11,7 +11,7 @@ struct Pos {
     y: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 struct Number {
     value: usize,
     start: Pos,
@@ -42,10 +42,58 @@ impl Schematic {
                         }
                     }
                 }
-                return false;
+                false
             })
             .map(|n| n.value)
             .collect()
+    }
+    pub(crate) fn gears_sum(&self) -> usize {
+        self.gears().iter().sum()
+    }
+    fn gears(&self) -> Vec<usize> {
+        let numbers = self
+            .numbers
+            .iter()
+            .flat_map(|n| (n.start.x..=n.end.x).map(move |x| ((x, n.start.y), n)))
+            .collect::<HashMap<_, _>>();
+
+        self.parts
+            .iter()
+            .filter(|&(_p, c)| *c == '*')
+            .map(|(p, _c)| {
+                let mut nums = HashSet::new();
+                if let Some(n) = numbers.get(&(p.x - 1, p.y - 1)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x - 1, p.y)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x - 1, p.y + 1)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x, p.y - 1)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x, p.y + 1)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x + 1, p.y - 1)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x + 1, p.y)) {
+                    nums.insert(*n);
+                }
+                if let Some(n) = numbers.get(&(p.x + 1, p.y + 1)) {
+                    nums.insert(*n);
+                }
+                nums
+            })
+            .filter(|nums| nums.len() == 2)
+            .map(|nums| {
+                let mut iter = nums.iter();
+                iter.next().unwrap().value * iter.next().unwrap().value
+            })
+            .collect::<Vec<_>>()
     }
 }
 
@@ -103,8 +151,9 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    let schematic = Schematic::from_str(&input).unwrap();
+    schematic.gears_sum()
 }
 
 #[cfg(test)]
@@ -119,5 +168,14 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(531932, part1("input.txt"));
+    }
+    #[test]
+    fn part2_sample() {
+        assert_eq!(467835, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(73646890, part2("input.txt"));
     }
 }
