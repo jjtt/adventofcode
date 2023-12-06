@@ -1,4 +1,4 @@
-use anyhow::bail;
+
 use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 use std::str::FromStr;
@@ -49,23 +49,39 @@ pub fn part1(input: &str) -> usize {
     let input = read_to_string(input).unwrap();
     let mut blocks = input.split("\n\n");
     let seeds = blocks.next().unwrap();
+    let seeds = seeds[7..]
+        .split(' ')
+        .map(str::parse::<usize>)
+        .map(Result::unwrap);
     let mapppers = blocks
         .map(|b| b.parse::<Mapper>().unwrap())
         .collect::<Vec<_>>();
 
-    seeds[7..]
-        .split(' ')
-        .map(str::parse::<usize>)
-        .map(Result::unwrap)
-        .map(|s| dbg!(s))
+    seeds
         .map(|s| mapppers.iter().fold(s, |s, m| m.map(s)))
         .min()
         .expect("a min value")
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    let mut blocks = input.split("\n\n");
+    let seeds = blocks.next().unwrap();
+    let seeds = seeds[7..]
+        .split(' ')
+        .map(str::parse::<usize>)
+        .map(Result::unwrap)
+        .collect::<Vec<_>>();
+    let seeds = seeds.chunks(2).flat_map(|w| w[0]..(w[0] + w[1]));
+
+    let mapppers = blocks
+        .map(|b| b.parse::<Mapper>().unwrap())
+        .collect::<Vec<_>>();
+
+    seeds
+        .map(|s| mapppers.iter().fold(s, |s, m| m.map(s)))
+        .min()
+        .expect("a min value")
 }
 
 #[cfg(test)]
@@ -84,11 +100,11 @@ mod tests {
 
     #[test]
     fn part2_sample() {
-        assert_eq!(0, part2("sample.txt"));
+        assert_eq!(46, part2("sample.txt"));
     }
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(56931769, part2("input.txt"));
     }
 }
