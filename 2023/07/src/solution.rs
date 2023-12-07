@@ -83,10 +83,20 @@ impl EvaluatedHand {
         EvaluatedHand { hand, value }
     }
     pub fn from_wild_jacks(hand: Hand) -> EvaluatedHand {
-        let jokers = hand.iter().filter(|card| **card == Card::Jack).count();
+        let hand: Hand = hand
+            .into_iter()
+            .map(|c| match c {
+                Card::Jack => Card::Joker,
+                c => c,
+            })
+            .collect::<Vec<Card>>()
+            .try_into()
+            .unwrap();
+
+        let jokers = hand.iter().filter(|card| **card == Card::Joker).count();
         let filtered_hand = hand
             .iter()
-            .filter(|card| **card != Card::Jack)
+            .filter(|card| **card != Card::Joker)
             .copied()
             .collect::<Vec<Card>>();
         let grouped = filtered_hand.iter().sorted().group_by(|card| *card);
@@ -112,16 +122,6 @@ impl EvaluatedHand {
             (4, 1) => 1, // one pair
             _ => EvaluatedHand::from(hand).value,
         };
-
-        let hand = hand
-            .into_iter()
-            .map(|c| match c {
-                Card::Jack => Card::Joker,
-                c => c,
-            })
-            .collect::<Vec<Card>>()
-            .try_into()
-            .unwrap();
 
         EvaluatedHand { hand, value }
     }
