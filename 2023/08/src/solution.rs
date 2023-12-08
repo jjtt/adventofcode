@@ -18,7 +18,12 @@ mod tests {
 
     #[test]
     fn part1_sample() {
-        assert_eq!(0, part1("sample.txt"));
+        assert_eq!(2, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part1_sample2() {
+        assert_eq!(6, part1("sample2.txt"));
     }
 
     #[test]
