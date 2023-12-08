@@ -3,7 +3,7 @@ use scan_fmt::scan_fmt;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 
-pub fn part1(input: &str) -> usize {
+pub fn solve(input: &str, part2: bool) -> usize {
     let input = read_to_string(input).unwrap();
     let mut lines = input.lines();
     let instructions = lines.next().expect("a string").chars().cycle();
@@ -16,17 +16,28 @@ pub fn part1(input: &str) -> usize {
         })
         .collect::<HashMap<_, _>>();
 
-    let mut loc = "AAA";
+    let mut loc = if part2 {
+        map.keys().filter(|l| l.ends_with('A')).cloned().collect()
+    } else {
+        vec!["AAA".to_string()]
+    };
     instructions
         .enumerate()
         .find_map(|(i, dir)| {
-            let options = map.get(loc).expect("a valid location");
-            loc = match dir {
-                'L' => &options.0,
-                'R' => &options.1,
-                _ => panic!("invalid direction"),
-            };
-            if loc == "ZZZ" {
+            loc = loc
+                .iter()
+                .map(|l| map.get(l).expect("a valid location"))
+                .map(|(l, r)| {
+                    match dir {
+                        'L' => l,
+                        'R' => r,
+                        _ => panic!("invalid direction"),
+                    }
+                    .clone()
+                })
+                .collect();
+
+            if loc.iter().all(|l| l.ends_with('Z')) {
                 Some(i)
             } else {
                 None
@@ -35,10 +46,12 @@ pub fn part1(input: &str) -> usize {
         .expect("to find a path")
         + 1
 }
+pub fn part1(input: &str) -> usize {
+    solve(input, false)
+}
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    solve(input, true)
 }
 
 #[cfg(test)]
@@ -58,5 +71,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(13019, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample3() {
+        assert_eq!(6, part2("sample3.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
