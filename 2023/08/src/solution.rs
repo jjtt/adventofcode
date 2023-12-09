@@ -1,12 +1,13 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
+use num::Integer;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 
-pub fn solve(input: &str, part2: bool) -> usize {
+use scan_fmt::scan_fmt;
+
+pub fn parse(input: &str) -> (String, HashMap<String, (String, String)>) {
     let input = read_to_string(input).unwrap();
     let mut lines = input.lines();
-    let instructions = lines.next().expect("a string").chars().cycle();
+    let instructions = lines.next().expect("a string").to_string();
     let lines = lines.skip(1);
     let map = lines
         .map(|line| {
@@ -15,29 +16,22 @@ pub fn solve(input: &str, part2: bool) -> usize {
             (x, (y, z))
         })
         .collect::<HashMap<_, _>>();
+    (instructions, map)
+}
 
-    let mut loc = if part2 {
-        map.keys().filter(|l| l.ends_with('A')).cloned().collect()
-    } else {
-        vec!["AAA".to_string()]
-    };
+pub fn solve(instructions: String, map: HashMap<String, (String, String)>, start: &str) -> usize {
+    let instructions = instructions.chars().cycle();
+    let mut loc = start;
     instructions
         .enumerate()
         .find_map(|(i, dir)| {
-            loc = loc
-                .iter()
-                .map(|l| map.get(l).expect("a valid location"))
-                .map(|(l, r)| {
-                    match dir {
-                        'L' => l,
-                        'R' => r,
-                        _ => panic!("invalid direction"),
-                    }
-                    .clone()
-                })
-                .collect();
-
-            if loc.iter().all(|l| l.ends_with('Z')) {
+            let options = map.get(loc).expect("a valid location");
+            loc = match dir {
+                'L' => &options.0,
+                'R' => &options.1,
+                _ => panic!("invalid direction"),
+            };
+            if loc.ends_with('Z') {
                 Some(i)
             } else {
                 None
@@ -47,11 +41,19 @@ pub fn solve(input: &str, part2: bool) -> usize {
         + 1
 }
 pub fn part1(input: &str) -> usize {
-    solve(input, false)
+    let (instructions, map) = parse(input);
+    solve(instructions, map, "AAA")
 }
 
 pub fn part2(input: &str) -> usize {
-    solve(input, true)
+    let (instructions, map) = parse(input);
+
+    let starts = map.keys().filter(|k| k.ends_with('A')).collect::<Vec<_>>();
+
+    starts
+        .into_iter()
+        .map(|start| solve(instructions.clone(), map.clone(), start))
+        .fold(1, |acc, steps| acc.lcm(&steps))
 }
 
 #[cfg(test)]
@@ -80,6 +82,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(13524038372771, part2("input.txt"));
     }
 }
