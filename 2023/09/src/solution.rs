@@ -10,16 +10,6 @@ fn next(seq: &[i32]) -> i32 {
     }
 }
 
-fn prev(seq: &[i32]) -> i32 {
-    let next_seq = seq.windows(2).map(|w| w[1] - w[0]).collect::<Vec<_>>();
-    if next_seq.iter().all(|n| *n == 0) {
-        seq[0]
-    } else {
-        let prev_val = prev(&next_seq);
-        seq.first().expect("seq is not empty") - prev_val
-    }
-}
-
 pub fn part1(input: &str) -> i32 {
     let input = read_to_string(input).unwrap();
     input
@@ -44,7 +34,8 @@ pub fn part2(input: &str) -> i32 {
                 .map(|n| n.parse::<i32>().unwrap())
                 .collect::<Vec<_>>()
         })
-        .map(|seq| prev(&seq))
+        .map(|seq| seq.into_iter().rev().collect::<Vec<_>>())
+        .map(|seq| next(&seq))
         .sum()
 }
 
@@ -54,14 +45,16 @@ mod tests {
 
     #[test]
     fn one_sequence_prev() {
-        let seq = vec![10, 13, 16, 21, 30, 45];
-        assert_eq!(5, prev(&seq));
+        let mut seq = vec![10, 13, 16, 21, 30, 45];
+        seq.reverse();
+        assert_eq!(5, next(&seq));
     }
 
     #[test]
     fn another_sequence_prev() {
-        let seq = vec![0, 2, 4, 6];
-        assert_eq!(-2, prev(&seq));
+        let mut seq = vec![0, 2, 4, 6];
+        seq.reverse();
+        assert_eq!(-2, next(&seq));
     }
 
     #[test]
