@@ -19,7 +19,7 @@ pub fn parse(input: &str) -> (String, HashMap<String, (String, String)>) {
     (instructions, map)
 }
 
-pub fn solve(instructions: String, map: HashMap<String, (String, String)>, start: &str) -> usize {
+pub fn solve(instructions: &str, map: &HashMap<String, (String, String)>, start: &str) -> usize {
     let instructions = instructions.chars().cycle();
     let mut loc = start;
     instructions
@@ -42,7 +42,7 @@ pub fn solve(instructions: String, map: HashMap<String, (String, String)>, start
 }
 pub fn part1(input: &str) -> usize {
     let (instructions, map) = parse(input);
-    solve(instructions, map, "AAA")
+    solve(&instructions, &map, "AAA")
 }
 
 pub fn part2(input: &str) -> usize {
@@ -52,7 +52,7 @@ pub fn part2(input: &str) -> usize {
 
     starts
         .into_iter()
-        .map(|start| solve(instructions.clone(), map.clone(), start))
+        .map(|start| solve(&instructions, &map, start))
         .fold(1, |acc, steps| acc.lcm(&steps))
 }
 
