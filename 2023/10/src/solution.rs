@@ -61,16 +61,16 @@ impl Pipe {
     }
 }
 
-fn find_loop(
-    input: &str,
-) -> (
+type Loop = (
     usize,
     usize,
     usize,
     HashSet<(usize, usize)>,
     HashSet<(usize, usize)>,
     HashSet<(usize, usize)>,
-) {
+);
+
+fn find_loop(input: &str) -> Loop {
     let input = read_to_string(input).unwrap();
     let map = input
         .trim()
@@ -85,7 +85,7 @@ fn find_loop(
 
     let &start = map
         .iter()
-        .find(|(_, &ref pipe)| *pipe == Pipe::Start)
+        .find(|(_, pipe)| **pipe == Pipe::Start)
         .unwrap()
         .0;
     let mut steps = 1;
@@ -211,10 +211,9 @@ fn find_for(
     }
 }
 
-fn find(
-    pos: (usize, usize),
-    map: &HashMap<(usize, usize), Pipe>,
-) -> (((usize, usize), Direction), ((usize, usize), Direction)) {
+type Neighbours = (((usize, usize), Direction), ((usize, usize), Direction));
+
+fn find(pos: (usize, usize), map: &HashMap<(usize, usize), Pipe>) -> Neighbours {
     let current = map.get(&pos).expect("current");
     let mut neighbours = vec![];
     if let Some(pipe) = map.get(&(pos.0, pos.1 - 1)) {
