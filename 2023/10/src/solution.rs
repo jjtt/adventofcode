@@ -1,5 +1,3 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 
@@ -264,18 +262,19 @@ fn fill(
     maxy: usize,
     tunnel: &HashSet<(usize, usize)>,
 ) -> Option<usize> {
+    let mut fill_from = fill_from.iter().cloned().collect::<Vec<_>>();
     let offsets = [(0, 1), (1, 0), (0, -1_i32), (-1_i32, 0)];
     let mut seen = HashSet::new();
-    for (x, y) in fill_from.iter() {
-        seen.insert((*x, *y));
+    while let Some((x, y)) = fill_from.pop() {
+        seen.insert((x, y));
         for (x_off, y_off) in offsets.iter() {
-            let x = (*x as i32 + x_off) as usize;
-            let y = (*y as i32 + y_off) as usize;
+            let x = (x as i32 + x_off) as usize;
+            let y = (y as i32 + y_off) as usize;
             if x == 0 || x > maxx || y == 0 || y > maxy {
                 return None;
             }
-            if !tunnel.contains(&(x, y)) {
-                seen.insert((x, y));
+            if !tunnel.contains(&(x, y)) && seen.insert((x, y)) {
+                fill_from.push((x, y));
             }
         }
     }
@@ -318,6 +317,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(357, part2("input.txt"));
     }
 }
