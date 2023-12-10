@@ -1,6 +1,6 @@
 use anyhow::bail;
 use scan_fmt::scan_fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -63,7 +63,16 @@ impl Pipe {
     }
 }
 
-pub fn part1(input: &str) -> usize {
+fn find_loop(
+    input: &str,
+) -> (
+    usize,
+    usize,
+    usize,
+    HashSet<(usize, usize)>,
+    HashSet<(usize, usize)>,
+    HashSet<(usize, usize)>,
+) {
     let input = read_to_string(input).unwrap();
     let map = input
         .trim()
@@ -83,13 +92,113 @@ pub fn part1(input: &str) -> usize {
         .0;
     let mut steps = 1;
     let (mut creature1, mut creature2) = find(start, &map);
+    let mut tunnel = HashSet::from([start, creature1.0, creature2.0]);
+    let mut left = HashSet::new();
+    let mut right = HashSet::new();
 
     while creature1.0 != creature2.0 {
+        left.extend(on_left(creature1, &map));
+        right.extend(on_right(creature1, &map));
+        left.extend(on_right(creature2, &map));
+        right.extend(on_left(creature2, &map));
+
         steps += 1;
         creature1 = find_for(creature1, &map);
         creature2 = find_for(creature2, &map);
+        tunnel.insert(creature1.0);
+        tunnel.insert(creature2.0);
     }
-    steps
+
+    left.retain(|pos| !tunnel.contains(pos));
+    right.retain(|pos| !tunnel.contains(pos));
+
+    let (maxx, maxy) = map
+        .keys()
+        .fold((0, 0), |(maxx, maxy), &(x, y)| (maxx.max(x), maxy.max(y)));
+
+    (steps, maxx, maxy, tunnel, left, right)
+}
+
+fn on_left(
+    creature: ((usize, usize), Direction),
+    map: &HashMap<(usize, usize), Pipe>,
+) -> Vec<(usize, usize)> {
+    let pipe = map.get(&creature.0).unwrap();
+    match creature.1 {
+        Direction::North => match pipe {
+            Pipe::NS => vec![(creature.0 .0 - 1, creature.0 .1)],
+            Pipe::SE => vec![
+                (creature.0 .0 - 1, creature.0 .1),
+                (creature.0 .0, creature.0 .1 - 1),
+            ],
+            _ => vec![],
+        },
+        Direction::East => match pipe {
+            Pipe::EW => vec![(creature.0 .0, creature.0 .1 - 1)],
+            Pipe::SW => vec![
+                (creature.0 .0, creature.0 .1 - 1),
+                (creature.0 .0 + 1, creature.0 .1),
+            ],
+            _ => vec![],
+        },
+        Direction::South => match pipe {
+            Pipe::NS => vec![(creature.0 .0 + 1, creature.0 .1)],
+            Pipe::NW => vec![
+                (creature.0 .0 + 1, creature.0 .1),
+                (creature.0 .0, creature.0 .1 + 1),
+            ],
+            _ => vec![],
+        },
+        Direction::West => match pipe {
+            Pipe::EW => vec![(creature.0 .0, creature.0 .1 + 1)],
+            Pipe::NE => vec![
+                (creature.0 .0, creature.0 .1 + 1),
+                (creature.0 .0 - 1, creature.0 .1),
+            ],
+            _ => vec![],
+        },
+    }
+}
+
+fn on_right(
+    creature: ((usize, usize), Direction),
+    map: &HashMap<(usize, usize), Pipe>,
+) -> Vec<(usize, usize)> {
+    let pipe = map.get(&creature.0).unwrap();
+    match creature.1 {
+        Direction::North => match pipe {
+            Pipe::NS => vec![(creature.0 .0 + 1, creature.0 .1)],
+            Pipe::SW => vec![
+                (creature.0 .0 + 1, creature.0 .1),
+                (creature.0 .0, creature.0 .1 - 1),
+            ],
+            _ => vec![],
+        },
+        Direction::East => match pipe {
+            Pipe::EW => vec![(creature.0 .0, creature.0 .1 + 1)],
+            Pipe::NW => vec![
+                (creature.0 .0, creature.0 .1 + 1),
+                (creature.0 .0 + 1, creature.0 .1),
+            ],
+            _ => vec![],
+        },
+        Direction::South => match pipe {
+            Pipe::NS => vec![(creature.0 .0 - 1, creature.0 .1)],
+            Pipe::NE => vec![
+                (creature.0 .0 - 1, creature.0 .1),
+                (creature.0 .0, creature.0 .1 + 1),
+            ],
+            _ => vec![],
+        },
+        Direction::West => match pipe {
+            Pipe::EW => vec![(creature.0 .0, creature.0 .1 - 1)],
+            Pipe::SE => vec![
+                (creature.0 .0, creature.0 .1 - 1),
+                (creature.0 .0 - 1, creature.0 .1),
+            ],
+            _ => vec![],
+        },
+    }
 }
 
 fn find_for(
@@ -134,9 +243,43 @@ fn find(
     (neighbours[0], neighbours[1])
 }
 
+pub fn part1(input: &str) -> usize {
+    find_loop(input).0
+}
+
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let (_steps, maxx, maxy, tunnel, left, right) = find_loop(input);
+    assert!(left.is_disjoint(&right));
+    assert!(tunnel.is_disjoint(&left));
+    assert!(tunnel.is_disjoint(&right));
+
+    fill(&left, maxx, maxy, &tunnel)
+        .or_else(|| fill(&right, maxx, maxy, &tunnel))
+        .expect("left or right is the inside")
+}
+
+fn fill(
+    fill_from: &HashSet<(usize, usize)>,
+    maxx: usize,
+    maxy: usize,
+    tunnel: &HashSet<(usize, usize)>,
+) -> Option<usize> {
+    let offsets = [(0, 1), (1, 0), (0, -1_i32), (-1_i32, 0)];
+    let mut seen = HashSet::new();
+    for (x, y) in fill_from.iter() {
+        seen.insert((*x, *y));
+        for (x_off, y_off) in offsets.iter() {
+            let x = (*x as i32 + x_off) as usize;
+            let y = (*y as i32 + y_off) as usize;
+            if x == 0 || x > maxx || y == 0 || y > maxy {
+                return None;
+            }
+            if !tunnel.contains(&(x, y)) {
+                seen.insert((x, y));
+            }
+        }
+    }
+    Some(seen.len())
 }
 
 #[cfg(test)]
@@ -151,5 +294,30 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(6931, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(1, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_sample2() {
+        assert_eq!(10, part2("sample2.txt"));
+    }
+
+    #[test]
+    fn part2_sample3() {
+        assert_eq!(4, part2("sample3.txt"));
+    }
+
+    #[test]
+    fn part2_sample4() {
+        assert_eq!(8, part2("sample4.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
