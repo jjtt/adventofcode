@@ -4,7 +4,7 @@ use scan_fmt::scan_fmt;
 use std::collections::HashSet;
 use std::fs::read_to_string;
 
-pub fn part1(input: &str) -> usize {
+pub fn solve(input: &str, expanding_universe: usize) -> usize {
     let input = read_to_string(input).unwrap();
     let galaxies = input
         .trim()
@@ -29,8 +29,8 @@ pub fn part1(input: &str) -> usize {
         .into_iter()
         .map(|(x, y)| {
             (
-                x + empty_columns.iter().filter(|&c| x > *c).count(),
-                y + empty_rows.iter().filter(|&r| y > *r).count(),
+                x + empty_columns.iter().filter(|&c| x > *c).count() * expanding_universe,
+                y + empty_rows.iter().filter(|&r| y > *r).count() * expanding_universe,
             )
         })
         .collect::<HashSet<_>>();
@@ -45,10 +45,12 @@ pub fn part1(input: &str) -> usize {
         })
         .sum()
 }
+pub fn part1(input: &str) -> usize {
+    solve(input, 1)
+}
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    solve(input, 999999)
 }
 
 #[cfg(test)]
@@ -63,5 +65,20 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(10033566, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample_10() {
+        assert_eq!(1030, solve("sample.txt", 9));
+    }
+
+    #[test]
+    fn part2_sample_100() {
+        assert_eq!(8410, solve("sample.txt", 99));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
