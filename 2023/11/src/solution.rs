@@ -1,6 +1,6 @@
-use anyhow::bail;
+
 use itertools::Itertools;
-use scan_fmt::scan_fmt;
+
 use std::collections::HashSet;
 use std::fs::read_to_string;
 
@@ -79,6 +79,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(560822911938, part2("input.txt"));
     }
 }
