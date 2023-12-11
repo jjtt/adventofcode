@@ -81,6 +81,11 @@ mod tests {
     }
 
     #[test]
+    fn part2_nasty_sample() {
+        assert_eq!(0, part2("nasty_sample.txt"));
+    }
+
+    #[test]
     fn part2_input() {
         assert_eq!(13524038372771, part2("input.txt"));
     }
