@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
@@ -19,7 +20,7 @@ enum Card {
     Ace,
 }
 
-type Hand = [Card; 5];
+type Hand = Vec<Card>;
 
 fn parse_hand(s: &str) -> Hand {
     s.chars()
@@ -39,46 +40,39 @@ fn parse_hand(s: &str) -> Hand {
             'A' => Card::Ace,
             _ => panic!("Invalid card: {}", c),
         })
-        .collect::<Vec<Card>>()
-        .try_into()
-        .unwrap()
+        .collect()
 }
 
 #[derive(PartialEq, Eq)]
 struct EvaluatedHand {
     hand: Hand,
-    value: usize,
+    value: (usize, usize, usize, usize, usize),
 }
 
 impl EvaluatedHand {
     pub fn from(hand: Hand) -> EvaluatedHand {
-        let grouped = hand.iter().sorted().group_by(|card| *card);
-        let sets = grouped
+        let groups = hand
+            .iter()
+            .sorted()
+            .group_by(|card| *card)
             .into_iter()
             .map(|(_, group)| group.count())
             .sorted()
+            .group_by(|group_size| *group_size)
+            .into_iter()
+            .map(|(group_size, group)| (group_size, group.count()))
+            .collect::<HashMap<_, _>>();
+        let value = (1..=5)
             .rev()
-            .collect::<Vec<usize>>();
-        let value = match sets.len() {
-            1 => 6, // five of a kind
-            2 => {
-                if sets[0] == 4 {
-                    5 // four of a kind
+            .map(|i| {
+                if let Some(count) = groups.get(&i) {
+                    *count
                 } else {
-                    4 // full house
+                    0
                 }
-            }
-            3 => {
-                if sets[0] == 3 {
-                    3 // three of a kind
-                } else {
-                    2 // two pair
-                }
-            }
-            4 => 1, // one pair
-            5 => 0, // high card
-            _ => panic!("Invalid hand: {:?}", hand),
-        };
+            })
+            .collect_tuple()
+            .unwrap();
 
         EvaluatedHand { hand, value }
     }
@@ -89,9 +83,7 @@ impl EvaluatedHand {
                 Card::Jack => Card::Joker,
                 c => c,
             })
-            .collect::<Vec<Card>>()
-            .try_into()
-            .unwrap();
+            .collect();
 
         let jokers = hand.iter().filter(|card| **card == Card::Joker).count();
         let filtered_hand = hand
@@ -99,28 +91,23 @@ impl EvaluatedHand {
             .filter(|card| **card != Card::Joker)
             .copied()
             .collect::<Vec<Card>>();
-        let grouped = filtered_hand.iter().sorted().group_by(|card| *card);
-        let sets = grouped
-            .into_iter()
-            .map(|(_, group)| group.count())
-            .sorted()
-            .rev()
-            .collect::<Vec<usize>>();
-        let value = match (sets.len(), jokers) {
-            (1, _) => 6, // five of a kind
-            (2, 1) => {
-                if sets[0] == 3 {
-                    5 // four of a kind
-                } else {
-                    4 // full house
-                }
-            }
-            (2, 2) => 5, // four of a kind
-            (2, 3) => 5, // four of a kind
-            (3, 1) => 3, // three of a kind
-            (3, 2) => 1, // one pair
-            (4, 1) => 1, // one pair
-            _ => EvaluatedHand::from(hand).value,
+
+        let (fives, fours, threes, pairs, singles) = EvaluatedHand::from(filtered_hand).value;
+
+        let value = match jokers {
+            0 => (fives, fours, threes, pairs, singles),
+            1 if fours == 1 => (1, 0, 0, 0, 0),
+            1 if threes == 1 => (0, 1, 0, 0, 1),
+            1 if pairs > 0 => (0, 0, 1, pairs - 1, singles),
+            1 => (0, 0, 0, 1, 3),
+            2 if threes == 1 => (1, 0, 0, 0, 0),
+            2 if pairs == 1 => (0, 1, 0, 0, 1),
+            2 => (0, 0, 1, 0, 2),
+            3 if pairs == 1 => (1, 0, 0, 0, 0),
+            3 => (0, 1, 0, 0, 1),
+            4 => (1, 0, 0, 0, 0),
+            5 => (1, 0, 0, 0, 0),
+            _ => panic!("Invalid number of jokers: {}", jokers),
         };
 
         EvaluatedHand { hand, value }
@@ -155,7 +142,7 @@ pub fn evaluate(input: &str, jacks_wild: bool) -> usize {
         .trim()
         .lines()
         .map(|line| {
-            let (hand, bid) = line.split_once(" ").expect("a valid line");
+            let (hand, bid) = line.split_once(' ').expect("a valid line");
             (
                 if jacks_wild {
                     EvaluatedHand::from_wild_jacks(parse_hand(hand))
@@ -182,43 +169,20 @@ mod tests {
     use super::*;
     use test_case::test_case;
 
-    #[test_case("AAAAA" => 6)]
-    #[test_case("AA8AA" => 5)]
-    #[test_case("23332" => 4)]
-    #[test_case("TTT98" => 3)]
-    #[test_case("23432" => 2)]
-    #[test_case("A23A4" => 1)]
-    #[test_case("23456" => 0)]
-    fn evaluated_hand_value(hand: &str) -> usize {
+    #[test_case("AAAAA" => (1, 0, 0, 0, 0))]
+    #[test_case("AA8AA" => (0, 1, 0, 0, 1))]
+    #[test_case("23332" => (0, 0, 1, 1, 0))]
+    #[test_case("TTT98" => (0, 0, 1, 0, 2))]
+    #[test_case("23432" => (0, 0, 0, 2, 1))]
+    #[test_case("A23A4" => (0, 0, 0, 1, 3))]
+    #[test_case("23456" => (0, 0, 0, 0, 5))]
+    fn evaluated_hand_value(hand: &str) -> (usize, usize, usize, usize, usize) {
         EvaluatedHand::from(parse_hand(hand)).value
     }
 
-    #[test_case("AAAAA" => 6)]
-    #[test_case("AA8AA" => 5)]
-    #[test_case("23332" => 4)]
-    #[test_case("TTT98" => 3)]
-    #[test_case("23432" => 2)]
-    #[test_case("A23A4" => 1)]
-    #[test_case("23456" => 0)]
-    #[test_case("32T3K" => 1)]
-    #[test_case("KK677" => 2)]
-    #[test_case("T55J5" => 5)]
-    #[test_case("KTJJT" => 5)]
-    #[test_case("QQQJA" => 5)]
-    #[test_case("JJJJJ" => 6)]
-    #[test_case("JJJJA" => 6)]
-    #[test_case("JJJAA" => 6)]
-    #[test_case("JJAAA" => 6)]
-    #[test_case("JAAAA" => 6)]
-    #[test_case("JJJA2" => 5)]
-    #[test_case("JJAA2" => 5)]
-    #[test_case("JAAA2" => 5)]
-    #[test_case("AAAA2" => 5)]
-    #[test_case("JAA22" => 4)]
-    #[test_case("AAA22" => 4)]
-    #[test_case("J2345" => 1)]
-    #[test_case("JAA23" => 3)]
-    fn evaluated_joker_hand_value(hand: &str) -> usize {
+    #[test_case("JJJJJ" => (1, 0, 0, 0, 0))]
+    #[test_case("JAA23" => (0, 0, 1, 0, 2))]
+    fn evaluated_joker_hand_value(hand: &str) -> (usize, usize, usize, usize, usize) {
         EvaluatedHand::from_wild_jacks(parse_hand(hand)).value
     }
 
@@ -239,6 +203,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(251195607, part2("input.txt"));
     }
 }
