@@ -51,8 +51,28 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    input
+        .trim()
+        .lines()
+        .map(|line| {
+            let (springs, groups) = line.split_once(' ').expect("a valid line");
+            let springs = std::iter::repeat(springs)
+                .take(5)
+                .collect::<Vec<_>>()
+                .join("?");
+            let groups = std::iter::repeat(groups)
+                .take(5)
+                .collect::<Vec<_>>()
+                .join(",");
+
+            let groups = groups
+                .split(',')
+                .map(|g| g.parse().expect("a number"))
+                .collect::<Vec<usize>>();
+            count(&springs, &groups, false, false)
+        })
+        .sum()
 }
 
 #[cfg(test)]
@@ -83,5 +103,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(7670, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(525152, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
