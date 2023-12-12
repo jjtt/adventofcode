@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.66"
 scan_fmt = "0.2.6"
+
+[dev-dependencies]
+test-case = "3.2.1"
