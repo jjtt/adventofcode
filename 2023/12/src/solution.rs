@@ -3,6 +3,9 @@ use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
 fn count(springs: &str, groups: &[usize], in_group: bool, was_group: bool) -> usize {
+    if cull(springs, groups) {
+        return 0;
+    }
     let spring = springs.chars().next();
     match spring {
         None if groups.is_empty() => 1,
@@ -32,6 +35,11 @@ fn count(springs: &str, groups: &[usize], in_group: bool, was_group: bool) -> us
         }
         _ => panic!("invalid input"),
     }
+}
+
+fn cull(springs: &str, groups: &[usize]) -> bool {
+    let sum: usize = groups.iter().sum();
+    (sum + groups.len()) > springs.len() + 1
 }
 
 pub fn part1(input: &str) -> usize {
@@ -93,6 +101,12 @@ mod tests {
     #[test_case("???.###", &[1,1,3] => 1; "sample, row1")]
     fn counting(springs: &str, groups: &[usize]) -> usize {
         count(springs, groups, false, false)
+    }
+
+    #[test_case("???.###", &[2,1,3] => true; "too many in groups")]
+    #[test_case("???.###", &[1,1,3] => false; "fits")]
+    fn culling(springs: &str, groups: &[usize]) -> bool {
+        cull(springs, groups)
     }
 
     #[test]
