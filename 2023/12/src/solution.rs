@@ -59,7 +59,10 @@ fn count(
 
 fn cull(spring: Option<char>, springs: &[char], groups: &[usize]) -> bool {
     let sum: usize = groups.iter().sum();
-    (sum + groups.len()) > springs.len() + spring.map_or_else(|| 0, |_| 1) + 1
+    let hashes_and_question_marks = springs.iter().filter(|c| matches!(c, '#' | '?')).count()
+        + spring.map_or(0, |c| matches!(c, '#' | '?') as usize);
+    (sum) > hashes_and_question_marks
+        || (sum + groups.len()) > springs.len() + spring.map_or(0, |_| 1) + 1
 }
 
 pub fn part1(input: &str) -> usize {
