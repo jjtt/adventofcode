@@ -12,13 +12,10 @@ struct Pattern {
 
 impl Pattern {
     fn mirror(&self) -> (usize, usize) {
-        let vertical = self.find_mirror(&self.pattern, self.maxx);
-        let horizontal = if vertical == 0 {
-            self.find_mirror(&self.transposed, self.maxy)
-        } else {
-            0
-        };
-        (vertical, horizontal)
+        (
+            self.find_mirror(&self.pattern, self.maxx),
+            self.find_mirror(&self.transposed, self.maxy),
+        )
     }
 
     fn find_mirror(&self, pattern: &[u64], max: usize) -> usize {
@@ -37,12 +34,12 @@ impl Pattern {
     }
 }
 
-fn transpose(input: &[u64], maxy: usize) -> Vec<u64> {
-    let mut output = vec![0; input.len()];
+fn transpose(input: &[u64], maxx: usize) -> Vec<u64> {
+    let mut output = vec![0; maxx];
     for (i, &value) in input.iter().enumerate() {
-        for j in 0..maxy {
-            let bit = (value >> j) & 1;
-            output[maxy - j - 1] |= bit << (maxy - i - 1);
+        for j in 0..maxx {
+            let bit = (value >> (maxx - j - 1)) & 1;
+            output[j] |= bit << (input.len() - i - 1);
         }
     }
     output
@@ -55,7 +52,7 @@ fn parse(input: &str) -> Vec<Pattern> {
     let mut maxy = 0;
     for line in (input.trim().to_string() + "\n\n").lines() {
         if line.is_empty() {
-            let transposed = transpose(&pattern, maxy);
+            let transposed = transpose(&pattern, maxx);
             patterns.push(Pattern {
                 pattern,
                 transposed,
