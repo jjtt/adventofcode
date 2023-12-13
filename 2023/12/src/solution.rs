@@ -2,15 +2,30 @@ use anyhow::bail;
 use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
-fn count(springs: &str, groups: &[usize], in_group: bool, was_group: bool) -> usize {
-    if cull(springs, groups) {
+fn start_count(springs: &str, groups: &[usize]) -> usize {
+    let springs = springs.chars().collect::<Vec<_>>();
+    count(Some(springs[0]), &springs[1..], groups, false, false)
+}
+
+fn count(
+    spring: Option<char>,
+    springs: &[char],
+    groups: &[usize],
+    in_group: bool,
+    was_group: bool,
+) -> usize {
+    if cull(spring, springs, groups) {
         return 0;
     }
-    let spring = springs.chars().next();
+    let remaining = if springs.is_empty() {
+        &[]
+    } else {
+        &springs[1..]
+    };
     match spring {
         None if groups.is_empty() => 1,
         None if !groups.is_empty() => 0,
-        Some('.') if !in_group => count(&springs[1..], groups, false, false),
+        Some('.') if !in_group => count(springs.first().copied(), remaining, groups, false, false),
         Some('.') if in_group => 0,
         Some('#') if groups.is_empty() => 0,
         Some('#') if !in_group && was_group => 0,
@@ -18,28 +33,33 @@ fn count(springs: &str, groups: &[usize], in_group: bool, was_group: bool) -> us
             let group = groups[0] - 1;
             if group > 0 {
                 count(
-                    &springs[1..],
+                    springs.first().copied(),
+                    remaining,
                     &[&[group], &groups[1..]].concat(),
                     true,
                     true,
                 )
             } else {
-                count(&springs[1..], &groups[1..], false, true)
+                count(
+                    springs.first().copied(),
+                    remaining,
+                    &groups[1..],
+                    false,
+                    true,
+                )
             }
         }
         Some('?') => {
-            let with_spring = "#".to_string() + &springs[1..];
-            let without_spring = ".".to_string() + &springs[1..];
-            count(&with_spring, groups, in_group, was_group)
-                + count(&without_spring, groups, in_group, was_group)
+            count(Some('#'), springs, groups, in_group, was_group)
+                + count(Some('.'), springs, groups, in_group, was_group)
         }
         _ => panic!("invalid input"),
     }
 }
 
-fn cull(springs: &str, groups: &[usize]) -> bool {
+fn cull(spring: Option<char>, springs: &[char], groups: &[usize]) -> bool {
     let sum: usize = groups.iter().sum();
-    (sum + groups.len()) > springs.len() + 1
+    (sum + groups.len()) > springs.len() + spring.map_or_else(|| 0, |_| 1) + 1
 }
 
 pub fn part1(input: &str) -> usize {
@@ -53,7 +73,7 @@ pub fn part1(input: &str) -> usize {
                 .split(',')
                 .map(|g| g.parse().expect("a number"))
                 .collect::<Vec<usize>>();
-            count(springs, &groups, false, false)
+            start_count(springs, &groups)
         })
         .sum()
 }
@@ -78,7 +98,7 @@ pub fn part2(input: &str) -> usize {
                 .split(',')
                 .map(|g| g.parse().expect("a number"))
                 .collect::<Vec<usize>>();
-            count(&springs, &groups, false, false)
+            start_count(&springs, &groups)
         })
         .sum()
 }
@@ -100,13 +120,14 @@ mod tests {
     #[test_case("??", &[] => 1; "two something, no groups")]
     #[test_case("???.###", &[1,1,3] => 1; "sample, row1")]
     fn counting(springs: &str, groups: &[usize]) -> usize {
-        count(springs, groups, false, false)
+        start_count(springs, groups)
     }
 
     #[test_case("???.###", &[2,1,3] => true; "too many in groups")]
     #[test_case("???.###", &[1,1,3] => false; "fits")]
     fn culling(springs: &str, groups: &[usize]) -> bool {
-        cull(springs, groups)
+        let springs = springs.chars().collect::<Vec<_>>();
+        cull(springs.first().copied(), &springs[1..], groups)
     }
 
     #[test]
