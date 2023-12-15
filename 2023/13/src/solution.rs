@@ -1,5 +1,3 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
 #[derive(Debug)]
@@ -11,22 +9,27 @@ struct Pattern {
 }
 
 impl Pattern {
-    fn mirror(&self) -> (usize, usize) {
+    fn mirror(&self, with_smudge: bool) -> (usize, usize) {
         (
-            self.find_mirror(&self.pattern, self.maxx),
-            self.find_mirror(&self.transposed, self.maxy),
+            self.find_mirror(&self.pattern, self.maxx, with_smudge),
+            self.find_mirror(&self.transposed, self.maxy, with_smudge),
         )
     }
 
-    fn find_mirror(&self, pattern: &[u64], max: usize) -> usize {
+    fn find_mirror(&self, pattern: &[u64], max: usize, with_smudge: bool) -> usize {
         for i in 1..max {
             let shorter_side = i.min(max - i);
-            if pattern.iter().all(|&p| {
-                let left = (p << (64 - max + i - shorter_side)) >> (64 - shorter_side);
-                let right = (p >> (max - i - shorter_side)) << (64 - shorter_side);
-                let right = right.reverse_bits();
-                left == right
-            }) {
+            let sum = pattern
+                .iter()
+                .map(|&p| {
+                    let left = (p << (64 - max + i - shorter_side)) >> (64 - shorter_side);
+                    let right = (p >> (max - i - shorter_side)) << (64 - shorter_side);
+                    let right = right.reverse_bits();
+                    let xor = left ^ right;
+                    xor.count_ones()
+                })
+                .sum::<u32>();
+            if (!with_smudge && sum == 0) || (with_smudge && sum == 1) {
                 return i;
             }
         }
@@ -72,20 +75,22 @@ fn parse(input: &str) -> Vec<Pattern> {
     patterns
 }
 
-pub fn part1(input: &str) -> usize {
+pub fn solve(input: &str, with_smudge: bool) -> usize {
     let input = read_to_string(input).unwrap();
     let patterns = parse(&input);
 
     patterns
         .into_iter()
-        .map(|p| p.mirror())
+        .map(|p| p.mirror(with_smudge))
         .map(|(c, r)| c + 100 * r)
         .sum()
 }
+pub fn part1(input: &str) -> usize {
+    solve(input, false)
+}
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    solve(input, true)
 }
 
 #[cfg(test)]
@@ -115,7 +120,7 @@ mod tests {
     #[test]
     fn mirroring() {
         let patterns = parse("#..#\n#..#\n\n");
-        assert_eq!((2, 1), patterns[0].mirror());
+        assert_eq!((2, 1), patterns[0].mirror(false));
     }
 
     #[test]
@@ -126,5 +131,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(27505, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(400, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(22906, part2("input.txt"));
     }
 }
