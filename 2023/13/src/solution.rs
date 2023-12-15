@@ -40,9 +40,9 @@ impl Pattern {
 fn transpose(input: &[u64], maxx: usize) -> Vec<u64> {
     let mut output = vec![0; maxx];
     for (i, &value) in input.iter().enumerate() {
-        for j in 0..maxx {
+        for (j, outbit) in output.iter_mut().enumerate() {
             let bit = (value >> (maxx - j - 1)) & 1;
-            output[j] |= bit << (input.len() - i - 1);
+            *outbit |= bit << (input.len() - i - 1);
         }
     }
     output
