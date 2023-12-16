@@ -1,6 +1,6 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
-use std::collections::HashMap;
+
+
+use std::collections::{HashMap};
 use std::fs::read_to_string;
 use std::ops::Add;
 
@@ -145,8 +145,17 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    let grid = parse(&input);
+    (1..=grid.width)
+        .map(|x| ((x, 1), Direction::Down))
+        .chain((1..=grid.width).map(|x| ((x, grid.height), Direction::Up)))
+        .chain((1..=grid.height).map(|y| ((1, y), Direction::Right)))
+        .chain((1..=grid.height).map(|y| ((grid.width, y), Direction::Left)))
+        .map(|(pos, dir)| walk(&grid, Position { x: pos.0, y: pos.1 }, dir, HashMap::new()))
+        .map(|visited| visited.len())
+        .max()
+        .expect("a solution exists")
 }
 
 #[cfg(test)]
@@ -161,5 +170,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(7543, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(51, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(8231, part2("input.txt"));
     }
 }
