@@ -3,8 +3,8 @@ use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
 pub fn part1(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    input.trim().split(',').map(hash).sum()
 }
 
 pub fn part2(input: &str) -> usize {
@@ -19,7 +19,6 @@ fn hash(input: &str) -> usize {
         current_value *= 17;
         current_value %= 256;
     });
-
     current_value
 }
 
@@ -30,15 +29,16 @@ mod tests {
     #[test]
     fn hashing() {
         assert_eq!(52, hash("HASH"));
+        assert_eq!(30, hash("rn=1"));
     }
 
     #[test]
     fn part1_sample() {
-        assert_eq!(0, part1("sample.txt"));
+        assert_eq!(1320, part1("sample.txt"));
     }
 
     #[test]
     fn part1_input() {
-        assert_eq!(0, part1("input.txt"));
+        assert_eq!(515974, part1("input.txt"));
     }
 }
