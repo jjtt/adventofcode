@@ -1,4 +1,3 @@
-
 use linked_hash_map::LinkedHashMap;
 
 use std::fs::read_to_string;
@@ -13,8 +12,7 @@ pub fn part2(input: &str) -> usize {
 
     let mut boxes = vec![LinkedHashMap::<&str, usize>::new(); 256];
     input.trim().split(',').for_each(|s| {
-        if s.ends_with('-') {
-            let label = &s[..s.len() - 1];
+        if let Some(label) = s.strip_suffix('-') {
             let box_id = hash(label);
             boxes[box_id].remove(label);
         } else {
