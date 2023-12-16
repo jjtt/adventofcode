@@ -67,4 +67,14 @@ mod tests {
     fn part1_input() {
         assert_eq!(110821, part1("input.txt"));
     }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(64, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
+    }
 }
