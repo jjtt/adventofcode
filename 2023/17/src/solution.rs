@@ -6,6 +6,8 @@ struct City {
     blocks: Vec<Vec<u8>>,
     goal_col: i32,
     goal_row: i32,
+    max_straight: usize,
+    min_straight: usize,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -55,26 +57,30 @@ struct Node {
     col: i32,
     direction: Direction,
     straight: usize,
-    heat_loss: u8,
 }
 
 impl City {
     fn successors(&self, node: &Node) -> Vec<(Node, usize)> {
         [
-            (node.direction.straight(), node.straight + 1),
-            (node.direction.left(), 1),
-            (node.direction.right(), 1),
+            (
+                node.direction.straight(),
+                self.min_straight,
+                node.straight + 1,
+            ),
+            (node.direction.left(), node.straight, 1),
+            (node.direction.right(), node.straight, 1),
         ]
         .into_iter()
-        .filter_map(|(dir, straight)| {
+        .filter_map(|(dir, prev_straight, straight)| {
             let off = dir.offset();
             let row = node.row + off.0;
             let col = node.col + off.1;
-            if straight <= 3
+            if straight <= self.max_straight
+                && prev_straight >= self.min_straight
                 && row >= 0
-                && row <= self.goal_row as i32
+                && row <= self.goal_row
                 && col >= 0
-                && col <= self.goal_col as i32
+                && col <= self.goal_col
             {
                 Some((
                     Node {
@@ -82,7 +88,6 @@ impl City {
                         col,
                         direction: dir,
                         straight,
-                        heat_loss: self.blocks[row as usize][col as usize],
                     },
                     self.blocks[row as usize][col as usize] as usize,
                 ))
@@ -94,7 +99,7 @@ impl City {
     }
 }
 
-fn solve(input: &str) -> usize {
+fn solve(input: &str, min_straight: usize, max_straight: usize) -> usize {
     let blocks = input
         .trim()
         .lines()
@@ -106,14 +111,15 @@ fn solve(input: &str) -> usize {
         blocks,
         goal_row,
         goal_col,
+        max_straight,
+        min_straight,
     };
 
     let start = Node {
         row: 0,
         col: 0,
-        direction: Direction::Right, // arbitrarily right or down
+        direction: Direction::Down, // arbitrarily right or down
         straight: 0,
-        heat_loss: city.blocks[0][0],
     };
 
     let result = astar(
@@ -128,12 +134,12 @@ fn solve(input: &str) -> usize {
 
 pub fn part1(input: &str) -> usize {
     let input = read_to_string(input).unwrap();
-    solve(&input)
+    solve(&input, 0, 3)
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    solve(&input, 4, 10)
 }
 
 #[cfg(test)]
@@ -142,13 +148,35 @@ mod tests {
 
     #[test]
     fn simple() {
-        solve(
-            r#"
+        assert_eq!(
+            7,
+            solve(
+                r#"
 136
 134
 124
 124
 111"#,
+                0,
+                3,
+            )
+        );
+    }
+
+    #[test]
+    fn simple2() {
+        assert_eq!(
+            71,
+            solve(
+                r#"
+111111111111
+999999999991
+999999999991
+999999999991
+999999999991"#,
+                4,
+                10,
+            )
         );
     }
 
@@ -160,5 +188,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(861, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(94, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(1037, part2("input.txt"));
     }
 }
