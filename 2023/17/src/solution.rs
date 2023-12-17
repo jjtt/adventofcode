@@ -76,11 +76,12 @@ impl City {
             let row = node.row + off.0;
             let col = node.col + off.1;
             if straight <= self.max_straight
-                && prev_straight >= self.min_straight
+                && (prev_straight >= self.min_straight || (node.row == 0 && node.col == 0))
                 && row >= 0
                 && row <= self.goal_row
                 && col >= 0
                 && col <= self.goal_col
+                && ((row != self.goal_row || col != self.goal_col) || straight >= self.min_straight)
             {
                 Some((
                     Node {
