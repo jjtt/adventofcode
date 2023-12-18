@@ -1,7 +1,7 @@
-use anyhow::bail;
-use scan_fmt::scan_fmt;
 use std::collections::HashSet;
 use std::fs::read_to_string;
+
+use scan_fmt::scan_fmt;
 
 fn flood_fill(x: usize, y: usize, map: &mut Vec<Vec<bool>>) {
     if !map[y][x] {
@@ -22,9 +22,9 @@ fn flood_fill(x: usize, y: usize, map: &mut Vec<Vec<bool>>) {
     }
 }
 
-pub fn part1(input: &str) -> usize {
+fn parse(input: &str) -> Vec<((i32, i32), usize, u32)> {
     let input = read_to_string(input).unwrap();
-    let trench = input
+    input
         .trim()
         .lines()
         .map(|line| {
@@ -39,6 +39,12 @@ pub fn part1(input: &str) -> usize {
             };
             (offset, count, colour)
         })
+        .collect::<Vec<_>>()
+}
+
+fn solve(plan: Vec<((i32, i32), usize, u32)>) -> usize {
+    let trench = plan
+        .into_iter()
         .fold(vec![(0, 0)], |mut trench, (offset, count, _colour)| {
             let mut pos = *trench.last().expect("trench not empty");
             for _ in 0..count {
@@ -71,9 +77,34 @@ pub fn part1(input: &str) -> usize {
         .expect("max")
 }
 
+fn dehexify(colour: u32) -> ((i32, i32), usize) {
+    let count = colour >> 4;
+    let offset = match colour & 0xf {
+        0 => (1, 0),
+        1 => (0, 1),
+        2 => (-1, 0),
+        3 => (0, -1),
+        _ => panic!("Unknown direction {}", colour),
+    };
+    (offset, count as usize)
+}
+
+pub fn part1(input: &str) -> usize {
+    let plan = parse(input);
+    solve(plan)
+}
+
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let plan = parse(input);
+    let fixed_plan = plan
+        .into_iter()
+        .map(|(_offset, _count, colour)| {
+            let (offset, count) = dehexify(colour);
+            (offset, count, 0)
+        })
+        .collect();
+    todo!("brute forcing doesn't cut it");
+    solve(fixed_plan)
 }
 
 #[cfg(test)]
@@ -81,12 +112,44 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dehexifying() {
+        assert_eq!(
+            ((1, 0), 461937),
+            dehexify(u32::from_str_radix("70c710", 16).unwrap())
+        );
+        assert_eq!(
+            ((0, 1), 56407),
+            dehexify(u32::from_str_radix("0dc571", 16).unwrap())
+        );
+    }
+
+    #[test]
     fn part1_sample() {
-        assert_eq!(62, part1("sample.txt"));
+        assert_eq!(38 + 24, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part1_sample2() {
+        assert_eq!(2 * 38 + 131, part1("sample2.txt"));
+    }
+
+    #[test]
+    fn part1_sample3() {
+        assert_eq!(3 * 38 + 322, part1("sample3.txt"));
     }
 
     #[test]
     fn part1_input() {
         assert_eq!(61661, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(952408144115, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
