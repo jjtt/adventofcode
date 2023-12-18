@@ -1,10 +1,74 @@
 use anyhow::bail;
 use scan_fmt::scan_fmt;
+use std::collections::HashSet;
 use std::fs::read_to_string;
 
+fn flood_fill(x: usize, y: usize, map: &mut Vec<Vec<bool>>) {
+    if !map[y][x] {
+        map[y][x] = true;
+
+        if y > 0 {
+            flood_fill(x, y - 1, map);
+        }
+        if x > 0 {
+            flood_fill(x - 1, y, map);
+        }
+        if y < map.len() - 1 {
+            flood_fill(x, y + 1, map);
+        }
+        if x < map[0].len() - 1 {
+            flood_fill(x + 1, y, map);
+        }
+    }
+}
+
 pub fn part1(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    let trench = input
+        .trim()
+        .lines()
+        .map(|line| {
+            let (dir, count, colour) =
+                scan_fmt!(line, "{} {d} (#{x})", char, usize, [hex u32]).expect("valid input");
+            let offset: (i32, i32) = match dir {
+                'R' => (1, 0),
+                'L' => (-1, 0),
+                'U' => (0, -1),
+                'D' => (0, 1),
+                _ => panic!("Unknown direction {}", dir),
+            };
+            (offset, count, colour)
+        })
+        .fold(vec![(0, 0)], |mut trench, (offset, count, _colour)| {
+            let mut pos = *trench.last().expect("trench not empty");
+            for _ in 0..count {
+                pos.0 += offset.0;
+                pos.1 += offset.1;
+                trench.push(pos);
+            }
+            trench
+        })
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+    let minx = trench.iter().map(|(x, _)| x).min().expect("minx");
+    let maxx = trench.iter().map(|(x, _)| x).max().expect("maxx");
+    let miny = trench.iter().map(|(_, y)| y).min().expect("miny");
+    let maxy = trench.iter().map(|(_, y)| y).max().expect("maxy");
+
+    let mut dig = vec![vec![false; (maxx - minx + 1) as usize]; (maxy - miny + 1) as usize];
+    for (x, y) in &trench {
+        dig[(y - miny) as usize][(x - minx) as usize] = true;
+    }
+
+    (0..dig.len().min(dig[0].len()))
+        .map(|i| {
+            let mut d = dig.clone();
+            flood_fill(i, i, &mut d);
+            d.iter().flatten().filter(|&&b| b).count()
+        })
+        .max()
+        .expect("max")
 }
 
 pub fn part2(input: &str) -> usize {
@@ -23,6 +87,6 @@ mod tests {
 
     #[test]
     fn part1_input() {
-        assert_eq!(0, part1("input.txt"));
+        assert_eq!(61661, part1("input.txt"));
     }
 }
