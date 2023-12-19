@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::fs::read_to_string;
+use std::ops::RangeInclusive;
 
 use scan_fmt::scan_fmt;
 
 enum Rule {
+    Accept,
+    Reject,
     Noop(String),
     GreaterThan(char, usize, String),
     LessThan(char, usize, String),
@@ -34,7 +37,11 @@ fn parse_input(input: &str) -> (HashMap<String, Vec<Rule>>, Vec<Part>) {
                                 _ => panic!("unknown op: {op}"),
                             }
                         } else {
-                            Rule::Noop(rule.to_string())
+                            match rule {
+                                "A" => Rule::Accept,
+                                "R" => Rule::Reject,
+                                rule => Rule::Noop(rule.to_string()),
+                            }
                         }
                     })
                     .collect(),
@@ -64,6 +71,8 @@ fn apply(rules: &HashMap<String, Vec<Rule>>, part: &Part, label: &str) -> bool {
 
             for rule in rule {
                 match rule {
+                    Rule::Accept => return true,
+                    Rule::Reject => return false,
                     Rule::Noop(target) => return apply(rules, part, target),
                     Rule::GreaterThan(category, value, target) if part[category] > *value => {
                         return apply(rules, part, target)
@@ -80,6 +89,113 @@ fn apply(rules: &HashMap<String, Vec<Rule>>, part: &Part, label: &str) -> bool {
     }
 }
 
+fn count_accepted(
+    rules: &HashMap<String, Vec<Rule>>,
+    label: &str,
+    x: RangeInclusive<usize>,
+    m: RangeInclusive<usize>,
+    a: RangeInclusive<usize>,
+    s: RangeInclusive<usize>,
+) -> usize {
+    dbg!(label, &x, &m, &a, &s);
+    let count = match label {
+        "A" => x.count() * m.count() * a.count() * s.count(),
+        "R" => 0,
+        label => {
+            let rule = rules.get(label).expect("a rule");
+            if let Some(Rule::Accept) = rule.last() {
+                x.count() * m.count() * a.count() * s.count()
+            } else {
+                rule.iter()
+                    .map(|rule| match rule {
+                        Rule::Accept => panic!("accept as deault should have been handled already"),
+                        Rule::Reject => 0,
+                        Rule::Noop(target) => count_accepted(
+                            rules,
+                            target,
+                            x.clone(),
+                            m.clone(),
+                            a.clone(),
+                            s.clone(),
+                        ),
+                        Rule::GreaterThan(category, value, target) => match category {
+                            'x' => count_accepted(
+                                rules,
+                                target,
+                                (value + 1)..=*x.end(),
+                                m.clone(),
+                                a.clone(),
+                                s.clone(),
+                            ),
+                            'm' => count_accepted(
+                                rules,
+                                target,
+                                x.clone(),
+                                (value + 1)..=*m.end(),
+                                a.clone(),
+                                s.clone(),
+                            ),
+                            'a' => count_accepted(
+                                rules,
+                                target,
+                                x.clone(),
+                                m.clone(),
+                                (value + 1)..=*a.end(),
+                                s.clone(),
+                            ),
+                            's' => count_accepted(
+                                rules,
+                                target,
+                                x.clone(),
+                                m.clone(),
+                                a.clone(),
+                                (value + 1)..=*s.end(),
+                            ),
+                            _ => panic!("unknown category: {category}"),
+                        },
+                        Rule::LessThan(category, value, target) => match category {
+                            'x' => count_accepted(
+                                rules,
+                                target,
+                                *x.start()..=(value - 1),
+                                m.clone(),
+                                a.clone(),
+                                s.clone(),
+                            ),
+                            'm' => count_accepted(
+                                rules,
+                                target,
+                                x.clone(),
+                                *m.start()..=(value - 1),
+                                a.clone(),
+                                s.clone(),
+                            ),
+                            'a' => count_accepted(
+                                rules,
+                                target,
+                                x.clone(),
+                                m.clone(),
+                                *a.start()..=(value - 1),
+                                s.clone(),
+                            ),
+                            's' => count_accepted(
+                                rules,
+                                target,
+                                x.clone(),
+                                m.clone(),
+                                a.clone(),
+                                *s.start()..=(value - 1),
+                            ),
+                            _ => panic!("unknown category: {category}"),
+                        },
+                    })
+                    .sum()
+            }
+        }
+    };
+    dbg!(count)
+}
+
 pub fn part1(input: &str) -> usize {
     let (rules, parts) = parse_input(input);
 
@@ -91,13 +207,62 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let (rules, _parts) = parse_input(input);
+
+    count_accepted(&rules, "in", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn one_rule_pv() {
+        let (rules, _parts) = parse_input("sample.txt");
+        assert_eq!(
+            // WRONG
+            256000000000000,
+            count_accepted(&rules, "pv", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
+        )
+    }
+
+    #[test]
+    fn one_rule_lnx() {
+        let (rules, _parts) = parse_input("sample.txt");
+        assert_eq!(
+            256000000000000,
+            count_accepted(&rules, "lnx", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
+        )
+    }
+
+    #[test]
+    fn one_rule_crn() {
+        let (rules, _parts) = parse_input("sample.txt");
+        assert_eq!(
+            85632000000000,
+            count_accepted(&rules, "crn", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
+        )
+    }
+
+    #[test]
+    fn one_rule_rfg() {
+        let (rules, _parts) = parse_input("sample.txt");
+        assert_eq!(
+            // WRONG
+            256000000000000,
+            count_accepted(&rules, "rfg", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
+        )
+    }
+
+    #[test]
+    fn one_rule_hdj() {
+        let (rules, _parts) = parse_input("sample.txt");
+        assert_eq!(
+            // WRONG
+            256000000000000,
+            count_accepted(&rules, "hdj", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
+        )
+    }
 
     #[test]
     fn part1_sample() {
@@ -107,5 +272,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(495298, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(167409079868000, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
