@@ -92,105 +92,136 @@ fn apply(rules: &HashMap<String, Vec<Rule>>, part: &Part, label: &str) -> bool {
 fn count_accepted(
     rules: &HashMap<String, Vec<Rule>>,
     label: &str,
-    x: RangeInclusive<usize>,
-    m: RangeInclusive<usize>,
-    a: RangeInclusive<usize>,
-    s: RangeInclusive<usize>,
+    mut x: RangeInclusive<usize>,
+    mut m: RangeInclusive<usize>,
+    mut a: RangeInclusive<usize>,
+    mut s: RangeInclusive<usize>,
 ) -> usize {
     dbg!(label, &x, &m, &a, &s);
+    let total = x.clone().count() * m.clone().count() * a.clone().count() * s.clone().count();
     let count = match label {
-        "A" => x.count() * m.count() * a.count() * s.count(),
+        "A" => total,
         "R" => 0,
         label => {
             let rule = rules.get(label).expect("a rule");
-            if let Some(Rule::Accept) = rule.last() {
-                x.count() * m.count() * a.count() * s.count()
-            } else {
-                rule.iter()
-                    .map(|rule| match rule {
-                        Rule::Accept => panic!("accept as deault should have been handled already"),
-                        Rule::Reject => 0,
-                        Rule::Noop(target) => count_accepted(
+
+            let mut sum = 0;
+            for r in rule {
+                match r {
+                    Rule::Accept => {
+                        sum += (x.clone().count()
+                            * m.clone().count()
+                            * a.clone().count()
+                            * s.clone().count())
+                    }
+                    Rule::Reject => sum += 0,
+                    Rule::Noop(target) => {
+                        sum += count_accepted(
                             rules,
                             target,
                             x.clone(),
                             m.clone(),
                             a.clone(),
                             s.clone(),
-                        ),
-                        Rule::GreaterThan(category, value, target) => match category {
-                            'x' => count_accepted(
+                        )
+                    }
+                    Rule::GreaterThan(category, value, target) => match category {
+                        'x' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 (value + 1)..=*x.end(),
                                 m.clone(),
                                 a.clone(),
                                 s.clone(),
-                            ),
-                            'm' => count_accepted(
+                            );
+                            x = *x.start()..=*value;
+                        }
+                        'm' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 x.clone(),
                                 (value + 1)..=*m.end(),
                                 a.clone(),
                                 s.clone(),
-                            ),
-                            'a' => count_accepted(
+                            );
+                            m = *m.start()..=*value;
+                        }
+                        'a' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 x.clone(),
                                 m.clone(),
                                 (value + 1)..=*a.end(),
                                 s.clone(),
-                            ),
-                            's' => count_accepted(
+                            );
+                            a = *a.start()..=*value;
+                        }
+                        's' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 x.clone(),
                                 m.clone(),
                                 a.clone(),
                                 (value + 1)..=*s.end(),
-                            ),
-                            _ => panic!("unknown category: {category}"),
-                        },
-                        Rule::LessThan(category, value, target) => match category {
-                            'x' => count_accepted(
+                            );
+                            s = *s.start()..=*value;
+                        }
+                        _ => panic!("unknown category: {category}"),
+                    },
+                    Rule::LessThan(category, value, target) => match category {
+                        'x' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 *x.start()..=(value - 1),
                                 m.clone(),
                                 a.clone(),
                                 s.clone(),
-                            ),
-                            'm' => count_accepted(
+                            );
+                            x = *value..=*x.end();
+                        }
+                        'm' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 x.clone(),
                                 *m.start()..=(value - 1),
                                 a.clone(),
                                 s.clone(),
-                            ),
-                            'a' => count_accepted(
+                            );
+                            m = *value..=*m.end();
+                        }
+                        'a' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 x.clone(),
                                 m.clone(),
                                 *a.start()..=(value - 1),
                                 s.clone(),
-                            ),
-                            's' => count_accepted(
+                            );
+                            a = *value..=*a.end();
+                        }
+                        's' => {
+                            sum += count_accepted(
                                 rules,
                                 target,
                                 x.clone(),
                                 m.clone(),
                                 a.clone(),
                                 *s.start()..=(value - 1),
-                            ),
-                            _ => panic!("unknown category: {category}"),
-                        },
-                    })
-                    .sum()
+                            );
+                            s = *value..=*s.end();
+                        }
+                        _ => panic!("unknown category: {category}"),
+                    },
+                }
             }
+            sum
         }
     };
     dbg!(count)
@@ -220,8 +251,7 @@ mod tests {
     fn one_rule_pv() {
         let (rules, _parts) = parse_input("sample.txt");
         assert_eq!(
-            // WRONG
-            256000000000000,
+            1716 * 4000 * 4000 * 4000,
             count_accepted(&rules, "pv", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
         )
     }
@@ -239,8 +269,17 @@ mod tests {
     fn one_rule_crn() {
         let (rules, _parts) = parse_input("sample.txt");
         assert_eq!(
-            85632000000000,
+            (4000 - 2662) * 4000 * 4000 * 4000,
             count_accepted(&rules, "crn", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
+        )
+    }
+
+    #[test]
+    fn one_rule_gd() {
+        let (rules, _parts) = parse_input("sample.txt");
+        assert_eq!(
+            0,
+            count_accepted(&rules, "gd", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
         )
     }
 
@@ -248,8 +287,7 @@ mod tests {
     fn one_rule_rfg() {
         let (rules, _parts) = parse_input("sample.txt");
         assert_eq!(
-            // WRONG
-            256000000000000,
+            (4000 - 536) * 2440 * 4000 * 4000,
             count_accepted(&rules, "rfg", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
         )
     }
@@ -258,8 +296,7 @@ mod tests {
     fn one_rule_hdj() {
         let (rules, _parts) = parse_input("sample.txt");
         assert_eq!(
-            // WRONG
-            256000000000000,
+            (4000 - 838) * 4000 * 4000 * 4000 + 838 * 1716 * 4000 * 4000,
             count_accepted(&rules, "hdj", 1..=4000, 1..=4000, 1..=4000, 1..=4000)
         )
     }
@@ -281,6 +318,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(132186256794011, part2("input.txt"));
     }
 }
