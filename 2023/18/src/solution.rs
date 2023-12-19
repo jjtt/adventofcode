@@ -125,17 +125,17 @@ mod tests {
 
     #[test]
     fn part1_sample() {
-        assert_eq!(38 + 24, part1("sample.txt"));
+        assert_eq!(19 + 19 + 24, part1("sample.txt"));
     }
 
     #[test]
     fn part1_sample2() {
-        assert_eq!(2 * 38 + 131, part1("sample2.txt"));
+        assert_eq!(2 * (19 + 19) + 131, part1("sample2.txt"));
     }
 
     #[test]
     fn part1_sample3() {
-        assert_eq!(3 * 38 + 322, part1("sample3.txt"));
+        assert_eq!(3 * (19 + 19) + 322, part1("sample3.txt"));
     }
 
     #[test]
