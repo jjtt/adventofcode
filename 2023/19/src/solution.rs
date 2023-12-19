@@ -63,30 +63,30 @@ fn parse_input(input: &str) -> (HashMap<String, Vec<Rule>>, Vec<Part>) {
 }
 
 fn apply(rules: &HashMap<String, Vec<Rule>>, part: &Part, label: &str) -> bool {
-    match label {
-        "A" => true,
-        "R" => false,
-        label => {
-            let rule = rules.get(label).expect("a rule");
+    let accept = &vec![Rule::Accept];
+    let reject = &vec![Rule::Reject];
+    let rule = match label {
+        "A" => accept,
+        "R" => reject,
+        label => rules.get(label).expect("a rule"),
+    };
 
-            for rule in rule {
-                match rule {
-                    Rule::Accept => return true,
-                    Rule::Reject => return false,
-                    Rule::Noop(target) => return apply(rules, part, target),
-                    Rule::GreaterThan(category, value, target) if part[category] > *value => {
-                        return apply(rules, part, target)
-                    }
-                    Rule::LessThan(category, value, target) if part[category] < *value => {
-                        return apply(rules, part, target)
-                    }
-                    _ => {}
-                }
+    for rule in rule {
+        match rule {
+            Rule::Accept => return true,
+            Rule::Reject => return false,
+            Rule::Noop(target) => return apply(rules, part, target),
+            Rule::GreaterThan(category, value, target) if part[category] > *value => {
+                return apply(rules, part, target)
             }
-
-            panic!("no rule applied for {label} and {part:?}");
+            Rule::LessThan(category, value, target) if part[category] < *value => {
+                return apply(rules, part, target)
+            }
+            _ => {}
         }
     }
+
+    panic!("no rule applied for {label} and {part:?}");
 }
 
 fn count_accepted(
@@ -97,134 +97,121 @@ fn count_accepted(
     mut a: RangeInclusive<usize>,
     mut s: RangeInclusive<usize>,
 ) -> usize {
-    dbg!(label, &x, &m, &a, &s);
-    let total = x.clone().count() * m.clone().count() * a.clone().count() * s.clone().count();
-    let count = match label {
-        "A" => total,
-        "R" => 0,
-        label => {
-            let rule = rules.get(label).expect("a rule");
-
-            let mut sum = 0;
-            for r in rule {
-                match r {
-                    Rule::Accept => {
-                        sum += (x.clone().count()
-                            * m.clone().count()
-                            * a.clone().count()
-                            * s.clone().count())
-                    }
-                    Rule::Reject => sum += 0,
-                    Rule::Noop(target) => {
-                        sum += count_accepted(
-                            rules,
-                            target,
-                            x.clone(),
-                            m.clone(),
-                            a.clone(),
-                            s.clone(),
-                        )
-                    }
-                    Rule::GreaterThan(category, value, target) => match category {
-                        'x' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                (value + 1)..=*x.end(),
-                                m.clone(),
-                                a.clone(),
-                                s.clone(),
-                            );
-                            x = *x.start()..=*value;
-                        }
-                        'm' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                x.clone(),
-                                (value + 1)..=*m.end(),
-                                a.clone(),
-                                s.clone(),
-                            );
-                            m = *m.start()..=*value;
-                        }
-                        'a' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                x.clone(),
-                                m.clone(),
-                                (value + 1)..=*a.end(),
-                                s.clone(),
-                            );
-                            a = *a.start()..=*value;
-                        }
-                        's' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                x.clone(),
-                                m.clone(),
-                                a.clone(),
-                                (value + 1)..=*s.end(),
-                            );
-                            s = *s.start()..=*value;
-                        }
-                        _ => panic!("unknown category: {category}"),
-                    },
-                    Rule::LessThan(category, value, target) => match category {
-                        'x' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                *x.start()..=(value - 1),
-                                m.clone(),
-                                a.clone(),
-                                s.clone(),
-                            );
-                            x = *value..=*x.end();
-                        }
-                        'm' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                x.clone(),
-                                *m.start()..=(value - 1),
-                                a.clone(),
-                                s.clone(),
-                            );
-                            m = *value..=*m.end();
-                        }
-                        'a' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                x.clone(),
-                                m.clone(),
-                                *a.start()..=(value - 1),
-                                s.clone(),
-                            );
-                            a = *value..=*a.end();
-                        }
-                        's' => {
-                            sum += count_accepted(
-                                rules,
-                                target,
-                                x.clone(),
-                                m.clone(),
-                                a.clone(),
-                                *s.start()..=(value - 1),
-                            );
-                            s = *value..=*s.end();
-                        }
-                        _ => panic!("unknown category: {category}"),
-                    },
-                }
-            }
-            sum
-        }
+    let accept = &vec![Rule::Accept];
+    let reject = &vec![Rule::Reject];
+    let rule = match label {
+        "A" => accept,
+        "R" => reject,
+        label => rules.get(label).expect("a rule"),
     };
-    dbg!(count)
+
+    let mut sum = 0;
+    for r in rule {
+        match r {
+            Rule::Accept => {
+                sum += x.clone().count() * m.clone().count() * a.clone().count() * s.clone().count()
+            }
+            Rule::Reject => sum += 0,
+            Rule::Noop(target) => {
+                sum += count_accepted(rules, target, x.clone(), m.clone(), a.clone(), s.clone())
+            }
+            Rule::GreaterThan(category, value, target) => match category {
+                'x' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        (value + 1)..=*x.end(),
+                        m.clone(),
+                        a.clone(),
+                        s.clone(),
+                    );
+                    x = *x.start()..=*value;
+                }
+                'm' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        x.clone(),
+                        (value + 1)..=*m.end(),
+                        a.clone(),
+                        s.clone(),
+                    );
+                    m = *m.start()..=*value;
+                }
+                'a' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        x.clone(),
+                        m.clone(),
+                        (value + 1)..=*a.end(),
+                        s.clone(),
+                    );
+                    a = *a.start()..=*value;
+                }
+                's' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        x.clone(),
+                        m.clone(),
+                        a.clone(),
+                        (value + 1)..=*s.end(),
+                    );
+                    s = *s.start()..=*value;
+                }
+                _ => panic!("unknown category: {category}"),
+            },
+            Rule::LessThan(category, value, target) => match category {
+                'x' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        *x.start()..=(value - 1),
+                        m.clone(),
+                        a.clone(),
+                        s.clone(),
+                    );
+                    x = *value..=*x.end();
+                }
+                'm' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        x.clone(),
+                        *m.start()..=(value - 1),
+                        a.clone(),
+                        s.clone(),
+                    );
+                    m = *value..=*m.end();
+                }
+                'a' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        x.clone(),
+                        m.clone(),
+                        *a.start()..=(value - 1),
+                        s.clone(),
+                    );
+                    a = *value..=*a.end();
+                }
+                's' => {
+                    sum += count_accepted(
+                        rules,
+                        target,
+                        x.clone(),
+                        m.clone(),
+                        a.clone(),
+                        *s.start()..=(value - 1),
+                    );
+                    s = *value..=*s.end();
+                }
+                _ => panic!("unknown category: {category}"),
+            },
+        }
+    }
+    sum
 }
 
 pub fn part1(input: &str) -> usize {
