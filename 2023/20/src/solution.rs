@@ -16,10 +16,10 @@ impl<'a> Module<'a> {
         let targets = targets.split(", ").collect::<Vec<_>>();
         match type_and_label {
             "broadcaster" => (type_and_label, Module::Broadcaster(targets)),
-            _ if type_and_label.starts_with("%") => {
+            _ if type_and_label.starts_with('%') => {
                 (&type_and_label[1..], Module::FlipFlop(false, targets))
             }
-            _ if type_and_label.starts_with("&") => (
+            _ if type_and_label.starts_with('&') => (
                 &type_and_label[1..],
                 Module::Conjunction(HashMap::new(), targets, 0),
             ),
@@ -72,8 +72,7 @@ impl<'a> Module<'a> {
     }
 }
 
-pub fn part1(input: &str) -> usize {
-    let input = read_to_string(input).unwrap();
+fn parse(input: &str) -> HashMap<&str, Module> {
     let mut modules = input
         .trim()
         .lines()
@@ -94,6 +93,13 @@ pub fn part1(input: &str) -> usize {
             *num_inputs = *inputs.get(label).unwrap();
         }
     }
+    modules
+}
+
+pub fn part1(input: &str) -> usize {
+    let input = read_to_string(input).unwrap();
+
+    let mut modules = parse(&input);
 
     let mut highs = 0;
     let mut lows = 0;
@@ -120,8 +126,37 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+
+    let mut modules = parse(&input);
+
+    // TODO: figure these out programmatically from the input
+    let mut antepenultimate_targets = vec!["kv", "jg", "rz", "mr"];
+
+    let mut button_presses = 1;
+
+    for i in 0..10000 {
+        let start = modules
+            .get_mut("broadcaster")
+            .unwrap()
+            .apply(false, "button", "broadcaster");
+        let mut queue = VecDeque::from(start);
+        while let Some((signal, source, target)) = queue.pop_front() {
+            if signal && antepenultimate_targets.contains(&source) {
+                button_presses *= i + 1;
+                antepenultimate_targets.retain(|&t| t != source);
+            }
+            if antepenultimate_targets.is_empty() {
+                return button_presses;
+            }
+
+            if let Some(module) = modules.get_mut(target) {
+                queue.extend(module.apply(signal, source, target));
+            }
+        }
+    }
+
+    todo!("didn't find the answer in 10000 iterations")
 }
 
 #[cfg(test)]
@@ -141,5 +176,10 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(898557000, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(238420328103151, part2("input.txt"));
     }
 }
