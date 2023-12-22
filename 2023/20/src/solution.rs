@@ -1,0 +1,33 @@
+use anyhow::bail;
+use scan_fmt::scan_fmt;
+use std::fs::read_to_string;
+
+pub fn part1(input: &str) -> usize {
+    //todo!()
+    0
+}
+
+pub fn part2(input: &str) -> usize {
+    //todo!()
+    0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part1_sample() {
+        assert_eq!(32000000, part1("sample.txt"));
+    }
+
+    #[test]
+    fn part1_sample2() {
+        assert_eq!(11687500, part1("sample2.txt"));
+    }
+
+    #[test]
+    fn part1_input() {
+        assert_eq!(0, part1("input.txt"));
+    }
+}
