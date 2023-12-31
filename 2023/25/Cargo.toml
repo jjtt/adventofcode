@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.66"
 scan_fmt = "0.2.6"
+pathfinding = "4.8.0"
