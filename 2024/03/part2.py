@@ -5,9 +5,9 @@ import re
 pattern = r"mul\((\d+),(\d+)\)|(do)\(\)|(don't)\(\)"
 
 sum = 0
+do = True
 for line in open("input.txt"):
     matches = re.findall(pattern, line)
-    do = True
     for match in matches:
         if match[2] == "do":
             do = True
