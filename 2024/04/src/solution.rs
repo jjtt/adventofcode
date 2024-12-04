@@ -79,9 +79,32 @@ fn count_xmases(map: &HashMap<(usize, usize), char>, pos: (usize, usize)) -> usi
     count
 }
 
+fn count_x_mases(map: &HashMap<(usize, usize), char>, pos: (usize, usize)) -> usize {
+    let ne = map.get(&(pos.0 + 1, pos.1 - 1));
+    let se = map.get(&(pos.0 + 1, pos.1 + 1));
+    let sw = map.get(&(pos.0 - 1, pos.1 + 1));
+    let nw = map.get(&(pos.0 - 1, pos.1 - 1));
+
+    if ne == Some(&'M') && se == Some(&'M') && sw == Some(&'S') && nw == Some(&'S') {
+        1
+    } else if se == Some(&'M') && sw == Some(&'M') && nw == Some(&'S') && ne == Some(&'S') {
+        1
+    } else if sw == Some(&'M') && nw == Some(&'M') && ne == Some(&'S') && se == Some(&'S') {
+        1
+    } else if nw == Some(&'M') && ne == Some(&'M') && se == Some(&'S') && sw == Some(&'S') {
+        1
+    } else {
+        0
+    }
+}
+
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let map = parse(input);
+
+    map.iter()
+        .filter(|(_, &c)| c == 'A')
+        .map(|(pos, _)| count_x_mases(&map, *pos))
+        .sum()
 }
 
 #[cfg(test)]
@@ -99,8 +122,24 @@ mod tests {
     }
 
     #[test]
+    fn part2_sample() {
+        assert_eq!(9, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(1967, part2("input.txt"));
+    }
+
+    #[test]
     fn counting_xmases() {
         let map = parse("sample.txt");
         assert_eq!(1, count_xmases(&map, (5, 1)));
+    }
+
+    #[test]
+    fn counting_x_mases() {
+        let map = parse("sample.txt");
+        assert_eq!(1, count_x_mases(&map, (3, 2)));
     }
 }
