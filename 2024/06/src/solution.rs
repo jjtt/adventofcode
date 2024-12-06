@@ -78,32 +78,36 @@ pub fn part2(input: &str) -> usize {
     let (mut dir, start, cols, rows, obstacles) = parse(input);
     let mut pos = start;
     let mut new_obstacles = HashSet::new();
+    let mut visited = HashSet::new();
     while (pos.0 > 0 && pos.1 > 0 && pos.0 <= cols && pos.1 <= rows) {
+        visited.insert(pos);
         let mut check_dir = dir.bump();
         let mut check_pos = pos;
         let mut checked = HashSet::new();
-        while (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows) {
+        let new_pos = dir.step(pos);
+        while !obstacles.contains(&new_pos)
+            && (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows)
+        {
             if checked.contains(&(check_pos, check_dir)) {
-                new_obstacles.insert(dir.step(pos));
+                new_obstacles.insert(new_pos);
                 break;
             }
             checked.insert((check_pos, check_dir));
-            if obstacles.contains(&check_dir.step(check_pos))
-                || dir.step(pos) == check_dir.step(check_pos)
-            {
+            let new_check_pos = check_dir.step(check_pos);
+            if obstacles.contains(&new_check_pos) || new_pos == new_check_pos {
                 check_dir = check_dir.bump();
             } else {
-                check_pos = check_dir.step(check_pos);
+                check_pos = new_check_pos;
             }
         }
 
-        let new_pos = dir.step(pos);
         if obstacles.contains(&new_pos) {
             dir = dir.bump();
         } else {
             pos = new_pos;
         }
     }
+    dbg!(visited.len());
     new_obstacles.len() - new_obstacles.contains(&start) as usize
 }
 
