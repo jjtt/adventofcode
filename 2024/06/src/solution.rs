@@ -5,7 +5,7 @@ use std::fs::read_to_string;
 
 type Pos = (usize, usize);
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum Direction {
     Up,
     Down,
@@ -22,9 +22,33 @@ impl Direction {
             Direction::Right => (pos.0 + 1, pos.1),
         }
     }
+
+    fn bump(&self) -> Direction {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Right => Direction::Down,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+        }
+    }
 }
 
 pub fn part1(input: &str) -> usize {
+    let (mut dir, mut start, cols, rows, obstacles) = parse(input);
+    let mut visited = HashSet::new();
+    while (start.0 > 0 && start.1 > 0 && start.0 <= cols && start.1 <= rows) {
+        visited.insert(start);
+        let pos = dir.step(start);
+        if obstacles.contains(&pos) {
+            dir = dir.bump();
+        } else {
+            start = pos;
+        }
+    }
+    visited.len()
+}
+
+fn parse(input: &str) -> (Direction, Pos, usize, usize, HashSet<(usize, usize)>) {
     let input = read_to_string(input).unwrap();
     let mut dir = Direction::Up;
     let mut start: Pos = (0, 0);
@@ -47,27 +71,38 @@ pub fn part1(input: &str) -> usize {
             }
         }
     }
-    let mut visited = HashSet::new();
-    while (start.0 > 0 && start.1 > 0 && start.0 <= cols && start.1 <= rows) {
-        visited.insert(start);
-        let pos = dir.step(start);
-        if obstacles.contains(&pos) {
-            dir = match dir {
-                Direction::Up => Direction::Right,
-                Direction::Right => Direction::Down,
-                Direction::Down => Direction::Left,
-                Direction::Left => Direction::Up,
-            };
-        } else {
-            start = pos;
-        }
-    }
-    visited.len()
+    (dir, start, cols, rows, obstacles)
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let (mut dir, start, cols, rows, obstacles) = parse(input);
+    let mut pos = start;
+    let mut visited = HashSet::new();
+    let mut new_obstacles = HashSet::new();
+    while (pos.0 > 0 && pos.1 > 0 && pos.0 <= cols && pos.1 <= rows) {
+        let check_dir = dir.bump();
+        let mut check_pos = pos;
+        while (check_pos.0 > 0
+            && check_pos.1 > 0
+            && check_pos.0 <= cols
+            && check_pos.1 <= rows
+            && !obstacles.contains(&check_pos))
+        {
+            if visited.contains(&(check_pos, check_dir)) {
+                new_obstacles.insert(dir.step(pos));
+            }
+            check_pos = check_dir.step(check_pos);
+        }
+
+        visited.insert((pos, dir));
+        let new_pos = dir.step(pos);
+        if obstacles.contains(&new_pos) {
+            dir = dir.bump();
+        } else {
+            pos = new_pos;
+        }
+    }
+    new_obstacles.len() - new_obstacles.contains(&start) as usize
 }
 
 #[cfg(test)]
@@ -82,5 +117,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(5086, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(6, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(5086, part2("input.txt"));
     }
 }
