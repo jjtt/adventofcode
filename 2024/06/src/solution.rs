@@ -80,21 +80,21 @@ pub fn part2(input: &str) -> usize {
     let mut visited = HashSet::new();
     let mut new_obstacles = HashSet::new();
     while (pos.0 > 0 && pos.1 > 0 && pos.0 <= cols && pos.1 <= rows) {
-        let check_dir = dir.bump();
+        let mut check_dir = dir.bump();
         let mut check_pos = pos;
-        while (check_pos.0 > 0
-            && check_pos.1 > 0
-            && check_pos.0 <= cols
-            && check_pos.1 <= rows
-            && !obstacles.contains(&check_pos))
+        let mut checked = HashSet::new();
+        while (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows)
+            && (!checked.contains(&(check_pos, check_dir)))
         {
-            if visited.contains(&(check_pos, check_dir))
-                || (obstacles.contains(&check_dir.step(check_pos))
-                    && visited.contains(&(check_pos, check_dir.bump())))
-            {
+            checked.insert((check_pos, check_dir));
+            if visited.contains(&(check_pos, check_dir)) {
                 new_obstacles.insert(dir.step(pos));
             }
-            check_pos = check_dir.step(check_pos);
+            if obstacles.contains(&check_dir.step(check_pos)) {
+                check_dir = check_dir.bump();
+            } else {
+                check_pos = check_dir.step(check_pos);
+            }
         }
 
         visited.insert((pos, dir));
