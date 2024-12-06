@@ -77,19 +77,17 @@ fn parse(input: &str) -> (Direction, Pos, usize, usize, HashSet<(usize, usize)>)
 pub fn part2(input: &str) -> usize {
     let (mut dir, start, cols, rows, obstacles) = parse(input);
     let mut pos = start;
-    let mut visited = HashSet::new();
     let mut new_obstacles = HashSet::new();
     while (pos.0 > 0 && pos.1 > 0 && pos.0 <= cols && pos.1 <= rows) {
         let mut check_dir = dir.bump();
         let mut check_pos = pos;
         let mut checked = HashSet::new();
-        while (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows)
-            && (!checked.contains(&(check_pos, check_dir)))
-        {
-            checked.insert((check_pos, check_dir));
-            if visited.contains(&(check_pos, check_dir)) {
+        while (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows) {
+            if checked.contains(&(check_pos, check_dir)) {
                 new_obstacles.insert(dir.step(pos));
+                break;
             }
+            checked.insert((check_pos, check_dir));
             if obstacles.contains(&check_dir.step(check_pos))
                 || dir.step(pos) == check_dir.step(check_pos)
             {
@@ -99,7 +97,6 @@ pub fn part2(input: &str) -> usize {
             }
         }
 
-        visited.insert((pos, dir));
         let new_pos = dir.step(pos);
         if obstacles.contains(&new_pos) {
             dir = dir.bump();
