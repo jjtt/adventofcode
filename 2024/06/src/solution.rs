@@ -89,11 +89,10 @@ pub fn part2(input: &str) -> usize {
             && (new_pos.0 > 0 && new_pos.1 > 0 && new_pos.0 <= cols && new_pos.1 <= rows)
             && (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows)
         {
-            if checked.contains(&(check_pos, check_dir)) {
+            if !checked.insert((check_pos, check_dir)) {
                 new_obstacles.insert(new_pos);
                 break;
             }
-            checked.insert((check_pos, check_dir));
             let new_check_pos = check_dir.step(check_pos);
             if obstacles.contains(&new_check_pos) || new_pos == new_check_pos {
                 check_dir = check_dir.bump();
