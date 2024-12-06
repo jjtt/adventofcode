@@ -90,7 +90,9 @@ pub fn part2(input: &str) -> usize {
             if visited.contains(&(check_pos, check_dir)) {
                 new_obstacles.insert(dir.step(pos));
             }
-            if obstacles.contains(&check_dir.step(check_pos)) {
+            if obstacles.contains(&check_dir.step(check_pos))
+                || dir.step(pos) == check_dir.step(check_pos)
+            {
                 check_dir = check_dir.bump();
             } else {
                 check_pos = check_dir.step(check_pos);
