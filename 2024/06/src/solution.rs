@@ -88,7 +88,10 @@ pub fn part2(input: &str) -> usize {
             && check_pos.1 <= rows
             && !obstacles.contains(&check_pos))
         {
-            if visited.contains(&(check_pos, check_dir)) {
+            if visited.contains(&(check_pos, check_dir))
+                || (obstacles.contains(&check_dir.step(check_pos))
+                    && visited.contains(&(check_pos, check_dir.bump())))
+            {
                 new_obstacles.insert(dir.step(pos));
             }
             check_pos = check_dir.step(check_pos);
