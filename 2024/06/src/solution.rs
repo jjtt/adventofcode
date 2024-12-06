@@ -86,6 +86,7 @@ pub fn part2(input: &str) -> usize {
         let mut checked = HashSet::new();
         let new_pos = dir.step(pos);
         while !obstacles.contains(&new_pos)
+            && !visited.contains(&new_pos)
             && (new_pos.0 > 0 && new_pos.1 > 0 && new_pos.0 <= cols && new_pos.1 <= rows)
             && (check_pos.0 > 0 && check_pos.1 > 0 && check_pos.0 <= cols && check_pos.1 <= rows)
         {
@@ -107,7 +108,6 @@ pub fn part2(input: &str) -> usize {
             pos = new_pos;
         }
     }
-    dbg!(visited.len());
     new_obstacles.len() - new_obstacles.contains(&start) as usize
 }
 
@@ -132,6 +132,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(5086, part2("input.txt"));
+        assert_eq!(1770, part2("input.txt"));
     }
 }
