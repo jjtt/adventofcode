@@ -43,9 +43,16 @@ fn is_result_rec(
     }
 
     if with_concat && !found && last_ndx > 0 {
-        let second_to_last = inputs[last_ndx - 1];
-        let new_last = second_to_last * 10u128.pow(last.ilog10() + 1) + last;
-        found = is_result_rec(sum, inputs, new_last, last_ndx - 1, with_concat)
+        let d = 10u128.pow(last.ilog10() + 1);
+        if sum % d == last {
+            found = is_result_rec(
+                sum / d,
+                inputs,
+                inputs[last_ndx - 1],
+                last_ndx - 1,
+                with_concat,
+            )
+        }
     }
 
     found
@@ -87,13 +94,21 @@ pub fn part2(input: &str) -> u128 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_case::test_case;
 
-    #[test]
-    fn test_is_result() {
-        let inputs = vec![2, 4];
-        assert_eq!(true, is_result(8, &inputs, true));
-        assert_eq!(true, is_result(6, &inputs, true));
-        assert_eq!(true, is_result(24, &inputs, true));
+    #[test_case(8, &[2, 4], true => true)]
+    #[test_case(8, &[2, 4], false => true)]
+    #[test_case(6, &[2, 4], true => true)]
+    #[test_case(6, &[2, 4], false => true)]
+    #[test_case(24, &[2, 4], true => true)]
+    #[test_case(24, &[2, 4], false => false)]
+    #[test_case(248, &[2, 4, 8], true => true)]
+    #[test_case(248, &[2, 4, 8], false => false)]
+    #[test_case(156, &[15, 6], true => true)]
+    #[test_case(7290, &[6, 8, 6, 15], true => true)]
+    #[test_case(192, &[17, 8, 14], true => true)]
+    fn test_is_result(sum: u128, inputs: &[u128], with_concat: bool) -> bool {
+        is_result(sum, inputs, with_concat)
     }
 
     #[test]
