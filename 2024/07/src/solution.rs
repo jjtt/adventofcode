@@ -3,27 +3,63 @@ use itertools::Itertools;
 use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
-fn is_result(sum: usize, inputs: &[usize], ndx: usize) -> bool {
-    if ndx == inputs.len() {
-        return sum == 0;
-    }
+fn is_result(sum: u128, inputs: &[u128], with_concat: bool) -> bool {
+    let last_ndx = inputs.len() - 1;
+    let last = inputs[last_ndx];
+    is_result_rec(sum, inputs, last, last_ndx, with_concat)
+}
 
-    let last = inputs[inputs.len() - ndx - 1];
+fn is_result_rec(
+    sum: u128,
+    inputs: &[u128],
+    last: u128,
+    last_ndx: usize,
+    with_concat: bool,
+) -> bool {
+    if last_ndx == 0 {
+        return sum == last;
+    }
 
     let mut found = false;
 
     if sum >= last {
-        found = is_result(sum - last, inputs, ndx + 1)
+        found = is_result_rec(
+            sum - last,
+            inputs,
+            inputs[last_ndx - 1],
+            last_ndx - 1,
+            with_concat,
+        )
     }
 
     if !found && sum % last == 0 {
-        found = is_result(sum / last, inputs, ndx + 1)
+        found = is_result_rec(
+            sum / last,
+            inputs,
+            inputs[last_ndx - 1],
+            last_ndx - 1,
+            with_concat,
+        )
+    }
+
+    if with_concat && !found && last_ndx > 0 {
+        let second_to_last = inputs[last_ndx - 1];
+        let new_last = second_to_last * 10u128.pow(last.ilog10() + 1) + last;
+        found = is_result_rec(sum, inputs, new_last, last_ndx - 1, with_concat)
     }
 
     found
 }
 
-pub fn part1(input: &str) -> usize {
+pub fn part1(input: &str) -> u128 {
+    parse(input)
+        .iter()
+        .filter(|(sum, inputs)| is_result(*sum, inputs, false))
+        .map(|(sum, _)| sum)
+        .sum()
+}
+
+fn parse(input: &str) -> Vec<(u128, Vec<u128>)> {
     let input = read_to_string(input).unwrap();
     let mut equations = input
         .trim()
@@ -32,22 +68,20 @@ pub fn part1(input: &str) -> usize {
             let (sum, inputs) = line.split(": ").collect_tuple().unwrap();
             let inputs = inputs
                 .split(" ")
-                .map(|i| i.parse::<usize>().unwrap())
+                .map(|i| i.parse::<u128>().unwrap())
                 .collect::<Vec<_>>();
-            (sum.parse::<usize>().unwrap(), inputs)
+            (sum.parse::<u128>().unwrap(), inputs)
         })
         .collect::<Vec<_>>();
-
     equations
-        .iter()
-        .filter(|(sum, inputs)| is_result(*sum, inputs, 0))
-        .map(|(sum, _)| sum)
-        .sum()
 }
 
-pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+pub fn part2(input: &str) -> u128 {
+    parse(input)
+        .iter()
+        .filter(|(sum, inputs)| is_result(*sum, inputs, true))
+        .map(|(sum, _)| sum)
+        .sum()
 }
 
 #[cfg(test)]
@@ -57,8 +91,9 @@ mod tests {
     #[test]
     fn test_is_result() {
         let inputs = vec![2, 4];
-        //assert_eq!(true, is_result(8, &inputs, 0));
-        assert_eq!(true, is_result(6, &inputs, 0));
+        assert_eq!(true, is_result(8, &inputs, true));
+        assert_eq!(true, is_result(6, &inputs, true));
+        assert_eq!(true, is_result(24, &inputs, true));
     }
 
     #[test]
@@ -69,5 +104,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(2654749936343, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(11387, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(0, part2("input.txt"));
     }
 }
