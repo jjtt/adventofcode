@@ -1,18 +1,33 @@
-use anyhow::bail;
 use itertools::Itertools;
-use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
-fn is_result(sum: u128, inputs: &[u128], with_concat: bool) -> bool {
+fn parse(input: &str) -> Vec<(usize, Vec<usize>)> {
+    let input = read_to_string(input).unwrap();
+    let equations = input
+        .trim()
+        .lines()
+        .map(|line| {
+            let (sum, inputs) = line.split(": ").collect_tuple().unwrap();
+            let inputs = inputs
+                .split(" ")
+                .map(|i| i.parse::<usize>().unwrap())
+                .collect::<Vec<_>>();
+            (sum.parse::<usize>().unwrap(), inputs)
+        })
+        .collect::<Vec<_>>();
+    equations
+}
+
+fn is_result(sum: usize, inputs: &[usize], with_concat: bool) -> bool {
     let last_ndx = inputs.len() - 1;
     let last = inputs[last_ndx];
     is_result_rec(sum, inputs, last, last_ndx, with_concat)
 }
 
 fn is_result_rec(
-    sum: u128,
-    inputs: &[u128],
-    last: u128,
+    sum: usize,
+    inputs: &[usize],
+    last: usize,
     last_ndx: usize,
     with_concat: bool,
 ) -> bool {
@@ -43,7 +58,7 @@ fn is_result_rec(
     }
 
     if with_concat && !found && last_ndx > 0 {
-        let d = 10u128.pow(last.ilog10() + 1);
+        let d = 10usize.pow(last.ilog10() + 1);
         if sum % d == last {
             found = is_result_rec(
                 sum / d,
@@ -58,7 +73,7 @@ fn is_result_rec(
     found
 }
 
-pub fn part1(input: &str) -> u128 {
+pub fn part1(input: &str) -> usize {
     parse(input)
         .iter()
         .filter(|(sum, inputs)| is_result(*sum, inputs, false))
@@ -66,24 +81,7 @@ pub fn part1(input: &str) -> u128 {
         .sum()
 }
 
-fn parse(input: &str) -> Vec<(u128, Vec<u128>)> {
-    let input = read_to_string(input).unwrap();
-    let mut equations = input
-        .trim()
-        .lines()
-        .map(|line| {
-            let (sum, inputs) = line.split(": ").collect_tuple().unwrap();
-            let inputs = inputs
-                .split(" ")
-                .map(|i| i.parse::<u128>().unwrap())
-                .collect::<Vec<_>>();
-            (sum.parse::<u128>().unwrap(), inputs)
-        })
-        .collect::<Vec<_>>();
-    equations
-}
-
-pub fn part2(input: &str) -> u128 {
+pub fn part2(input: &str) -> usize {
     parse(input)
         .iter()
         .filter(|(sum, inputs)| is_result(*sum, inputs, true))
@@ -107,7 +105,7 @@ mod tests {
     #[test_case(156, &[15, 6], true => true)]
     #[test_case(7290, &[6, 8, 6, 15], true => true)]
     #[test_case(192, &[17, 8, 14], true => true)]
-    fn test_is_result(sum: u128, inputs: &[u128], with_concat: bool) -> bool {
+    fn test_is_result(sum: usize, inputs: &[usize], with_concat: bool) -> bool {
         is_result(sum, inputs, with_concat)
     }
 
@@ -128,6 +126,6 @@ mod tests {
 
     #[test]
     fn part2_input() {
-        assert_eq!(0, part2("input.txt"));
+        assert_eq!(124060392153684, part2("input.txt"));
     }
 }
