@@ -44,8 +44,41 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    //todo!()
-    0
+    let input = read_to_string(input).unwrap();
+    let (cols, rows, antennas) = parse(input);
+
+    antennas
+        .values()
+        .flat_map(|antennas| {
+            antennas.iter().combinations(2).flat_map(|pair| {
+                assert_eq!(2, pair.len());
+                let (p1, p2) = (pair[0], pair[1]);
+                harmonics(*p1, *p2, cols, rows)
+            })
+        })
+        .collect::<HashSet<_>>()
+        .len()
+}
+
+fn harmonics(p0: (i32, i32), p1: (i32, i32), cols: i32, rows: i32) -> Vec<(i32, i32)> {
+    let dx = p1.0 - p0.0;
+    let dy = p1.1 - p0.1;
+    let mut result = Vec::new();
+    let mut x = p0.0;
+    let mut y = p0.1;
+    while x >= 0 && x < cols && y >= 0 && y < rows {
+        result.push((x, y));
+        x -= dx;
+        y -= dy;
+    }
+    x = p0.0 + dx;
+    y = p0.1 + dy;
+    while x >= 0 && x < cols && y >= 0 && y < rows {
+        result.push((x, y));
+        x += dx;
+        y += dy;
+    }
+    result
 }
 
 fn antinodes(p0: (i32, i32), p1: (i32, i32)) -> ((i32, i32), (i32, i32)) {
@@ -80,5 +113,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(336, part1("input.txt"));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(34, part2("sample.txt"));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(1131, part2("input.txt"));
     }
 }
