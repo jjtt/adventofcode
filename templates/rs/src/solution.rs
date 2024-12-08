@@ -1,4 +1,3 @@
-use anyhow::bail;
 use scan_fmt::scan_fmt;
 use std::fs::read_to_string;
 
