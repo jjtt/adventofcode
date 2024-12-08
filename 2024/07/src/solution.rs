@@ -20,17 +20,12 @@ fn parse(input: &str) -> Vec<(usize, Vec<usize>)> {
 
 fn is_result(sum: usize, inputs: &[usize], with_concat: bool) -> bool {
     let last_ndx = inputs.len() - 1;
-    let last = inputs[last_ndx];
-    is_result_rec(sum, inputs, last, last_ndx, with_concat)
+    is_result_rec(sum, inputs, last_ndx, with_concat)
 }
 
-fn is_result_rec(
-    sum: usize,
-    inputs: &[usize],
-    last: usize,
-    last_ndx: usize,
-    with_concat: bool,
-) -> bool {
+fn is_result_rec(sum: usize, inputs: &[usize], last_ndx: usize, with_concat: bool) -> bool {
+    let last = inputs[last_ndx];
+
     if last_ndx == 0 {
         return sum == last;
     }
@@ -38,35 +33,17 @@ fn is_result_rec(
     let mut found = false;
 
     if sum >= last {
-        found = is_result_rec(
-            sum - last,
-            inputs,
-            inputs[last_ndx - 1],
-            last_ndx - 1,
-            with_concat,
-        )
+        found = is_result_rec(sum - last, inputs, last_ndx - 1, with_concat)
     }
 
     if !found && sum % last == 0 {
-        found = is_result_rec(
-            sum / last,
-            inputs,
-            inputs[last_ndx - 1],
-            last_ndx - 1,
-            with_concat,
-        )
+        found = is_result_rec(sum / last, inputs, last_ndx - 1, with_concat)
     }
 
     if with_concat && !found && last_ndx > 0 {
         let d = 10usize.pow(last.ilog10() + 1);
         if sum % d == last {
-            found = is_result_rec(
-                sum / d,
-                inputs,
-                inputs[last_ndx - 1],
-                last_ndx - 1,
-                with_concat,
-            )
+            found = is_result_rec(sum / d, inputs, last_ndx - 1, with_concat)
         }
     }
 
